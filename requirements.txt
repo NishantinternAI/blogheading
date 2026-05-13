@@ -1,0 +1,10 @@
+requests
+beautifulsoup4
+streamlit
+lxml
+feedparser
+pandas
+numpy
+python-dotenv
+apscheduler
+openai

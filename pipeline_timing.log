@@ -1,0 +1,755 @@
+2026-05-01 01:20:08,454 [TIMER] Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-01 01:20:08,454 [TIMER] Scheduler started — pipeline runs every 5 minutes
+2026-05-01 01:20:08,454 [TIMER] Press Ctrl+C to stop
+2026-05-01 01:20:08,457 [TIMER] Added job "Blog Pipeline — every 5 min" to job store "default"
+2026-05-01 01:20:08,458 [TIMER] Scheduler started
+2026-05-01 01:25:00,023 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 01:25:00 IST)" (scheduled at 2026-05-01 01:25:00+05:30)
+2026-05-01 01:25:00,025 [TIMER] Pipeline job started
+2026-05-01 01:25:00,896 [TIMER] fetch_zerodha                            → 0.87s
+2026-05-01 01:25:01,731 [TIMER] fetch_cnbc                               → 0.83s
+2026-05-01 01:25:02,309 [TIMER] fetch_5paisa                             → 0.58s
+2026-05-01 01:25:02,783 [TIMER] fetch_livemint                           → 0.47s
+2026-05-01 01:25:03,993 [TIMER] fetch_nse_corporate                      → 1.21s
+2026-05-01 01:25:52,967 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:25:52,995 [TIMER] _filter_by_country                       -> 49.00s
+2026-05-01 01:26:02,535 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:26:02,539 [TIMER] _filter_by_category                      -> 9.54s
+2026-05-01 01:26:48,213 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:26:48,216 [TIMER] _generate_blog                           -> 45.67s
+2026-05-01 01:27:05,093 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:27:05,097 [TIMER] _generate_notification                   -> 16.88s
+2026-05-01 01:27:22,164 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:27:22,165 [TIMER] _generate_instagram                      -> 17.07s
+2026-05-01 01:27:40,909 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:27:40,913 [TIMER] _extract_image_text                      -> 18.75s
+2026-05-01 01:27:40,920 [TIMER] _select_template                         -> 0.01s
+2026-05-01 01:27:41,105 [TIMER] _compose_image                           -> 0.15s
+2026-05-01 01:27:41,239 [TIMER] _compose_image                           -> 0.13s
+2026-05-01 01:27:41,243 [TIMER] _save_output                             -> 0.00s
+2026-05-01 01:27:41,252 [TIMER] Pipeline job completed — 1 blogs saved
+2026-05-01 01:27:41,252 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 01:30:00 IST)" executed successfully
+2026-05-01 01:30:00,009 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 01:35:00 IST)" (scheduled at 2026-05-01 01:30:00+05:30)
+2026-05-01 01:30:00,012 [TIMER] Pipeline job started
+2026-05-01 01:30:00,755 [TIMER] fetch_zerodha                            → 0.74s
+2026-05-01 01:30:01,474 [TIMER] fetch_cnbc                               → 0.72s
+2026-05-01 01:30:02,024 [TIMER] fetch_5paisa                             → 0.55s
+2026-05-01 01:30:02,551 [TIMER] fetch_livemint                           → 0.53s
+2026-05-01 01:30:03,608 [TIMER] fetch_nse_corporate                      → 1.06s
+2026-05-01 01:30:03,609 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 01:30:03,609 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 01:31:17,814 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:31:17,815 [TIMER] _generate_blog                           -> 1.2m
+2026-05-01 01:31:33,491 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:31:33,492 [TIMER] _generate_notification                   -> 15.68s
+2026-05-01 01:32:05,244 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:32:05,246 [TIMER] _generate_instagram                      -> 31.75s
+2026-05-01 01:32:17,429 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:32:17,430 [TIMER] _extract_image_text                      -> 12.18s
+2026-05-01 01:32:17,432 [TIMER] _select_template                         -> 0.00s
+2026-05-01 01:32:17,555 [TIMER] _compose_image                           -> 0.12s
+2026-05-01 01:32:17,742 [TIMER] _compose_image                           -> 0.19s
+2026-05-01 01:32:17,748 [TIMER] _save_output                             -> 0.01s
+2026-05-01 01:32:17,757 [TIMER] Pipeline job completed — 1 blogs saved
+2026-05-01 01:32:17,758 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 01:35:00 IST)" executed successfully
+2026-05-01 01:36:45,117 [TIMER] Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-01 01:36:45,118 [TIMER] Scheduler started — pipeline runs every 5 minutes
+2026-05-01 01:36:45,118 [TIMER] Press Ctrl+C to stop
+2026-05-01 01:36:45,121 [TIMER] Added job "Blog Pipeline — every 5 min" to job store "default"
+2026-05-01 01:36:45,121 [TIMER] Scheduler started
+2026-05-01 01:40:00,014 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 01:40:00 IST)" (scheduled at 2026-05-01 01:40:00+05:30)
+2026-05-01 01:40:00,015 [TIMER] Pipeline job started
+2026-05-01 01:40:00,841 [TIMER] fetch_zerodha                            → 0.82s
+2026-05-01 01:40:01,858 [TIMER] fetch_cnbc                               → 1.02s
+2026-05-01 01:40:02,345 [TIMER] fetch_5paisa                             → 0.45s
+2026-05-01 01:40:03,044 [TIMER] fetch_livemint                           → 0.70s
+2026-05-01 01:40:04,589 [TIMER] fetch_nse_corporate                      → 1.49s
+2026-05-01 01:40:55,440 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 502 Bad Gateway"
+2026-05-01 01:40:55,441 [TIMER] Retrying request to /chat/completions in 60.000000 seconds
+2026-05-01 01:42:43,017 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:42:43,032 [TIMER] _filter_by_country                       -> 2.6m
+2026-05-01 01:43:03,097 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:43:03,100 [TIMER] _filter_by_category                      -> 20.07s
+2026-05-01 01:43:52,695 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:43:52,697 [TIMER] _generate_blog                           -> 49.59s
+2026-05-01 01:44:04,812 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:44:04,815 [TIMER] _generate_notification                   -> 12.12s
+2026-05-01 01:44:20,833 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:44:20,836 [TIMER] _generate_instagram                      -> 16.02s
+2026-05-01 01:44:30,784 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:44:30,786 [TIMER] _extract_image_text                      -> 9.95s
+2026-05-01 01:44:30,788 [TIMER] _select_template                         -> 0.00s
+2026-05-01 01:44:30,917 [TIMER] _compose_image                           -> 0.10s
+2026-05-01 01:44:31,062 [TIMER] _compose_image                           -> 0.14s
+2026-05-01 01:44:31,068 [TIMER] _save_output                             -> 0.01s
+2026-05-01 01:44:31,077 [TIMER] Pipeline job completed — 1 blogs saved
+2026-05-01 01:44:31,077 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 01:45:00 IST)" executed successfully
+2026-05-01 01:45:00,010 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 01:50:00 IST)" (scheduled at 2026-05-01 01:45:00+05:30)
+2026-05-01 01:45:00,012 [TIMER] Pipeline job started
+2026-05-01 01:45:00,764 [TIMER] fetch_zerodha                            → 0.75s
+2026-05-01 01:45:01,432 [TIMER] fetch_cnbc                               → 0.67s
+2026-05-01 01:45:01,887 [TIMER] fetch_5paisa                             → 0.45s
+2026-05-01 01:45:02,338 [TIMER] fetch_livemint                           → 0.45s
+2026-05-01 01:45:03,448 [TIMER] fetch_nse_corporate                      → 1.11s
+2026-05-01 01:45:03,449 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 01:45:03,449 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 01:46:06,107 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:46:06,112 [TIMER] _generate_blog                           -> 1.0m
+2026-05-01 01:46:18,568 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:46:18,569 [TIMER] _generate_notification                   -> 12.46s
+2026-05-01 01:46:37,531 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:46:37,534 [TIMER] _generate_instagram                      -> 18.97s
+2026-05-01 01:46:51,231 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:46:51,237 [TIMER] _extract_image_text                      -> 13.70s
+2026-05-01 01:46:51,241 [TIMER] _select_template                         -> 0.00s
+2026-05-01 01:46:51,346 [TIMER] _compose_image                           -> 0.10s
+2026-05-01 01:46:51,499 [TIMER] _compose_image                           -> 0.15s
+2026-05-01 01:46:51,510 [TIMER] _save_output                             -> 0.01s
+2026-05-01 01:46:51,521 [TIMER] Pipeline job completed — 1 blogs saved
+2026-05-01 01:46:51,522 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 01:50:00 IST)" executed successfully
+2026-05-01 01:53:44,658 [TIMER] Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-01 01:53:44,659 [TIMER] Scheduler started — pipeline runs every 5 minutes
+2026-05-01 01:53:44,659 [TIMER] Press Ctrl+C to stop
+2026-05-01 01:53:44,662 [TIMER] Added job "Blog Pipeline — every 5 min" to job store "default"
+2026-05-01 01:53:44,662 [TIMER] Scheduler started
+2026-05-01 01:55:00,025 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 01:55:00 IST)" (scheduled at 2026-05-01 01:55:00+05:30)
+2026-05-01 01:55:00,026 [TIMER] Pipeline job started
+2026-05-01 01:55:00,806 [TIMER] fetch_zerodha                            → 0.78s
+2026-05-01 01:55:01,489 [TIMER] fetch_cnbc                               → 0.68s
+2026-05-01 01:55:01,955 [TIMER] fetch_5paisa                             → 0.46s
+2026-05-01 01:55:02,374 [TIMER] fetch_livemint                           → 0.42s
+2026-05-01 01:55:03,533 [TIMER] fetch_nse_corporate                      → 1.16s
+2026-05-01 01:55:37,343 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:55:37,375 [TIMER] _filter_by_country                       -> 33.84s
+2026-05-01 01:55:49,203 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:55:49,207 [TIMER] _filter_by_category                      -> 11.83s
+2026-05-01 01:56:38,847 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:56:38,851 [TIMER] _generate_blog                           -> 49.64s
+2026-05-01 01:56:49,169 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:56:49,193 [TIMER] _generate_notification                   -> 10.34s
+2026-05-01 01:57:13,791 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:57:13,793 [TIMER] _generate_instagram                      -> 24.58s
+2026-05-01 01:57:28,860 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 01:57:28,862 [TIMER] _extract_image_text                      -> 15.07s
+2026-05-01 01:57:28,863 [TIMER] _select_template                         -> 0.00s
+2026-05-01 01:57:29,024 [TIMER] _compose_image                           -> 0.13s
+2026-05-01 01:57:29,274 [TIMER] _compose_image                           -> 0.25s
+2026-05-01 01:57:29,282 [TIMER] _save_output                             -> 0.01s
+2026-05-01 01:57:29,290 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 01:57:29,291 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 02:00:00 IST)" executed successfully
+2026-05-01 02:00:00,005 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 02:05:00 IST)" (scheduled at 2026-05-01 02:00:00+05:30)
+2026-05-01 02:00:00,009 [TIMER] Pipeline job started
+2026-05-01 02:00:00,852 [TIMER] fetch_zerodha                            → 0.84s
+2026-05-01 02:00:01,478 [TIMER] fetch_cnbc                               → 0.63s
+2026-05-01 02:00:01,941 [TIMER] fetch_5paisa                             → 0.46s
+2026-05-01 02:00:08,406 [TIMER] fetch_livemint                           → 6.47s
+2026-05-01 02:00:10,964 [TIMER] fetch_nse_corporate                      → 2.56s
+2026-05-01 02:00:10,965 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 02:00:10,966 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 02:00:54,972 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 02:00:54,979 [TIMER] _generate_blog                           -> 44.01s
+2026-05-01 02:01:07,511 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 02:01:07,514 [TIMER] _generate_notification                   -> 12.53s
+2026-05-01 02:01:23,867 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 02:01:23,893 [TIMER] _generate_instagram                      -> 16.38s
+2026-05-01 02:01:37,152 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 02:01:37,154 [TIMER] _extract_image_text                      -> 13.26s
+2026-05-01 02:01:37,155 [TIMER] _select_template                         -> 0.00s
+2026-05-01 02:01:37,262 [TIMER] _compose_image                           -> 0.10s
+2026-05-01 02:01:37,400 [TIMER] _compose_image                           -> 0.14s
+2026-05-01 02:01:37,406 [TIMER] _save_output                             -> 0.01s
+2026-05-01 02:01:37,409 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 02:01:37,410 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 02:05:00 IST)" executed successfully
+2026-05-01 02:05:00,006 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 02:10:00 IST)" (scheduled at 2026-05-01 02:05:00+05:30)
+2026-05-01 02:05:00,007 [TIMER] Pipeline job started
+2026-05-01 02:05:00,854 [TIMER] fetch_zerodha                            → 0.84s
+2026-05-01 02:05:01,639 [TIMER] fetch_cnbc                               → 0.78s
+2026-05-01 02:05:02,046 [TIMER] fetch_5paisa                             → 0.41s
+2026-05-01 02:05:02,534 [TIMER] fetch_livemint                           → 0.49s
+2026-05-01 02:05:03,613 [TIMER] fetch_nse_corporate                      → 1.08s
+2026-05-01 02:05:03,613 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 02:05:03,614 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 02:06:05,788 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 02:06:05,805 [TIMER] _generate_blog                           -> 1.0m
+2026-05-01 02:06:15,069 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 02:06:15,071 [TIMER] _generate_notification                   -> 9.25s
+2026-05-01 02:06:33,949 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 02:06:33,950 [TIMER] _generate_instagram                      -> 18.88s
+2026-05-01 02:06:50,743 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 02:06:50,744 [TIMER] _extract_image_text                      -> 16.79s
+2026-05-01 02:06:50,745 [TIMER] _select_template                         -> 0.00s
+2026-05-01 02:06:50,836 [TIMER] _compose_image                           -> 0.09s
+2026-05-01 02:06:51,009 [TIMER] _compose_image                           -> 0.17s
+2026-05-01 02:06:51,018 [TIMER] _save_output                             -> 0.01s
+2026-05-01 02:06:51,020 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 02:06:51,020 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 02:10:00 IST)" executed successfully
+2026-05-01 11:07:25,467 [TIMER] Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-01 11:07:25,468 [TIMER] Scheduler started — pipeline runs every 5 minutes
+2026-05-01 11:07:25,470 [TIMER] Press Ctrl+C to stop
+2026-05-01 11:07:25,480 [TIMER] Added job "Blog Pipeline — every 5 min" to job store "default"
+2026-05-01 11:07:25,480 [TIMER] Scheduler started
+2026-05-01 11:10:00,043 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:10:00 IST)" (scheduled at 2026-05-01 11:10:00+05:30)
+2026-05-01 11:10:00,045 [TIMER] Pipeline job started
+2026-05-01 11:10:00,608 [TIMER] fetch_zerodha                            → 0.56s
+2026-05-01 11:10:01,511 [TIMER] fetch_cnbc                               → 0.90s
+2026-05-01 11:10:02,203 [TIMER] fetch_5paisa                             → 0.69s
+2026-05-01 11:10:03,097 [TIMER] fetch_livemint                           → 0.89s
+2026-05-01 11:10:04,788 [TIMER] fetch_nse_corporate                      → 1.69s
+2026-05-01 11:10:58,361 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:10:58,439 [TIMER] _filter_by_country                       -> 53.65s
+2026-05-01 11:11:14,124 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:11:14,130 [TIMER] _filter_by_category                      -> 15.69s
+2026-05-01 11:12:04,723 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:12:04,735 [TIMER] _generate_blog                           -> 50.60s
+2026-05-01 11:12:22,003 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:12:22,005 [TIMER] _generate_notification                   -> 17.27s
+2026-05-01 11:12:40,656 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:12:40,659 [TIMER] _generate_instagram                      -> 18.65s
+2026-05-01 11:13:01,027 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:13:01,029 [TIMER] _extract_image_text                      -> 20.37s
+2026-05-01 11:13:01,032 [TIMER] _select_template                         -> 0.00s
+2026-05-01 11:13:01,747 [TIMER] _compose_image                           -> 0.36s
+2026-05-01 11:13:02,002 [TIMER] _compose_image                           -> 0.25s
+2026-05-01 11:13:02,012 [TIMER] _save_output                             -> 0.01s
+2026-05-01 11:13:02,431 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 11:13:02,450 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:15:00 IST)" executed successfully
+2026-05-01 11:15:00,011 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:20:00 IST)" (scheduled at 2026-05-01 11:15:00+05:30)
+2026-05-01 11:15:00,016 [TIMER] Pipeline job started
+2026-05-01 11:15:00,750 [TIMER] fetch_zerodha                            → 0.70s
+2026-05-01 11:15:01,656 [TIMER] fetch_cnbc                               → 0.90s
+2026-05-01 11:15:02,473 [TIMER] fetch_5paisa                             → 0.82s
+2026-05-01 11:15:03,083 [TIMER] fetch_livemint                           → 0.61s
+2026-05-01 11:15:05,116 [TIMER] fetch_nse_corporate                      → 2.03s
+2026-05-01 11:15:05,118 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 11:15:05,119 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 11:16:08,340 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:16:08,353 [TIMER] _generate_blog                           -> 1.1m
+2026-05-01 11:16:24,096 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:16:24,098 [TIMER] _generate_notification                   -> 15.74s
+2026-05-01 11:16:37,509 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:16:37,516 [TIMER] _generate_instagram                      -> 13.42s
+2026-05-01 11:16:52,969 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:16:52,972 [TIMER] _extract_image_text                      -> 15.46s
+2026-05-01 11:16:52,974 [TIMER] _select_template                         -> 0.00s
+2026-05-01 11:16:53,195 [TIMER] _compose_image                           -> 0.22s
+2026-05-01 11:16:53,592 [TIMER] _compose_image                           -> 0.40s
+2026-05-01 11:16:53,603 [TIMER] _save_output                             -> 0.01s
+2026-05-01 11:16:53,616 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 11:16:53,616 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:20:00 IST)" executed successfully
+2026-05-01 11:20:00,015 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:25:00 IST)" (scheduled at 2026-05-01 11:20:00+05:30)
+2026-05-01 11:20:00,020 [TIMER] Pipeline job started
+2026-05-01 11:20:00,697 [TIMER] fetch_zerodha                            → 0.66s
+2026-05-01 11:20:01,378 [TIMER] fetch_cnbc                               → 0.68s
+2026-05-01 11:20:01,834 [TIMER] fetch_5paisa                             → 0.46s
+2026-05-01 11:20:02,095 [TIMER] fetch_livemint                           → 0.26s
+2026-05-01 11:20:03,149 [TIMER] fetch_nse_corporate                      → 1.05s
+2026-05-01 11:20:59,974 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:20:59,978 [TIMER] _filter_by_country                       -> 56.83s
+2026-05-01 11:21:14,245 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:21:14,251 [TIMER] _filter_by_category                      -> 14.27s
+2026-05-01 11:21:56,041 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:21:56,048 [TIMER] _generate_blog                           -> 41.79s
+2026-05-01 11:22:10,578 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:22:10,581 [TIMER] _generate_notification                   -> 14.53s
+2026-05-01 11:22:23,313 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:22:23,315 [TIMER] _generate_instagram                      -> 12.73s
+2026-05-01 11:22:33,760 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:22:33,765 [TIMER] _extract_image_text                      -> 10.45s
+2026-05-01 11:22:33,773 [TIMER] _select_template                         -> 0.01s
+2026-05-01 11:22:33,896 [TIMER] _compose_image                           -> 0.12s
+2026-05-01 11:22:34,064 [TIMER] _compose_image                           -> 0.17s
+2026-05-01 11:22:34,071 [TIMER] _save_output                             -> 0.01s
+2026-05-01 11:22:34,074 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 11:22:34,074 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:25:00 IST)" executed successfully
+2026-05-01 11:25:00,009 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:30:00 IST)" (scheduled at 2026-05-01 11:25:00+05:30)
+2026-05-01 11:25:00,013 [TIMER] Pipeline job started
+2026-05-01 11:25:09,295 [TIMER] fetch_zerodha                            → 9.28s
+2026-05-01 11:25:09,337 [TIMER] Pipeline job failed: [WinError 10053] An established connection was aborted by the software in your host machine
+Traceback (most recent call last):
+  File "D:\Blogheading\scheduler.py", line 26, in run_job
+    output   = run_pipeline(DEFAULT_COUNTRY, DEFAULT_CATEGORY)
+  File "D:\Blogheading\mergeall_engine.py", line 116, in run_pipeline
+    all_data.extend(fetch_zerodha()[:TOP_N])
+                    ~~~~~~~~~~~~~^^
+  File "D:\Blogheading\RSS\zerodha.py", line 5, in fetch_zerodha
+    feed = feedparser.parse(url)
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\site-packages\feedparser\api.py", line 216, in parse
+    data = _open_resource(url_file_stream_or_string, etag, modified, agent, referrer, handlers, request_headers, result)
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\site-packages\feedparser\api.py", line 115, in _open_resource
+    return http.get(url_file_stream_or_string, etag, modified, agent, referrer, handlers, request_headers, result)
+           ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\site-packages\feedparser\http.py", line 171, in get
+    f = opener.open(request)
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 489, in open
+    response = self._open(req, data)
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 506, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+                              '_open', req)
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 466, in _call_chain
+    result = func(*args)
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 1367, in https_open
+    return self.do_open(http.client.HTTPSConnection, req,
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        context=self._context)
+                        ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\urllib\request.py", line 1323, in do_open
+    r = h.getresponse()
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\http\client.py", line 1450, in getresponse
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\http\client.py", line 336, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\http\client.py", line 297, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\socket.py", line 719, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\ssl.py", line 1304, in recv_into
+    return self.read(nbytes, buffer)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\Nishant.D\AppData\Local\Programs\Python\Python313\Lib\ssl.py", line 1138, in read
+    return self._sslobj.read(len, buffer)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+ConnectionAbortedError: [WinError 10053] An established connection was aborted by the software in your host machine
+2026-05-01 11:25:09,877 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:30:00 IST)" executed successfully
+2026-05-01 11:30:00,008 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:35:00 IST)" (scheduled at 2026-05-01 11:30:00+05:30)
+2026-05-01 11:30:00,016 [TIMER] Pipeline job started
+2026-05-01 11:30:00,709 [TIMER] fetch_zerodha                            → 0.68s
+2026-05-01 11:30:01,466 [TIMER] fetch_cnbc                               → 0.76s
+2026-05-01 11:30:01,835 [TIMER] fetch_5paisa                             → 0.37s
+2026-05-01 11:30:02,265 [TIMER] fetch_livemint                           → 0.43s
+2026-05-01 11:30:03,335 [TIMER] fetch_nse_corporate                      → 1.07s
+2026-05-01 11:31:09,862 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:31:09,892 [TIMER] _filter_by_country                       -> 1.1m
+2026-05-01 11:31:22,960 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:31:22,962 [TIMER] _filter_by_category                      -> 13.07s
+2026-05-01 11:32:29,304 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:32:29,314 [TIMER] _generate_blog                           -> 1.1m
+2026-05-01 11:32:38,966 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:32:38,972 [TIMER] _generate_notification                   -> 9.66s
+2026-05-01 11:32:55,176 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:32:55,181 [TIMER] _generate_instagram                      -> 16.21s
+2026-05-01 11:33:08,526 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:33:08,529 [TIMER] _extract_image_text                      -> 13.35s
+2026-05-01 11:33:08,531 [TIMER] _select_template                         -> 0.00s
+2026-05-01 11:33:08,718 [TIMER] _compose_image                           -> 0.18s
+2026-05-01 11:33:09,118 [TIMER] _compose_image                           -> 0.40s
+2026-05-01 11:33:09,155 [TIMER] _save_output                             -> 0.03s
+2026-05-01 11:33:09,359 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 11:33:09,368 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:35:00 IST)" executed successfully
+2026-05-01 11:35:00,009 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:40:00 IST)" (scheduled at 2026-05-01 11:35:00+05:30)
+2026-05-01 11:35:00,019 [TIMER] Pipeline job started
+2026-05-01 11:35:00,575 [TIMER] fetch_zerodha                            → 0.55s
+2026-05-01 11:35:01,923 [TIMER] fetch_cnbc                               → 1.35s
+2026-05-01 11:35:02,271 [TIMER] fetch_5paisa                             → 0.35s
+2026-05-01 11:35:02,566 [TIMER] fetch_livemint                           → 0.30s
+2026-05-01 11:35:04,564 [TIMER] fetch_nse_corporate                      → 2.00s
+2026-05-01 11:35:04,565 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 11:35:04,581 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 11:35:39,688 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:35:39,692 [TIMER] _generate_blog                           -> 35.10s
+2026-05-01 11:35:49,173 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:35:49,178 [TIMER] _generate_notification                   -> 9.49s
+2026-05-01 11:36:05,815 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:36:05,826 [TIMER] _generate_instagram                      -> 16.65s
+2026-05-01 11:36:22,923 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:36:22,932 [TIMER] _extract_image_text                      -> 17.10s
+2026-05-01 11:36:22,940 [TIMER] _select_template                         -> 0.01s
+2026-05-01 11:36:23,178 [TIMER] _compose_image                           -> 0.22s
+2026-05-01 11:36:23,434 [TIMER] _compose_image                           -> 0.26s
+2026-05-01 11:36:23,459 [TIMER] _save_output                             -> 0.02s
+2026-05-01 11:36:23,461 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 11:36:23,461 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:40:00 IST)" executed successfully
+2026-05-01 11:40:00,012 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 11:45:00 IST)" (scheduled at 2026-05-01 11:40:00+05:30)
+2026-05-01 11:40:00,017 [TIMER] Pipeline job started
+2026-05-01 11:40:00,632 [TIMER] fetch_zerodha                            → 0.61s
+2026-05-01 11:40:01,091 [TIMER] fetch_cnbc                               → 0.46s
+2026-05-01 11:40:01,310 [TIMER] fetch_5paisa                             → 0.22s
+2026-05-01 11:40:01,620 [TIMER] fetch_livemint                           → 0.31s
+2026-05-01 11:40:03,331 [TIMER] fetch_nse_corporate                      → 1.71s
+2026-05-01 11:41:27,751 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:41:27,759 [TIMER] _filter_by_country                       -> 1.4m
+2026-05-01 11:41:39,935 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 11:41:39,942 [TIMER] _filter_by_category                      -> 12.18s
+2026-05-01 12:56:18,072 [TIMER] Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-01 12:56:18,073 [TIMER] Scheduler started — pipeline runs every 5 minutes
+2026-05-01 12:56:18,075 [TIMER] Press Ctrl+C to stop
+2026-05-01 12:56:18,080 [TIMER] Added job "Blog Pipeline — every 5 min" to job store "default"
+2026-05-01 12:56:18,080 [TIMER] Scheduler started
+2026-05-01 13:00:00,058 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:00:00 IST)" (scheduled at 2026-05-01 13:00:00+05:30)
+2026-05-01 13:00:00,060 [TIMER] Pipeline job started
+2026-05-01 13:00:00,632 [TIMER] fetch_zerodha                            → 0.57s
+2026-05-01 13:00:01,372 [TIMER] fetch_cnbc                               → 0.74s
+2026-05-01 13:00:01,894 [TIMER] fetch_5paisa                             → 0.52s
+2026-05-01 13:00:02,653 [TIMER] fetch_livemint                           → 0.76s
+2026-05-01 13:00:04,819 [TIMER] fetch_nse_corporate                      → 2.17s
+2026-05-01 13:01:06,878 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:01:06,899 [TIMER] _filter_by_country                       -> 1.0m
+2026-05-01 13:01:24,524 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:01:24,527 [TIMER] _filter_by_category                      -> 17.63s
+2026-05-01 13:03:02,969 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:03:02,985 [TIMER] _generate_blog                           -> 1.6m
+2026-05-01 13:03:25,446 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:03:25,470 [TIMER] _generate_notification                   -> 22.49s
+2026-05-01 13:03:48,941 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:03:48,949 [TIMER] _generate_instagram                      -> 23.47s
+2026-05-01 13:04:02,707 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:04:02,719 [TIMER] _extract_image_text                      -> 13.76s
+2026-05-01 13:04:02,725 [TIMER] _select_template                         -> 0.01s
+2026-05-01 13:04:03,170 [TIMER] _compose_image                           -> 0.36s
+2026-05-01 13:04:03,660 [TIMER] _compose_image                           -> 0.49s
+2026-05-01 13:04:03,689 [TIMER] _save_output                             -> 0.03s
+2026-05-01 13:04:03,695 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:04:03,697 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:05:00 IST)" executed successfully
+2026-05-01 13:05:00,012 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:10:00 IST)" (scheduled at 2026-05-01 13:05:00+05:30)
+2026-05-01 13:05:00,014 [TIMER] Pipeline job started
+2026-05-01 13:05:00,770 [TIMER] fetch_zerodha                            → 0.75s
+2026-05-01 13:05:01,534 [TIMER] fetch_cnbc                               → 0.76s
+2026-05-01 13:05:01,952 [TIMER] fetch_5paisa                             → 0.42s
+2026-05-01 13:05:02,675 [TIMER] fetch_livemint                           → 0.72s
+2026-05-01 13:05:03,962 [TIMER] fetch_nse_corporate                      → 1.29s
+2026-05-01 13:05:03,963 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 13:05:03,964 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 13:06:00,604 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:06:00,655 [TIMER] _generate_blog                           -> 56.68s
+2026-05-01 13:06:21,064 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:06:21,108 [TIMER] _generate_notification                   -> 20.45s
+2026-05-01 13:06:36,502 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:06:36,682 [TIMER] _generate_instagram                      -> 15.57s
+2026-05-01 13:06:53,989 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:06:53,990 [TIMER] _extract_image_text                      -> 17.31s
+2026-05-01 13:06:53,991 [TIMER] _select_template                         -> 0.00s
+2026-05-01 13:06:54,088 [TIMER] _compose_image                           -> 0.09s
+2026-05-01 13:06:54,264 [TIMER] _compose_image                           -> 0.18s
+2026-05-01 13:06:54,273 [TIMER] _save_output                             -> 0.01s
+2026-05-01 13:06:54,276 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:06:54,276 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:10:00 IST)" executed successfully
+2026-05-01 13:10:00,014 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:15:00 IST)" (scheduled at 2026-05-01 13:10:00+05:30)
+2026-05-01 13:10:00,016 [TIMER] Pipeline job started
+2026-05-01 13:10:00,903 [TIMER] fetch_zerodha                            → 0.88s
+2026-05-01 13:10:02,410 [TIMER] fetch_cnbc                               → 1.51s
+2026-05-01 13:10:03,193 [TIMER] fetch_5paisa                             → 0.78s
+2026-05-01 13:10:04,140 [TIMER] fetch_livemint                           → 0.95s
+2026-05-01 13:10:06,497 [TIMER] fetch_nse_corporate                      → 2.36s
+2026-05-01 13:11:00,214 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:11:00,220 [TIMER] _filter_by_country                       -> 53.72s
+2026-05-01 13:11:21,886 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:11:21,889 [TIMER] _filter_by_category                      -> 21.67s
+2026-05-01 13:12:34,390 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:12:34,581 [TIMER] _generate_blog                           -> 1.2m
+2026-05-01 13:12:51,837 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:12:51,844 [TIMER] _generate_notification                   -> 17.26s
+2026-05-01 13:13:17,284 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:13:17,371 [TIMER] _generate_instagram                      -> 25.52s
+2026-05-01 13:13:32,820 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:13:32,880 [TIMER] _extract_image_text                      -> 15.51s
+2026-05-01 13:13:32,882 [TIMER] _select_template                         -> 0.00s
+2026-05-01 13:13:33,000 [TIMER] _compose_image                           -> 0.12s
+2026-05-01 13:13:33,168 [TIMER] _compose_image                           -> 0.17s
+2026-05-01 13:13:33,177 [TIMER] _save_output                             -> 0.01s
+2026-05-01 13:13:33,179 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:13:33,179 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:15:00 IST)" executed successfully
+2026-05-01 13:15:00,007 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:20:00 IST)" (scheduled at 2026-05-01 13:15:00+05:30)
+2026-05-01 13:15:00,013 [TIMER] Pipeline job started
+2026-05-01 13:15:01,078 [TIMER] fetch_zerodha                            → 1.04s
+2026-05-01 13:15:02,036 [TIMER] fetch_cnbc                               → 0.96s
+2026-05-01 13:15:02,764 [TIMER] fetch_5paisa                             → 0.73s
+2026-05-01 13:15:03,239 [TIMER] fetch_livemint                           → 0.48s
+2026-05-01 13:15:04,564 [TIMER] fetch_nse_corporate                      → 1.32s
+2026-05-01 13:15:04,565 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 13:15:04,566 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 13:16:10,445 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:16:10,451 [TIMER] _generate_blog                           -> 1.1m
+2026-05-01 13:16:22,822 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:16:22,827 [TIMER] _generate_notification                   -> 12.38s
+2026-05-01 13:16:39,868 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:16:39,933 [TIMER] _generate_instagram                      -> 17.10s
+2026-05-01 13:16:54,932 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:16:54,935 [TIMER] _extract_image_text                      -> 15.00s
+2026-05-01 13:16:54,939 [TIMER] _select_template                         -> 0.00s
+2026-05-01 13:16:55,042 [TIMER] _compose_image                           -> 0.10s
+2026-05-01 13:16:55,179 [TIMER] _compose_image                           -> 0.14s
+2026-05-01 13:16:55,197 [TIMER] _save_output                             -> 0.02s
+2026-05-01 13:16:55,201 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:16:55,202 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:20:00 IST)" executed successfully
+2026-05-01 13:20:00,005 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:25:00 IST)" (scheduled at 2026-05-01 13:20:00+05:30)
+2026-05-01 13:20:00,006 [TIMER] Pipeline job started
+2026-05-01 13:20:02,037 [TIMER] fetch_zerodha                            → 2.02s
+2026-05-01 13:20:05,204 [TIMER] fetch_cnbc                               → 3.17s
+2026-05-01 13:20:08,106 [TIMER] fetch_5paisa                             → 2.90s
+2026-05-01 13:20:11,256 [TIMER] fetch_livemint                           → 3.15s
+2026-05-01 13:20:15,651 [TIMER] fetch_nse_corporate                      → 4.40s
+2026-05-01 13:21:11,247 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:21:11,250 [TIMER] _filter_by_country                       -> 55.56s
+2026-05-01 13:21:32,137 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:21:32,168 [TIMER] _filter_by_category                      -> 20.92s
+2026-05-01 13:22:57,545 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:22:57,570 [TIMER] _generate_blog                           -> 1.4m
+2026-05-01 13:23:14,213 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:23:14,219 [TIMER] _generate_notification                   -> 16.64s
+2026-05-01 13:23:38,008 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:23:38,019 [TIMER] _generate_instagram                      -> 23.80s
+2026-05-01 13:23:57,706 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:23:57,708 [TIMER] _extract_image_text                      -> 19.68s
+2026-05-01 13:23:57,711 [TIMER] _select_template                         -> 0.00s
+2026-05-01 13:23:57,874 [TIMER] _compose_image                           -> 0.16s
+2026-05-01 13:23:58,077 [TIMER] _compose_image                           -> 0.20s
+2026-05-01 13:23:58,087 [TIMER] _save_output                             -> 0.01s
+2026-05-01 13:23:58,089 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:23:58,089 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:25:00 IST)" executed successfully
+2026-05-01 13:25:00,006 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:30:00 IST)" (scheduled at 2026-05-01 13:25:00+05:30)
+2026-05-01 13:25:00,008 [TIMER] Pipeline job started
+2026-05-01 13:25:09,164 [TIMER] fetch_zerodha                            → 9.15s
+2026-05-01 13:25:18,704 [TIMER] fetch_cnbc                               → 9.54s
+2026-05-01 13:25:24,303 [TIMER] fetch_5paisa                             → 5.60s
+2026-05-01 13:25:31,091 [TIMER] fetch_livemint                           → 6.79s
+2026-05-01 13:25:37,259 [TIMER] fetch_nse_corporate                      → 6.17s
+2026-05-01 13:26:26,899 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:26:26,929 [TIMER] _filter_by_country                       -> 49.67s
+2026-05-01 13:26:46,622 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:26:46,629 [TIMER] _filter_by_category                      -> 19.70s
+2026-05-01 13:27:36,584 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:27:36,648 [TIMER] _generate_blog                           -> 50.01s
+2026-05-01 13:27:51,633 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:27:51,752 [TIMER] _generate_notification                   -> 15.10s
+2026-05-01 13:28:07,121 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:28:07,174 [TIMER] _generate_instagram                      -> 15.42s
+2026-05-01 13:28:17,569 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:28:17,655 [TIMER] _extract_image_text                      -> 10.48s
+2026-05-01 13:28:17,659 [TIMER] _select_template                         -> 0.00s
+2026-05-01 13:28:17,819 [TIMER] _compose_image                           -> 0.15s
+2026-05-01 13:28:18,067 [TIMER] _compose_image                           -> 0.25s
+2026-05-01 13:28:18,089 [TIMER] _save_output                             -> 0.02s
+2026-05-01 13:28:18,091 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:28:18,093 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:30:00 IST)" executed successfully
+2026-05-01 13:30:00,028 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:35:00 IST)" (scheduled at 2026-05-01 13:30:00+05:30)
+2026-05-01 13:30:00,029 [TIMER] Pipeline job started
+2026-05-01 13:30:00,807 [TIMER] fetch_zerodha                            → 0.78s
+2026-05-01 13:30:02,008 [TIMER] fetch_cnbc                               → 1.20s
+2026-05-01 13:30:02,959 [TIMER] fetch_5paisa                             → 0.95s
+2026-05-01 13:30:03,886 [TIMER] fetch_livemint                           → 0.93s
+2026-05-01 13:30:05,371 [TIMER] fetch_nse_corporate                      → 1.48s
+2026-05-01 13:30:05,372 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 13:30:05,372 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 13:31:26,885 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:31:26,896 [TIMER] _generate_blog                           -> 1.4m
+2026-05-01 13:31:45,825 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:31:46,001 [TIMER] _generate_notification                   -> 19.10s
+2026-05-01 13:32:01,991 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:32:02,084 [TIMER] _generate_instagram                      -> 16.08s
+2026-05-01 13:32:12,406 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:32:12,725 [TIMER] _extract_image_text                      -> 10.64s
+2026-05-01 13:32:12,727 [TIMER] _select_template                         -> 0.00s
+2026-05-01 13:32:12,843 [TIMER] _compose_image                           -> 0.11s
+2026-05-01 13:32:12,984 [TIMER] _compose_image                           -> 0.14s
+2026-05-01 13:32:12,996 [TIMER] _save_output                             -> 0.01s
+2026-05-01 13:32:12,998 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:32:12,998 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:35:00 IST)" executed successfully
+2026-05-01 13:35:00,011 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:40:00 IST)" (scheduled at 2026-05-01 13:35:00+05:30)
+2026-05-01 13:35:00,029 [TIMER] Pipeline job started
+2026-05-01 13:35:04,439 [TIMER] fetch_zerodha                            → 4.39s
+2026-05-01 13:35:05,800 [TIMER] fetch_cnbc                               → 1.36s
+2026-05-01 13:35:06,218 [TIMER] fetch_5paisa                             → 0.42s
+2026-05-01 13:35:07,201 [TIMER] fetch_livemint                           → 0.98s
+2026-05-01 13:35:08,628 [TIMER] fetch_nse_corporate                      → 1.43s
+2026-05-01 13:35:08,629 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 13:35:08,630 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 13:36:46,678 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:36:46,692 [TIMER] _generate_blog                           -> 1.6m
+2026-05-01 13:36:58,575 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:36:58,584 [TIMER] _generate_notification                   -> 11.89s
+2026-05-01 13:37:17,259 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:37:17,261 [TIMER] _generate_instagram                      -> 18.67s
+2026-05-01 13:37:28,602 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:37:28,603 [TIMER] _extract_image_text                      -> 11.34s
+2026-05-01 13:37:28,605 [TIMER] _select_template                         -> 0.00s
+2026-05-01 13:37:28,791 [TIMER] _compose_image                           -> 0.18s
+2026-05-01 13:37:28,979 [TIMER] _compose_image                           -> 0.19s
+2026-05-01 13:37:29,004 [TIMER] _save_output                             -> 0.02s
+2026-05-01 13:37:29,006 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:37:29,006 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:40:00 IST)" executed successfully
+2026-05-01 13:40:00,024 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:45:00 IST)" (scheduled at 2026-05-01 13:40:00+05:30)
+2026-05-01 13:40:00,025 [TIMER] Pipeline job started
+2026-05-01 13:40:00,935 [TIMER] fetch_zerodha                            → 0.91s
+2026-05-01 13:40:01,777 [TIMER] fetch_cnbc                               → 0.84s
+2026-05-01 13:40:02,386 [TIMER] fetch_5paisa                             → 0.61s
+2026-05-01 13:40:02,986 [TIMER] fetch_livemint                           → 0.60s
+2026-05-01 13:40:04,459 [TIMER] fetch_nse_corporate                      → 1.47s
+2026-05-01 13:40:04,460 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 13:40:04,460 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 13:41:01,764 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:41:01,768 [TIMER] _generate_blog                           -> 57.30s
+2026-05-01 13:41:12,861 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:41:12,866 [TIMER] _generate_notification                   -> 11.10s
+2026-05-01 13:41:36,164 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:41:36,167 [TIMER] _generate_instagram                      -> 23.30s
+2026-05-01 13:41:54,220 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:41:54,245 [TIMER] _extract_image_text                      -> 18.08s
+2026-05-01 13:41:54,246 [TIMER] _select_template                         -> 0.00s
+2026-05-01 13:41:54,351 [TIMER] _compose_image                           -> 0.10s
+2026-05-01 13:41:54,547 [TIMER] _compose_image                           -> 0.20s
+2026-05-01 13:41:54,566 [TIMER] _save_output                             -> 0.02s
+2026-05-01 13:41:54,568 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:41:54,568 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:45:00 IST)" executed successfully
+2026-05-01 13:45:00,005 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:50:00 IST)" (scheduled at 2026-05-01 13:45:00+05:30)
+2026-05-01 13:45:00,006 [TIMER] Pipeline job started
+2026-05-01 13:45:00,500 [TIMER] fetch_zerodha                            → 0.49s
+2026-05-01 13:45:01,116 [TIMER] fetch_cnbc                               → 0.62s
+2026-05-01 13:45:01,525 [TIMER] fetch_5paisa                             → 0.41s
+2026-05-01 13:45:01,807 [TIMER] fetch_livemint                           → 0.28s
+2026-05-01 13:45:03,136 [TIMER] fetch_nse_corporate                      → 1.33s
+2026-05-01 13:45:03,138 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 13:45:03,139 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 13:45:58,844 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:45:58,848 [TIMER] _generate_blog                           -> 55.70s
+2026-05-01 13:46:09,074 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:46:09,078 [TIMER] _generate_notification                   -> 10.23s
+2026-05-01 13:46:25,175 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:46:25,176 [TIMER] _generate_instagram                      -> 16.10s
+2026-05-01 13:46:34,677 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:46:34,684 [TIMER] _extract_image_text                      -> 9.51s
+2026-05-01 13:46:34,686 [TIMER] _select_template                         -> 0.00s
+2026-05-01 13:46:34,785 [TIMER] _compose_image                           -> 0.10s
+2026-05-01 13:46:34,928 [TIMER] _compose_image                           -> 0.14s
+2026-05-01 13:46:34,941 [TIMER] _save_output                             -> 0.01s
+2026-05-01 13:46:34,944 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:46:34,945 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:50:00 IST)" executed successfully
+2026-05-01 13:50:00,045 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:55:00 IST)" (scheduled at 2026-05-01 13:50:00+05:30)
+2026-05-01 13:50:00,051 [TIMER] Pipeline job started
+2026-05-01 13:50:00,847 [TIMER] fetch_zerodha                            → 0.79s
+2026-05-01 13:50:01,796 [TIMER] fetch_cnbc                               → 0.95s
+2026-05-01 13:50:02,065 [TIMER] fetch_5paisa                             → 0.27s
+2026-05-01 13:50:02,344 [TIMER] fetch_livemint                           → 0.28s
+2026-05-01 13:50:04,532 [TIMER] fetch_nse_corporate                      → 2.19s
+2026-05-01 13:50:04,534 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 13:50:04,535 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 13:50:58,015 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:50:58,058 [TIMER] _generate_blog                           -> 53.51s
+2026-05-01 13:51:11,005 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:51:11,017 [TIMER] _generate_notification                   -> 12.96s
+2026-05-01 13:51:30,969 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:51:30,999 [TIMER] _generate_instagram                      -> 19.98s
+2026-05-01 13:51:44,662 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:51:44,671 [TIMER] _extract_image_text                      -> 13.67s
+2026-05-01 13:51:44,682 [TIMER] _select_template                         -> 0.01s
+2026-05-01 13:51:44,853 [TIMER] _compose_image                           -> 0.15s
+2026-05-01 13:51:45,028 [TIMER] _compose_image                           -> 0.17s
+2026-05-01 13:51:45,046 [TIMER] _save_output                             -> 0.02s
+2026-05-01 13:51:45,048 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:51:45,049 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 13:55:00 IST)" executed successfully
+2026-05-01 13:55:00,022 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 14:00:00 IST)" (scheduled at 2026-05-01 13:55:00+05:30)
+2026-05-01 13:55:00,023 [TIMER] Pipeline job started
+2026-05-01 13:55:00,550 [TIMER] fetch_zerodha                            → 0.53s
+2026-05-01 13:55:01,133 [TIMER] fetch_cnbc                               → 0.58s
+2026-05-01 13:55:01,319 [TIMER] fetch_5paisa                             → 0.19s
+2026-05-01 13:55:01,582 [TIMER] fetch_livemint                           → 0.26s
+2026-05-01 13:55:03,536 [TIMER] fetch_nse_corporate                      → 1.95s
+2026-05-01 13:55:03,539 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 13:55:03,541 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-01 13:56:02,850 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:56:02,866 [TIMER] _generate_blog                           -> 59.31s
+2026-05-01 13:56:18,593 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:56:18,599 [TIMER] _generate_notification                   -> 15.73s
+2026-05-01 13:56:37,878 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:56:37,886 [TIMER] _generate_instagram                      -> 19.29s
+2026-05-01 13:56:46,672 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 13:56:46,678 [TIMER] _extract_image_text                      -> 8.79s
+2026-05-01 13:56:46,687 [TIMER] _select_template                         -> 0.01s
+2026-05-01 13:56:46,867 [TIMER] _compose_image                           -> 0.17s
+2026-05-01 13:56:47,036 [TIMER] _compose_image                           -> 0.17s
+2026-05-01 13:56:47,053 [TIMER] _save_output                             -> 0.02s
+2026-05-01 13:56:47,055 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 13:56:47,057 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 14:00:00 IST)" executed successfully
+2026-05-01 14:00:00,019 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 14:05:00 IST)" (scheduled at 2026-05-01 14:00:00+05:30)
+2026-05-01 14:00:00,084 [TIMER] Pipeline job started
+2026-05-01 14:00:00,683 [TIMER] fetch_zerodha                            → 0.55s
+2026-05-01 14:00:01,495 [TIMER] fetch_cnbc                               → 0.81s
+2026-05-01 14:00:02,015 [TIMER] fetch_5paisa                             → 0.52s
+2026-05-01 14:00:02,391 [TIMER] fetch_livemint                           → 0.38s
+2026-05-01 14:00:03,519 [TIMER] fetch_nse_corporate                      → 1.13s
+2026-05-01 14:00:03,521 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-01 14:00:03,532 [TIMER] _filter_by_category                      -> 0.01s
+2026-05-01 14:01:07,004 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 14:01:07,007 [TIMER] _generate_blog                           -> 1.1m
+2026-05-01 14:01:26,481 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 14:01:26,482 [TIMER] _generate_notification                   -> 19.47s
+2026-05-01 14:01:43,673 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 14:01:43,679 [TIMER] _generate_instagram                      -> 17.20s
+2026-05-01 14:02:02,152 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 14:02:02,156 [TIMER] _extract_image_text                      -> 18.48s
+2026-05-01 14:02:02,160 [TIMER] _select_template                         -> 0.00s
+2026-05-01 14:02:02,305 [TIMER] _compose_image                           -> 0.14s
+2026-05-01 14:02:02,441 [TIMER] _compose_image                           -> 0.14s
+2026-05-01 14:02:02,457 [TIMER] _save_output                             -> 0.02s
+2026-05-01 14:02:02,458 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 14:02:02,459 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 14:05:00 IST)" executed successfully
+2026-05-01 14:05:00,026 [TIMER] Running job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 14:10:00 IST)" (scheduled at 2026-05-01 14:05:00+05:30)
+2026-05-01 14:05:00,042 [TIMER] Pipeline job started
+2026-05-01 14:05:00,616 [TIMER] fetch_zerodha                            → 0.57s
+2026-05-01 14:05:01,340 [TIMER] fetch_cnbc                               → 0.72s
+2026-05-01 14:05:01,708 [TIMER] fetch_5paisa                             → 0.37s
+2026-05-01 14:05:01,923 [TIMER] fetch_livemint                           → 0.21s
+2026-05-01 14:05:02,919 [TIMER] fetch_nse_corporate                      → 0.99s
+2026-05-01 14:06:23,863 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 14:06:23,870 [TIMER] _filter_by_country                       -> 1.3m
+2026-05-01 14:06:41,366 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-01 14:06:41,374 [TIMER] _filter_by_category                      -> 17.50s
+2026-05-01 14:06:41,394 [TIMER] _generate_blog                           -> 0.00s
+2026-05-01 14:06:41,397 [TIMER] _generate_notification                   -> 0.00s
+2026-05-01 14:06:41,399 [TIMER] _generate_instagram                      -> 0.00s
+2026-05-01 14:06:41,400 [TIMER] _extract_image_text                      -> 0.00s
+2026-05-01 14:06:41,409 [TIMER] _select_template                         -> 0.00s
+2026-05-01 14:06:41,542 [TIMER] _compose_image                           -> 0.13s
+2026-05-01 14:06:41,732 [TIMER] _compose_image                           -> 0.19s
+2026-05-01 14:06:41,739 [TIMER] _save_output                             -> 0.01s
+2026-05-01 14:06:41,741 [TIMER] Pipeline job completed — 1 blogs processed
+2026-05-01 14:06:41,741 [TIMER] Job "Blog Pipeline — every 5 min (trigger: cron[minute='*/5'], next run at: 2026-05-01 14:10:00 IST)" executed successfully
+2026-05-01 16:25:31,116 [TIMER] Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-01 16:25:31,116 [TIMER] Scheduler started — pipeline runs every 5 minutes
+2026-05-01 16:25:31,117 [TIMER] Press Ctrl+C to stop
+2026-05-01 16:25:31,125 [TIMER] Added job "Blog Pipeline — every 5 min" to job store "default"
+2026-05-01 16:25:31,126 [TIMER] Scheduler started
+2026-05-04 11:04:57,649 [TIMER] Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-04 11:04:57,651 [TIMER] Pipeline job started
+2026-05-04 11:04:58,314 [TIMER] fetch_zerodha                            → 0.66s
+2026-05-04 11:04:58,671 [TIMER] fetch_cnbc                               → 0.36s
+2026-05-04 11:04:58,871 [TIMER] fetch_5paisa                             → 0.20s
+2026-05-04 11:04:58,983 [TIMER] fetch_livemint                           → 0.11s
+2026-05-04 11:04:59,124 [TIMER] fetch_nse_corporate                      → 0.14s
+2026-05-04 11:05:50,903 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-04 11:05:50,921 [TIMER] _filter_by_country                       -> 51.80s
+2026-05-04 11:05:59,747 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-04 11:05:59,750 [TIMER] _filter_by_category                      -> 8.83s
+2026-05-04 11:07:07,035 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-04 11:07:07,038 [TIMER] _generate_blog                           -> 1.1m
+2026-05-04 11:07:22,741 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-04 11:07:22,745 [TIMER] _generate_notification                   -> 15.71s
+2026-05-04 11:07:40,001 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-04 11:07:40,005 [TIMER] _generate_instagram                      -> 17.26s
+2026-05-04 11:07:48,588 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-04 11:07:48,591 [TIMER] _extract_image_text                      -> 8.59s
+2026-05-04 11:07:48,592 [TIMER] _select_template                         -> 0.00s
+2026-05-04 11:07:48,676 [TIMER] No results returned from pipeline
+2026-05-04 11:07:48,677 [TIMER] Added job "run_job" to job store "default"
+2026-05-04 11:07:48,677 [TIMER] Scheduler started
+2026-05-04 11:10:00,002 [TIMER] Running job "run_job (trigger: cron[minute='*/5'], next run at: 2026-05-04 11:10:00 IST)" (scheduled at 2026-05-04 11:10:00+05:30)
+2026-05-04 11:10:00,004 [TIMER] Pipeline job started
+2026-05-04 11:10:00,456 [TIMER] fetch_zerodha                            → 0.45s
+2026-05-04 11:10:00,822 [TIMER] fetch_cnbc                               → 0.36s
+2026-05-04 11:10:01,192 [TIMER] fetch_5paisa                             → 0.37s
+2026-05-04 11:10:01,374 [TIMER] fetch_livemint                           → 0.18s
+2026-05-04 11:10:01,568 [TIMER] fetch_nse_corporate                      → 0.19s
+2026-05-04 11:10:01,569 [TIMER] _filter_by_country                       -> 0.00s
+2026-05-04 11:10:01,569 [TIMER] _filter_by_category                      -> 0.00s
+2026-05-04 11:11:13,550 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-04 11:11:13,554 [TIMER] _generate_blog                           -> 1.2m
+2026-05-04 11:11:28,435 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-04 11:11:28,439 [TIMER] _generate_notification                   -> 14.88s
+2026-05-04 11:11:49,676 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-04 11:11:49,681 [TIMER] _generate_instagram                      -> 21.24s
+2026-05-04 11:12:05,133 [TIMER] HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-04 11:12:05,138 [TIMER] _extract_image_text                      -> 15.46s
+2026-05-04 11:12:05,142 [TIMER] _select_template                         -> 0.00s
+2026-05-04 11:12:05,203 [TIMER] No results returned from pipeline
+2026-05-04 11:12:05,203 [TIMER] Job "run_job (trigger: cron[minute='*/5'], next run at: 2026-05-04 11:15:00 IST)" executed successfully

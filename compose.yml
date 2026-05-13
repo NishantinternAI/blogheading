@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+
+  streamlit:
+    build: .
+    ports:
+      - "8501:8501"
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+    volumes:
+      - ./output:/app/output
+      - ./output_images:/app/output_images
+    restart: always
+
+  scheduler:
+    build: .
+    command: python3 scheduler.py
+    volumes:
+      - ./output:/app/output
+      - ./output_images:/app/output_images
+    restart: always
