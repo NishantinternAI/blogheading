@@ -17,6 +17,7 @@ __pycache__/
 Thumbs.db
 EOF
 
+blogheading.tar
 *.jpg
 *.webp
 *.yml
