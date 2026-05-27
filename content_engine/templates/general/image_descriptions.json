@@ -1,0 +1,516 @@
+{
+  "outer/template1.png": {
+    "visual": "industrial landscape with a copper mining facility, stacks of copper sheets, a large mining truck, heavy machinery, and a digital representation of the India map in the sky made of glowing connected dots",
+    "mood": "bright-optimistic",
+    "best_for": [
+      "copper mining in India",
+      "mining technology",
+      "India's mineral resources",
+      "copper industry trends",
+      "sustainable mining practices",
+      "Indian mining regulations",
+      "copper market analysis",
+      "investment in Indian mining",
+      "future of mining in India",
+      "environmental impact of mining",
+      "innovations in mining technology"
+    ],
+    "avoid_for": [
+      "coal industry analysis",
+      "oil market trends",
+      "renewable energy topics",
+      "banking sector updates",
+      "pharmaceutical industry news",
+      "information technology developments",
+      "real estate market",
+      "healthcare advancements",
+      "education sector analysis",
+      "fashion industry trends"
+    ]
+  },
+  "outer/template10.png": {
+    "visual": "piles of gold coins, gold bars, traditional Indian jewelry, a decorative pot with leaves, a smartphone displaying an upward market trend chart, a magnifying glass, and upward-pointing arrows, all set against a glittering gold background",
+    "mood": "bright-optimistic",
+    "best_for": [
+      "investment opportunities in gold",
+      "financial growth in emerging markets",
+      "traditional wealth accumulation strategies",
+      "festive gold buying trends",
+      "bullish market analysis",
+      "personal finance tips for jewelry investment",
+      "gold as a hedge against inflation",
+      "luxury asset investments",
+      "wealth management",
+      "economic prosperity discussions",
+      "cultural significance of gold in festivals",
+      "bull market predictions"
+    ],
+    "avoid_for": [
+      "coal mining",
+      "oil industry trends",
+      "environmental issues",
+      "cryptocurrency analysis",
+      "technology product launches",
+      "renewable energy discussions",
+      "real estate investment",
+      "health and fitness tips",
+      "education trends",
+      "sports news",
+      "global warming impacts",
+      "digital marketing strategies"
+    ]
+  },
+  "outer/template11.png": {
+    "visual": "Coal mining machinery, large coal truck, massive coal rock, group of people applauding",
+    "mood": "bright-optimistic",
+    "best_for": [
+      "coal industry growth",
+      "mining sector advancements",
+      "coal market trends",
+      "mining technology innovations",
+      "future of coal mining",
+      "investment in coal mining",
+      "coal export market",
+      "mining equipment advancements",
+      "global coal demand",
+      "coal mining environment challenges",
+      "coal production increase"
+    ],
+    "avoid_for": [
+      "renewable energy",
+      "solar power developments",
+      "wind energy advancements",
+      "climate change solutions",
+      "electric vehicles",
+      "carbon emission reduction",
+      "oil market trends",
+      "global warming impacts",
+      "geopolitical energy conflicts",
+      "digital finance news"
+    ]
+  },
+  "outer/template12.png": {
+    "visual": "This image features a financial theme with elements such as a classical-style bank building, an oversized percentage symbol, stacks of coins, piles of paper currency, a calculator, a pen, graphs showing upward trends, a magnifying glass focusing on a document labeled 'BONDS', and various stock market-related charts in the background.",
+    "mood": "bright-optimistic",
+    "best_for": [
+      "interest rate analysis",
+      "bond market trends",
+      "banking sector outlook",
+      "investment strategies",
+      "financial growth",
+      "stock market performance",
+      "personal finance tips",
+      "monetary policy updates",
+      "economic forecast",
+      "central bank activities",
+      "savings and investment tips",
+      "financial institution insights"
+    ],
+    "avoid_for": [
+      "coal industry updates",
+      "oil market analysis",
+      "pharmaceutical breakthroughs",
+      "health and wellness tips",
+      "climate change discussions",
+      "wildlife conservation",
+      "fashion trends",
+      "agricultural news",
+      "aviation industry updates",
+      "real estate market"
+    ]
+  },
+  "outer/template13.png": {
+    "visual": "A cracked map of India in the colors of the Indian flag with red downward arrows, a 3D number '6' on a pedestal, coins spread around, bar chart decreasing, and a backdrop of city buildings.",
+    "mood": "dark-dramatic",
+    "best_for": [
+      "India's economic decline",
+      "Downward economic trends in India",
+      "Indian recession",
+      "Depreciation of Indian currency",
+      "Stock market crash in India",
+      "Indian financial crisis",
+      "India's GDP decrease",
+      "India slipping in global rankings",
+      "Impact of inflation in India",
+      "India's economic challenges",
+      "India's position in global economy"
+    ],
+    "avoid_for": [
+      "coal mining",
+      "oil industry trends",
+      "Positive economic growth in India",
+      "Tech innovations in India",
+      "Cultural heritage of India",
+      "Tourism in India",
+      "Indian festivals",
+      "Agricultural developments in India",
+      "Educational advances in India",
+      "Healthcare improvements in India",
+      "India's space achievements",
+      "Environmental conservation in India"
+    ]
+  },
+  "outer/template14.png": {
+    "visual": "A person with their head in their hands in front of a laptop displaying a coding screen. A large office building shows a red descending graph. The background has a cityscape with lightning and stormy weather.",
+    "mood": "dark-dramatic",
+    "best_for": [
+      "market crash analysis",
+      "economic downturns",
+      "stock market losses",
+      "financial crises",
+      "investment risks",
+      "corporate layoffs",
+      "coding failures",
+      "negative financial news",
+      "recession impacts",
+      "depression in markets",
+      "poor earnings reports"
+    ],
+    "avoid_for": [
+      "coal mining",
+      "oil industry trends",
+      "positive earnings news",
+      "investment opportunities",
+      "economic growth",
+      "financial success stories",
+      "innovation in tech",
+      "startup successes",
+      "new market trends",
+      "positive career advice",
+      "optimistic market forecasts",
+      "expansion strategies"
+    ]
+  },
+  "outer/template15.png": {
+    "visual": "A bull and a bear with stock market charts in the background, night cityscape, glass office building with lit rooms, financial report with charts exploding in the center.",
+    "mood": "dark-dramatic",
+    "best_for": [
+      "stock market trends",
+      "bull and bear markets",
+      "investment strategies",
+      "market volatility",
+      "financial analysis",
+      "economic outlook",
+      "stock trading tips",
+      "investment risk management",
+      "market sentiment analysis",
+      "quarterly earnings review",
+      "financial crisis impacts",
+      "technical stock analysis"
+    ],
+    "avoid_for": [
+      "oil industry updates",
+      "coal and mining news",
+      "pharmaceutical advancements",
+      "renewable energy developments",
+      "agricultural insights",
+      "health and wellness guides",
+      "fashion industry trends",
+      "food and beverage reviews",
+      "travel and tourism tips",
+      "real estate market analysis"
+    ]
+  },
+  "outer/template16.png": {
+    "visual": "3D bar graph with an upward green arrow on a background of green abstract squares and stock market chart lines.",
+    "mood": "bright-optimistic",
+    "best_for": [
+      "stock market growth analysis",
+      "investment strategies",
+      "financial market trends",
+      "economy boost",
+      "quarterly earnings reports",
+      "bullish market outlook",
+      "investment tips",
+      "stock portfolio growth",
+      "trading success stories",
+      "global economic recovery",
+      "business performance improvements"
+    ],
+    "avoid_for": [
+      "natural disaster impact",
+      "oil price fluctuations",
+      "geopolitical tensions",
+      "mental health awareness",
+      "coal industry analysis",
+      "healthcare challenges",
+      "climate change effects",
+      "cryptocurrency scams",
+      "real estate market crash",
+      "agriculture sector issues"
+    ]
+  },
+  "outer/template17.png": {
+    "visual": "A modern building with the NSE logo, surrounding trees and vehicles, and a digital green and red candlestick chart superimposed above the building.",
+    "mood": "neutral-professional",
+    "best_for": [
+      "Indian stock market analysis",
+      "NSE performance review",
+      "Equity trading strategies",
+      "Stock exchange architecture",
+      "Nifty index trends",
+      "Financial market predictions",
+      "Investment opportunities in India",
+      "Technical analysis of NSE stocks",
+      "Economic growth and NSE",
+      "Daily stock market updates",
+      "Understanding candlestick patterns",
+      "NSE operational insights"
+    ],
+    "avoid_for": [
+      "coal mining",
+      "oil industry trends",
+      "Coal industry developments",
+      "Climate change initiatives",
+      "Healthcare advancements",
+      "Petroleum and oil updates",
+      "Local community news",
+      "Entertainment industry gossip",
+      "Traditional agriculture practices",
+      "Cultural festival reports",
+      "Automobile industry trends",
+      "Historical sites exploration"
+    ]
+  },
+  "outer/template2.png": {
+    "visual": "A man sitting at a desk with a laptop, holding his head in frustration. A red downward graph line crosses over a world map with global connections. Office environment with buildings and cityscape in the background.",
+    "mood": "dark-dramatic",
+    "best_for": [
+      "global financial crisis",
+      "stock market crash",
+      "economic downturn",
+      "financial losses",
+      "investment setbacks",
+      "poor earnings report",
+      "bankruptcy news",
+      "unemployment rise",
+      "market volatility",
+      "financial instability"
+    ],
+    "avoid_for": [
+      "coal mining",
+      "oil industry trends",
+      "positive stock investments",
+      "financial growth strategies",
+      "wealth management",
+      "economic prosperity",
+      "business mergers",
+      "successful startups",
+      "financial planning tips",
+      "investment success stories",
+      "global economic recovery",
+      "optimistic financial outlook"
+    ]
+  },
+  "outer/template3.png": {
+    "visual": "A person in a suit pointing at a glowing upward arrow on a stock chart, with digital images of a bull and bear symbolizing market trends, and a cityscape in the background.",
+    "mood": "bright-optimistic",
+    "best_for": [
+      "stock market analysis",
+      "investment strategies",
+      "bullish market trends",
+      "financial forecasting",
+      "stock trading tips",
+      "equity market outlook",
+      "global financial news",
+      "investment growth",
+      "stock index performance",
+      "financial planning",
+      "investment opportunities",
+      "economic growth discussion"
+    ],
+    "avoid_for": [
+      "coal mining",
+      "oil industry trends",
+      "personal finance budgeting",
+      "banking regulations",
+      "cryptocurrency risks",
+      "debt management",
+      "loan advice",
+      "savings account benefits",
+      "real estate market",
+      "insurance policies",
+      "retirement planning",
+      "credit score improvement"
+    ]
+  },
+  "outer/template4.png": {
+    "visual": "The image shows an oil barrel spilling oil, oil pump jacks in the background, and flags of the United States and Iran superimposed with a stock market chart.",
+    "mood": "dark-dramatic",
+    "best_for": [
+      "US-Iran oil trade",
+      "global oil markets",
+      "geopolitical tensions in oil supply",
+      "impact of US sanctions on Iran",
+      "oil price fluctuations",
+      "Middle East oil geopolitics",
+      "Iranian oil exports",
+      "US energy policy",
+      "OPEC meetings",
+      "crude oil price analysis",
+      "oil industry challenges",
+      "energy market volatility"
+    ],
+    "avoid_for": [
+      "renewable energy trends",
+      "technology innovations",
+      "banking and fintech updates",
+      "pharmaceutical industry news",
+      "real estate market analysis",
+      "cryptocurrency developments",
+      "fashion industry trends",
+      "agriculture updates",
+      "education sector growth",
+      "health and wellness tips"
+    ]
+  },
+  "outer/template5.png": {
+    "visual": "The image shows a coal mining operation at sunset with heavy machinery and a pile of coal.",
+    "mood": "dark-dramatic",
+    "best_for": [
+      "coal industry downturn analysis",
+      "financial impact on coal mining",
+      "environmental debates on coal mining",
+      "energy sector decline",
+      "commodity market trends in coal",
+      "coal mining investment risks",
+      "mining equipment market analysis",
+      "impact of regulations on coal mining",
+      "decline in fossil fuel dependency",
+      "global coal market overview",
+      "coal export financial challenges"
+    ],
+    "avoid_for": [
+      "renewable energy solutions",
+      "technology advancements in IT",
+      "healthcare industry updates",
+      "fashion and lifestyle trends",
+      "agricultural growth analysis",
+      "entertainment industry news",
+      "education sector innovations",
+      "sports events and achievements",
+      "travel and leisure guides",
+      "food and beverage trends"
+    ]
+  },
+  "outer/template6.png": {
+    "visual": "a person with their back to the viewer standing on a chessboard, an elaborate sky with storm clouds, military ships and jet, two flags with USA and Iran symbols, a map of the Middle East, missile launch",
+    "mood": "dark-dramatic",
+    "best_for": [
+      "US-Iran tensions",
+      "geopolitical analysis",
+      "international conflict",
+      "military strategy",
+      "sanction impacts",
+      "global political chess game",
+      "Middle East policy",
+      "international relations",
+      "military diplomacy tactics",
+      "geopolitical strategy"
+    ],
+    "avoid_for": [
+      "financial investment tips",
+      "economic growth strategies",
+      "personal finance advice",
+      "mental health awareness",
+      "environmental sustainability",
+      "health and wellness",
+      "technology innovation",
+      "art and culture",
+      "education policies",
+      "work-life balance"
+    ]
+  },
+  "outer/template7.png": {
+    "visual": "The image shows two hands shaking, representing a partnership or deal. A globe with digital connections is visible, symbolizing global impact or markets. In the background, there's a city skyline at night with upward-trending financial charts, and a laptop displaying financial graphs. A magnifying glass is near documents, suggesting analysis. Classical architecture hints at financial institutions.",
+    "mood": "bright-optimistic",
+    "best_for": [
+      "global business partnerships",
+      "international trade agreements",
+      "investment in global markets",
+      "positive economic growth",
+      "successful mergers and acquisitions",
+      "innovation in financial technology",
+      "market optimism reports",
+      "enhancements in digital finance",
+      "cross-border financial collaborations",
+      "growth in emerging markets",
+      "global economic policies discussion",
+      "future of banking technology"
+    ],
+    "avoid_for": [
+      "mining industry news",
+      "oil price fluctuations",
+      "climate change and environment",
+      "healthcare industry analysis",
+      "agricultural developments",
+      "retail market challenges",
+      "geopolitical conflicts",
+      "negative financial news",
+      "supply chain disruptions",
+      "individual stock performance"
+    ]
+  },
+  "outer/template8.png": {
+    "visual": "three classical bank building models, stacks of coins, ascending chart line, cityscape background",
+    "mood": "bright-optimistic",
+    "best_for": [
+      "investment growth strategies",
+      "banking industry trends",
+      "financial performance analysis",
+      "economic expansion",
+      "wealth management tips",
+      "interest rate impacts",
+      "financial stability of banks",
+      "investment banking news",
+      "economic forecasts",
+      "currency value appreciation",
+      "savings and investment plans",
+      "capital market development"
+    ],
+    "avoid_for": [
+      "coal mining",
+      "oil industry trends",
+      "grocery shopping tips",
+      "fashion advice",
+      "cooking recipes",
+      "travel itineraries",
+      "book reviews",
+      "music album releases",
+      "wildlife conservation",
+      "space exploration"
+    ]
+  },
+  "outer/template9.png": {
+    "visual": "The image shows two sets of bar charts on either side, green on the left with an upward arrow and red on the right with a downward arrow. A magnifying glass in the center highlights part of the charts, with a background of green and red gradient lines.",
+    "mood": "dark-dramatic",
+    "best_for": [
+      "stock market analysis",
+      "bull vs bear market",
+      "investing strategies",
+      "market volatility",
+      "financial trends",
+      "economic outlook",
+      "trading strategies",
+      "investment risk assessment",
+      "day trading tips",
+      "stock portfolio management",
+      "financial crisis stories",
+      "market recovery predictions"
+    ],
+    "avoid_for": [
+      "coal mining",
+      "oil industry trends",
+      "health and wellness",
+      "lifestyle advice",
+      "travel tips",
+      "cooking recipes",
+      "education strategies",
+      "sustainable living",
+      "sports events",
+      "art and culture",
+      "history documentaries",
+      "gardening tips"
+    ]
+  }
+}
