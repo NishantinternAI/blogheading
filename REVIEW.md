@@ -1,5 +1,5 @@
 # Code Review — Blogheading Pipeline
-**Reviewer:** Principal AI Engineer  
+**Reviewer:** Jay Shrivastava  
 **Branch:** `test_ipo_news`  
 **Date:** 2026-06-01
 
