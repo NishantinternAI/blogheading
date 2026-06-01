@@ -137,7 +137,7 @@ def build_image_prompt(blog_title: str, blog_content: str, image_type: str) -> s
 
     # ── Extract key signals from title + content ──────────────
     title_lower   = blog_title.lower()
-    content_lower = blog_content[:300].lower() if blog_content else ""
+    content_lower = blog_content.lower() if blog_content else ""
     combined      = title_lower + " " + content_lower
 
     # ── Detect market direction ───────────────────────────────
@@ -203,7 +203,7 @@ def build_image_prompt(blog_title: str, blog_content: str, image_type: str) -> s
         color_mood    = "deep blue and gold on dark background — intelligence and trust"
 
     # ── Key facts to visually communicate ────────────────────
-    key_facts = f"Title: {blog_title}\nContext: {blog_content[:200] if blog_content else ''}"
+    key_facts = f"Title: {blog_title}\nContext: {blog_content if blog_content else ''}"
 
     if image_type in ("blog_outer", "blog_inner"):
         return f"""

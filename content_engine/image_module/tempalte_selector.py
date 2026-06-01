@@ -143,7 +143,7 @@ def select_template_pair_smart(
     prompt = f"""You are selecting the best background image template for a financial blog post.
 
 Blog Title: {blog_title}
-Blog Content (first 300 chars): {blog_content}
+Blog Content: {blog_content}
 
 Available templates with descriptions:
 {desc_list}

@@ -737,8 +737,17 @@ def compose_ipo_image(
 
     # ── BLOG INNER — plain resize, NO text ───────────────────
     if image_type == "blog_inner":
-        final = img.resize((1920, 490), Image.LANCZOS).convert("RGB")
-        print("[IPO IMAGE] blog_inner — plain 1920×490, no text")
+        W, H = img.size
+        print(f"[IPO IMAGE] blog_inner — template is {W}×{H}")
+        if W == 1920 and H == 490:
+            # Perfect size — just convert and save directly
+            final = img.convert("RGB")
+            print("[IPO IMAGE] blog_inner — exact size, no resize needed ✅")
+        else:
+            # Wrong size — resize as fallback
+            final = img.resize((1920, 490), Image.LANCZOS).convert("RGB")
+            print(f"[IPO IMAGE] blog_inner — resized from {W}×{H} to 1920×490")
+        
 
     # ── INSTAGRAM — center crop to 1080×1080 + text ──────────
     elif image_type == "instagram":
