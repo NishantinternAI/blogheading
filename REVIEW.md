@@ -7,13 +7,10 @@
 
 ## P0 — Breaks in Production Right Now
 
-**1. `TEST_MODE = True` left on in `RSS/ipo.py:677`**  
-The real NSE RSS feed is never called. Every pipeline run injects a fake "Liotech Industries" entry that fails all scrapers, so the priority stack is permanently empty in production. The README says set it to `False` before push — it was never done.
-
-**2. `pillow` missing from `requirements.txt`**  
+**1. `pillow` missing from `requirements.txt`**  
 Five files use `from PIL import Image` — `compositor.py`, `ipo_compositor.py`, `ai_image_generator.py`, `validator.py`, `verify_images.py`. It is not in `requirements.txt`. A fresh Docker build can break image generation silently. Add `pillow` explicitly.
 
-**3. `fetch_nse_corporate.py:41-42` — test code runs on every import**  
+**2. `fetch_nse_corporate.py:41-42` — test code runs on every import**  
 ```python
 result = fetch_nse_corporate()   # runs at module load time
 print("NSE COUNT:", len(result))
@@ -24,20 +21,17 @@ Every time `mergeall_engine.py` is imported (every scheduler start), this fires 
 
 ## P1 — Logic Bugs
 
-**4. Zerodha fallback has no dedup check (`mergeall_engine.py:1592`)**  
+**3. Zerodha fallback has no dedup check (`mergeall_engine.py:1592`)**  
 When all stacks drain to zero, the fallback picks a random Zerodha article and immediately publishes it — without checking `load_used_titles()`. Every other code path does a dedup check; this one doesn't. The same article can be published on consecutive runs.
 
-**5. Stacks only rebuild when ALL are empty — IPO articles get delayed**  
-`run_pipeline` only calls `_full_fetch_and_build_stack` when `total_stack_size == 0`. If the news stack has 5 articles and a live IPO drops on NSE, that IPO won't enter the priority stack until news drains — up to 25 minutes later at 5-min intervals. For a time-sensitive product (IPO opens/closes), this is a meaningful delay. Fix: always re-fetch IPO articles at the start of each run and inject new ones into the priority stack immediately.
-
-**6. Error handling swallows tracebacks (`mergeall_engine.py:1840`)**  
+**4. Error handling swallows tracebacks (`mergeall_engine.py:1840`)**  
 ```python
 except Exception as e:
     print(f"[ERROR] {e}")
 ```
 Only the error message is printed, not the traceback. Production failures are very hard to debug. Use `import traceback; traceback.print_exc()` or `logging.exception(e)`.
 
-**7. `save_output` and `load_used_titles` use relative paths**  
+**5. `save_output` and `load_used_titles` use relative paths**  
 ```python
 filepath = f"output/{filename}"   # save_output.py:10
 ```
@@ -47,23 +41,20 @@ Relative to `cwd`, not `BASE_DIR`. Works in Docker because `WORKDIR=/app`, but f
 
 ## P2 — Architecture Issues
 
-**8. `mergeall_engine.py` is 5,404 lines — ~80% dead code**  
+**6. `mergeall_engine.py` is 5,404 lines — ~80% dead code**  
 Active code runs from line 941 to ~1844 (~900 lines). Lines 1–940 and 1847–5404 are two full commented-out old versions of the entire pipeline. Delete them — git history preserves the old versions.
 
-**9. `utils/stack_manager.py` is dead code**  
+**7. `utils/stack_manager.py` is dead code**  
 Old single-stack manager, only referenced from `mergeall.py` (also dead). The active pipeline uses the multi-stack system inline in `mergeall_engine.py`. Can be deleted.
 
-**10. `USE_AI_IMAGES` is hardcoded in two files that must be manually kept in sync**  
+**8. `USE_AI_IMAGES` is hardcoded in two files that must be manually kept in sync**  
 `mergeall_engine.py:996` and `app.py:224` both have `USE_AI_IMAGES = False`. If one is changed without the other, the dashboard reads the wrong JSON file. Should be a single env var (`USE_AI_IMAGES=false` in `.env`) read in both files.
 
-**11. `_full_fetch_and_build_stack` and `_fetch_after_timestamp` are near-identical**  
+**9. `_full_fetch_and_build_stack` and `_fetch_after_timestamp` are near-identical**  
 Both functions do: fetch all sources → split IPO/other → AI filter → `_build_stacks_from_articles`. The only difference is a print statement. One function with a parameter removes the duplication.
 
-**12. `output.json` grows unboundedly — no rotation**  
+**10. `output.json` grows unboundedly — no rotation**  
 Every saved article appends to `output.json`, and the entire file is loaded on every pipeline run (dedup) and every Streamlit page load. At ~12 articles/hour this grows fast. After a few weeks `load_used_titles()` and the dashboard will noticeably lag. Needs a rolling window or a separate dedup index.
-
-**13. IPO templates not in repo and not flagged in deployment docs**  
-`content_engine/templates/ipo_alert.png` and `ipo_inner.png` are required for IPO images but `.gitignore` has `*.png` so they are excluded. A fresh server deploy silently falls back to the generic compositor for all IPO articles. The README "Deploy" section does not mention copying these files. Add a note: *"Copy `ipo_alert.png` and `ipo_inner.png` to `content_engine/templates/` — not in repo."*
 
 ---
 
@@ -71,10 +62,9 @@ Every saved article appends to `output.json`, and the entire file is loaded on e
 
 | # | Location | README says | Code does |
 |---|---|---|---|
-| 14 | Project Overview | "every 15 minutes" | `cron minute='*/5'` = every 5 min |
-| 15 | Section 7.7 | `TEST_MODE = False` | `TEST_MODE = True` |
-| 16 | Deployment section | Shows `env_file: .env` in compose | Current compose has no `env_file` |
-| 17 | Deployment section | No mention of `config.py` | `config.py` required, not in repo |
+| 11 | Project Overview | "every 15 minutes" | `cron minute='*/5'` = every 5 min |
+| 12 | Deployment section | Shows `env_file: .env` in compose | Current compose has no `env_file` |
+| 13 | Deployment section | No mention of `config.py` | `config.py` required, not in repo |
 
 ---
 
@@ -90,9 +80,7 @@ Every saved article appends to `output.json`, and the entire file is loaded on e
 
 1. `requirements.txt` — add `pillow` (1-line fix, prevents silent image failure)
 2. `fetch_nse_corporate.py` — wrap test code in `if __name__ == "__main__"`
-3. `RSS/ipo.py` — set `TEST_MODE = False` before any real deploy
-4. Zerodha fallback — add `load_used_titles()` dedup check
-5. `USE_AI_IMAGES` — move to env var
-6. `mergeall_engine.py` — delete the ~4,500 lines of commented-out code
-7. Error handling — add `traceback.print_exc()` in the except block
-8. IPO templates — document required manual copy step in README deployment section
+3. Zerodha fallback — add `load_used_titles()` dedup check
+4. `USE_AI_IMAGES` — move to env var
+5. `mergeall_engine.py` — delete the ~4,500 lines of commented-out code
+6. Error handling — add `traceback.print_exc()` in the except block
