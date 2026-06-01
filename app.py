@@ -488,7 +488,7 @@ if st.session_state.selected_blog is not None:
     # ── 2. TLDR ───────────────────────────────────────────────
     if tldr:
         tldr_keyword = extract_faq_keyword(ai_title)   # reuse existing function
-        blog_combined += f"<h2>Key Takeaways-{tldr_keyword}</h2>\n"
+        blog_combined += f"<h2>Key Takeaways</h2>\n"
         blog_combined += "<ul>\n"
         blog_combined += "\n".join(f"<li>{t}</li>" for t in tldr)
         blog_combined += "\n</ul>\n\n"
@@ -501,7 +501,7 @@ if st.session_state.selected_blog is not None:
     # ── 4. FAQ — appended from FAQ_Schema.mainEntity only ─────
     if faqs:
         faq_keyword = extract_faq_keyword(ai_title)
-        blog_combined += f"<h2>FAQ-{faq_keyword} For Investors</h2>\n"
+        blog_combined += f"<h2>FAQ</h2>\n"
         for faq in faqs:
             q = faq.get("name", "")
             a = faq.get("acceptedAnswer", {}).get("text", "")
