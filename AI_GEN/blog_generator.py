@@ -113,42 +113,42 @@ def fix_placeholder_h3(html: str) -> str:
     return html
 
 
-def fix_duplicate_links(html: str) -> str:
-    links_pattern = re.compile(
-        r'<p>\s*<strong>Also read:</strong>.*?</p>',
-        re.IGNORECASE | re.DOTALL
-    )
-    matches = list(links_pattern.finditer(html))
-    if len(matches) > 1:
-        for match in reversed(matches[:-1]):
-            html = html[:match.start()] + html[match.end():]
-    return html
+# def fix_duplicate_links(html: str) -> str:
+#     links_pattern = re.compile(
+#         r'<p>\s*<strong>Also read:</strong>.*?</p>',
+#         re.IGNORECASE | re.DOTALL
+#     )
+#     matches = list(links_pattern.finditer(html))
+#     if len(matches) > 1:
+#         for match in reversed(matches[:-1]):
+#             html = html[:match.start()] + html[match.end():]
+#     return html
 
 
-def fix_links_before_faq(html: str) -> str:
-    """Move internal links block immediately before FAQ section."""
-    links_pattern = re.compile(
-        r'<p>\s*<strong>Also read:</strong>.*?</p>',
-        re.IGNORECASE | re.DOTALL
-    )
-    match = links_pattern.search(html)
-    if not match:
-        return html
+# def fix_links_before_faq(html: str) -> str:
+#     """Move internal links block immediately before FAQ section."""
+#     links_pattern = re.compile(
+#         r'<p>\s*<strong>Also read:</strong>.*?</p>',
+#         re.IGNORECASE | re.DOTALL
+#     )
+#     match = links_pattern.search(html)
+#     if not match:
+#         return html
 
-    links_block = match.group(0)
-    html = html[:match.start()] + html[match.end():]
+#     links_block = match.group(0)
+#     html = html[:match.start()] + html[match.end():]
 
-    faq_pattern = re.compile(
-        r'<h2[^>]*>.*?(?:frequently asked questions|faq).*?</h2>',
-        re.IGNORECASE | re.DOTALL
-    )
-    faq_match = faq_pattern.search(html)
-    if not faq_match:
-        return html + '\n' + links_block
+#     faq_pattern = re.compile(
+#         r'<h2[^>]*>.*?(?:frequently asked questions|faq).*?</h2>',
+#         re.IGNORECASE | re.DOTALL
+#     )
+#     faq_match = faq_pattern.search(html)
+#     if not faq_match:
+#         return html + '\n' + links_block
 
-    insert_pos = faq_match.start()
-    html = html[:insert_pos] + links_block + '\n' + html[insert_pos:]
-    return html
+#     insert_pos = faq_match.start()
+#     html = html[:insert_pos] + links_block + '\n' + html[insert_pos:]
+#     return html
 
 
 def fix_duplicate_swastika(html: str) -> str:
@@ -219,8 +219,8 @@ def fix_all_fields(data: dict, source: str = "") -> dict:
                 value = fix_faq_tags(value)
                 value = fix_faq_h2_keyword(value, blog_title)
                 value = fix_placeholder_h3(value)
-                value = fix_duplicate_links(value)
-                value = fix_links_before_faq(value)
+                # value = fix_duplicate_links(value)
+                # value = fix_links_before_faq(value)
                 value = fix_duplicate_swastika(value)
                 value = fix_table_na(value)
                 value = fix_remove_non_ipo_table(value, source)
@@ -252,15 +252,15 @@ Content: {item['Blog_Content']}
 Return ONLY valid JSON in this format:
 
 {{
-  "Meta_Title": "SEO title under 60 chars — number + you + question",
+  "Meta_Title": "SEO title 50-60 chars strictly - keyword first - number + you + question",
   "Meta_Description": "Under 160 chars with keyword + action",
   "TLDR": [
-    "PRIMARY KEYWORD first — what happened — with specific number or date",
-    "PRIMARY KEYWORD impact — specific effect on investor portfolio",
-    "PRIMARY KEYWORD sector — specific sector or stock name to watch",
-    "PRIMARY KEYWORD action — one specific action investor should take today"
+    "Complete sentence - what happened - with specific number/date. No labels.",
+    "Complete sentence - direct effect on investor money - specific sector named.",
+    "Complete sentence - which specific sector or stock to watch and why.",
+    "Complete sentence - one clear action investor takes today - not generic."
   ],
-  "Blog_Title": "Title with number + you/your + question mark",
+  "Blog_Title": "50-70 chars - keyword first - number + you/your + question mark",
   "Blog_Content": "HTML blog as per structure below",
   "Investor_Impact": {{
     "primary_sector": "Most important sector affected",
@@ -323,16 +323,130 @@ TYPE F — General Finance (if none above match)
 !! STEP 2 — TITLE RULES !!
 =====================================
 
-Every Blog_Title and Meta_Title MUST have ALL 3:
-1. ONE NUMBER    (Rs amount, %, crore, points, date)
-2. ONE "YOU"     (You, Your, Are You, Should You)
-3. ONE QUESTION  (ends with ?)
+Every Blog_Title and Meta_Title MUST contain ALL 3 elements
+inside ONE single natural flowing sentence:
+  1. ONE NUMERIC VALUE  (₹ amount, %, crore, points, or date)
+  2. ONE PERSONA WORD   (You, Your, Are You, Should You)
+  3. ONE QUESTION MARK  (must end the title)
 
-BANNED WORDS IN TITLE:
-  Ex-Date → Buy Before [date] | PAT → Profit
-  YoY → vs Last Year | Basis Points → Interest Rate
-  Volatile → Up and Down | Correction → Market Fall
-  Geopolitical → War / Conflict | Macroeconomic → Economy
+LENGTH — STRICT SEO BOUNDARIES:
+  Meta_Title : 50 to 60 characters STRICTLY (shown on Google)
+  Blog_Title : 50 to 70 characters MAXIMUM  (shown on website)
+  Every space, letter, punctuation = 1 character.
+  Under 50 = too weak for SEO.
+  Over 60 chars on Meta_Title = Google truncates with "..."
+
+CRITICAL GRAMMAR RULE:
+  All 3 elements must form ONE single flowing thought.
+  Never split into two ideas using colon (:) or em-dash.
+  The number, persona word, and question must interact
+  naturally within the same phrase — not as separate fragments.
+
+NUMERIC NOUN CONSTRAINT:
+  Every number must be immediately followed by a descriptive noun.
+  ✅ "5 reasons"  ✅ "3 stocks"  ✅ "7 risks"  ✅ "₹500 crore"
+  ❌ "5 You"      ❌ "3 Investors"              ❌ "7 Should"
+
+SINGLE NUMBER RULE:
+  Use only ONE numeric value per title.
+  Two numbers = two competing hooks = confused reader.
+  ❌ "₹576 Cr Revenue Signpost India Expands to 100 Cities — Are You Ready?"
+  ✅ "Signpost India Posts ₹576 Cr Revenue — Should You Invest Now?"
+  Pick the number that matters most to the investor. Drop the rest.
+
+NATURAL LANGUAGE TEST:
+  Read the title aloud as if speaking to a friend.
+  Ask: would a human financial journalist write this sentence?
+
+  FAIL signals — if ANY appear, rebuild the title completely:
+  ❌ Title sounds like 3 separate fragments joined together
+  ❌ "Are You Ready?" or "Should You Know?" floats disconnected
+     from the rest of the sentence
+  ❌ Two numbers appear competing for attention
+  ❌ No verb appears in the first half of the title
+  ❌ Title starts with ₹ or number instead of brand/keyword
+  ❌ Colon or em-dash splitting two different ideas
+
+WRONG EXAMPLES — never produce these patterns:
+  ❌ "5 You Should Consider: Is Groww AMC set for a governance upgrade?"
+     (number has no noun, colon splits two ideas)
+  ❌ "23,000 Level: Should You Brace for Nifty's Next Support Breach?"
+     (colon splits, "support breach" is jargon, number has no noun)
+  ❌ "₹576 crore revenue Signpost India to 100 cities Are You Ready?"
+     (two numbers, no verb, "Are You Ready" disconnected)
+  ❌ "3 Things to Know: Will Nifty Fall Below 23,000?"
+     (colon splits two ideas)
+
+RIGHT EXAMPLES — Meta_Title (50-60 chars):
+  ✅ "Should You Buy Groww AMC Before Its ₹2,000 Cr IPO?"  (52 chars)
+  ✅ "Is Your Portfolio Safe After Sensex Falls 800 Pts?"    (51 chars)
+  ✅ "Does RBI Rate Cut Lower Your Home Loan EMI Today?"     (50 chars)
+  ✅ "Suzlon Shares Fall 8% — Should You Exit or Hold?"      (50 chars)
+  ✅ "Is Signpost India's ₹576 Cr Growth a Buy Signal?"     (50 chars)
+  ✅ "Nifty at 23,000 — Is It Time to Protect Your Money?"  (52 chars)
+
+RIGHT EXAMPLES — Blog_Title (50-70 chars):
+  ✅ "Is a ₹2,000 Crore Groww AMC Listing Worth Your Money?"      (54 chars)
+  ✅ "5 Reasons Groww AMC's New Management Could Grow Your Returns" (61 chars)
+  ✅ "Will the 500 Point Nifty Drop Damage Your Portfolio Today?"   (58 chars)
+  ✅ "Does RBI Rate Cut Mean Your Monthly Home Loan EMI Falls?"     (56 chars)
+  ✅ "Signpost India Posts ₹576 Cr Revenue — Should You Invest?"    (58 chars)
+  ✅ "Is Nifty's Fall to 23,000 Points a Risk for Your Portfolio?"  (60 chars)
+
+RIGHT EXAMPLES BY ARTICLE TYPE:
+
+  TYPE A — IPO:
+    Meta: "Should You Apply for Groww AMC IPO at ₹450 Price Band?"  (55 chars)
+    Blog: "Is Groww AMC's ₹2,000 Cr IPO Worth Your Hard Earned Money?" (59 chars)
+
+  TYPE B — Gold/Silver:
+    Meta: "Gold Rises 2% This Week — Should You Buy More Now?"      (51 chars)
+    Blog: "Is MCX Gold at ₹72,000 Still a Good Buy for Your Portfolio?" (60 chars)
+
+  TYPE C — Stock/Company:
+    Meta: "Suzlon Shares Fall 8% — Should You Exit or Hold Now?"    (53 chars)
+    Blog: "Colgate Declares ₹24 Dividend — Is It Worth Buying Now?"  (55 chars)
+
+  TYPE D — RBI/Rates:
+    Meta: "Does RBI Rate Cut Lower Your Home Loan EMI Today?"       (50 chars)
+    Blog: "RBI Cuts Repo Rate 0.25% — Will Your FD Returns Drop Now?" (57 chars)
+
+  TYPE E — Market/Index:
+    Meta: "Sensex Falls 800 Points — Is Your Portfolio Safe Now?"   (53 chars)
+    Blog: "Nifty Drops 500 Points — Should You Buy the Dip Today?"   (55 chars)
+
+BANNED WORDS IN TITLE — replace instantly with plain English:
+  Ex-Date          → Buy Before [date]
+  PAT / Net Profit → Profit / Net Earnings
+  YoY / QoQ        → vs Last Year / vs Last Quarter
+  Basis Points/bps → % / Interest Rate Change
+  Volatile         → Up and Down
+  Correction       → Market Fall
+  Geopolitical     → War / Global Tensions
+  Macroeconomic    → Economy / Market Conditions
+  Governance       → Fund Management / Board Control
+  AUM              → Total Fund Size
+  Corporate Action → Dividend / Bonus / Stock Split
+  Valuation        → Stock Price / What You Pay
+  Support Breach   → Falls Below [level]
+  Brace            → Prepare / Watch Out / Be Careful
+
+DASH RULE CLARIFICATION:
+  Em-dash and colon → BANNED inside Blog_Title and Meta_Title
+  En-dash (-)       → ALLOWED inside H2/H3 headings and body text
+
+TITLE SAFETY CHECKLIST — run before every title output:
+  □ Meta_Title strictly between 50 and 60 characters?
+  □ Blog_Title between 50 and 70 characters?
+  □ Title reads naturally aloud as ONE single flowing thought?
+  □ Numeric value has a meaningful noun immediately after it?
+  □ Only ONE number used in the entire title?
+  □ No colon or em-dash separating two different ideas?
+  □ Core brand or keyword appears within first 4 words?
+  □ All banned words replaced with plain English?
+  □ No verb missing from first half of title?
+  If ANY box fails → scrap and rebuild title completely from scratch.
+  Never patch a broken title — always rebuild.
 
 
 =====================================
@@ -360,12 +474,12 @@ WRONG — keyword repeated in every heading:
   <h2>FAQ-Suzlon Energy Shares Slump For Investors</h2> ← repeat
 
 RIGHT — H1 sets topic, H2/H3 flow naturally:
-  <h1>Suzlon Energy Shares Slump After SEBI Fines Rs 29 Crore – Should You Exit?</h1>
+  <h1>Suzlon Energy Shares Slump After SEBI Fines Rs 29 Crore - Should You Exit?</h1>
   <h2>Key Takeaways from the SEBI Order</h2>
   <h2>Understanding the Rs 29 Crore Penalty</h2>
     <h3>Why the Stock is Falling Today</h3>
-    <h3>SEBI Findings – Inflated Profits and Subsidiary Transactions</h3>
-  <h2>Impact on Investors – What Should You Do?</h2>
+    <h3>SEBI Findings - Inflated Profits and Subsidiary Transactions</h3>
+  <h2>Impact on Investors - What Should You Do?</h2>
     <h3>How This Affects Your Portfolio</h3>
     <h3>Which Sectors Face Spillovers?</h3>
     <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
@@ -374,29 +488,29 @@ RIGHT — H1 sets topic, H2/H3 flow naturally:
 
 H2 STRUCTURE BY ARTICLE TYPE (natural language, not keyword-stuffed):
 
-TYPE A — IPO (consistent — investors ask same questions every time):
-  <h2>[Company] IPO – Key Details and Dates</h2>
+TYPE A — IPO (consistent - investors ask same questions every time):
+  <h2>[Company] IPO - Key Details and Dates</h2>
   <h2>[Company] IPO GMP and Market Sentiment</h2>
   <h2>Should You Apply For [Company] IPO?</h2>
   <h2>Risks of Investing in [Company] IPO</h2>
 
 TYPE B — Gold/Silver:
-  <h2>Gold Price Today – Key Data</h2>
+  <h2>Gold Price Today - Key Data</h2>
   <h2>Impact on Your Portfolio</h2>
   <h2>Key Risks for Investors</h2>
 
 TYPE C — Stock/Company:
-  <h2>[Company] Share Price – Key Data</h2>
+  <h2>[Company] Share Price - Key Data</h2>
   <h2>What This Means for Investors</h2>
   <h2>Key Risks of Holding or Buying</h2>
 
 TYPE D — RBI/Rates:
-  <h2>RBI Decision – What Changed</h2>
+  <h2>RBI Decision - What Changed</h2>
   <h2>Impact on Your Money</h2>
   <h2>Key Risks After This Decision</h2>
 
 TYPE E — Market/Index:
-  <h2>Market Overview – Key Data</h2>
+  <h2>Market Overview - Key Data</h2>
   <h2>Impact on Your Portfolio</h2>
   <h2>Key Risks to Watch</h2>
 
@@ -420,7 +534,7 @@ For a STOCK article about Suzlon + SEBI penalty:
     "renewable energy mid-cap"
     "wind energy sector India"
 
-  Rule: use primary keyword 3-4 times maximum.
+  Rule: use primary keyword 2-3 times maximum.
   Fill rest of article with semantic variations.
 
 For a GOLD article:
@@ -454,13 +568,13 @@ BANNED GENERIC H3:
   X <h3>How does this event affect YOUR holdings?</h3>
   X <h3>Which stocks/sectors are affected?</h3>
   X <h3>What This Means For Your Portfolio</h3>
-  X <h3>Sectors To Watch – Priority Order</h3>
-  X <h3>What Happened – Simple Explanation</h3>
+  X <h3>Sectors To Watch - Priority Order</h3>
+  X <h3>What Happened - Simple Explanation</h3>
 
 RIGHT — specific with company/event/number:
   OK <h3>Why Suzlon Shares Fell After Rs 29 Crore SEBI Fine</h3>
   OK <h3>How SEBI Penalty Affects Renewable Energy Stocks</h3>
-  OK <h3>Why Gold Fell 1% – US-Iran Tensions Explained</h3>
+  OK <h3>Why Gold Fell 1% - US-Iran Tensions Explained</h3>
 
 
 =====================================
@@ -488,76 +602,87 @@ IPO table format (after first H2 only):
 
 
 =====================================
-!! STEP 7 — INTERNAL LINKS !!
+!! TLDR RULES — READ BEFORE WRITING !!
 =====================================
 
-Add 3 internal links immediately before the FAQ section.
-Place them in a natural sentence — not a plain list at the bottom.
+TLDR = 4 bullet points. Each bullet MUST be:
+  1. A COMPLETE SENTENCE - not a label or template fragment
+  2. SPECIFIC - contains real company name, number, date, or action
+  3. USEFUL - investor can act on it or understand it immediately
+  4. NATURAL - reads like a human financial analyst wrote it
 
-WRONG (isolated block):
-  <p>
-    <strong>Also read:</strong><br>
-    <a href="/stock-analysis-india/">How to analyse stocks</a>
-  </p>
+RULES:
+  Each bullet has the keyword naturally — NOT forced at the start.
+  No dashes used as label separators (keyword - label - context).
+  No template words: "what happened", "portfolio effects", "sector", "action".
+  No repeating the full company name in every bullet.
+  No generic statements: "market may be volatile", "watch the sector".
 
-RIGHT (blended into narrative):
-  <p>
-    Before making a decision on wind or utility stocks,
-    <a href="/stock-analysis-india/">learn how to analyse Indian stocks fundamentally</a>
-    to spot governance red flags early. You can also use our
-    <a href="/fundamental-analysis-guide/">fundamental analysis guide</a>
-    and <a href="/how-to-buy-stocks-india/">stock buying guide</a>
-    to build a disciplined approach.
-  </p>
+WRONG — template labels visible, keyword stuffed, dashes as separators:
+  ❌ "RBI rate cut - June 5 policy decision - what happened"
+  ❌ "RBI rate cut impact - yields, loan costs - portfolio effects"
+  ❌ "RBI rate cut sector - banks and financials to watch"
+  ❌ "RBI rate cut action - review EMIs and rebalance today"
 
-Links by article type:
-  TYPE A IPO:
-    /ipo-calendar-2026/ — upcoming IPOs
-    /how-to-apply-ipo-upi/ — how to apply
-    /ipo-allotment-status/ — check allotment
+WRONG — company name repeated in every bullet:
+  ❌ "Colgate Palmolive (India) shares - interim Rs 24 dividend"
+  ❌ "Colgate Palmolive (India) shares - near-term returns may improve"
+  ❌ "Colgate Palmolive (India) shares - watch FMCG sector"
+  ❌ "Colgate Palmolive (India) shares - action: Hold now"
 
-  TYPE B Gold:
-    /gold-price-india/ — live gold rates
-    /how-to-invest-gold-etf/ — gold ETF guide
-    /gold-vs-fixed-deposit/ — gold vs FD
+RIGHT — complete sentences, specific, natural, keyword once or twice:
+  RBI article:
+  ✅ "RBI cuts repo rate by 25 basis points to 6% on June 5, 2026"
+  ✅ "Home loan EMIs may drop Rs 500-800 per month if banks pass on the cut"
+  ✅ "Bank stocks and housing finance companies stand to benefit most"
+  ✅ "Lock your FD rates today before banks reduce deposit rates"
 
-  TYPE C Stock:
-    /stock-analysis-india/ — how to analyse stocks
-    /fundamental-analysis-guide/ — fundamental analysis
-    /how-to-buy-stocks-india/ — how to buy stocks
+  Colgate dividend:
+  ✅ "Colgate India announces Rs 24 interim dividend with record date June 1, 2026"
+  ✅ "Buying before the ex-date qualifies you for the payout but price adjusts after"
+  ✅ "FMCG and consumer staples sector may see mild movement around record date"
+  ✅ "Hold if you already own it - avoid buying purely for the dividend"
 
-  TYPE D RBI:
-    /rbi-monetary-policy-2026/ — RBI policy
-    /home-loan-emi-calculator/ — EMI calculator
-    /best-fd-rates-india-2026/ — FD rates
+  IPO article:
+  ✅ "Aureate Tradde IPO opens May 29 at Rs 70 per share on BSE SME"
+  ✅ "No GMP data yet makes listing gains uncertain for retail investors"
+  ✅ "Watch subscription demand and GMP signals closely before applying"
+  ✅ "Apply only with a small allocation if your risk tolerance allows SME exposure"
 
-  TYPE E Market:
-    /sensex-nifty-today/ — market live
-    /top-stocks-to-buy-india/ — top stocks
-    /how-to-invest-stock-market/ — invest in market
+  Sensex fall:
+  ✅ "Sensex fell 500 points today on FPI outflows and global risk-off mood"
+  ✅ "Equity portfolios may see 1-2% drawdown with financials and IT hit hardest"
+  ✅ "Defensive sectors like FMCG and pharma could hold better than cyclicals"
+  ✅ "SIP investors should stay invested - avoid stopping SIPs on market dips"
+
+SELF CHECK before writing TLDR:
+  Does each bullet read like a sentence a financial analyst would say? YES/NO
+  Does any bullet contain a template label like "what happened"? If YES → rewrite
+  Does any bullet repeat the full company name 4 times? If YES → use variation
+  Is each bullet specific with a number, date, or named action? YES/NO
 
 
 =====================================
 MANDATORY BLOG STRUCTURE (Blog_Content):
 =====================================
 
-<h1>[Title – number + you + ?]</h1>
+<h1>[Title - number + you + ?]</h1>
 
-<h2>[Natural section heading — key details]</h2>
+<h2>[Natural section heading - key details]</h2>
 [IPO ONLY: data table here]
 <h3>[SPECIFIC: WHY + company/number/event]</h3>
 <p>[2-3 lines. First sentence has main keyword.]</p>
 <h3>[SPECIFIC: deeper context with real details]</h3>
 <p>[market context specific to this article]</p>
 
-<h2>[Natural section heading — impact on investors]</h2>
+<h2>[Natural section heading - impact on investors]</h2>
 <h3>[SPECIFIC: HOW this affects specific holdings]</h3>
 <p>[direct investor impact]</p>
 <h3>[SPECIFIC: WHICH sectors/stocks by name]</h3>
 <ul>
-  <li><strong>1st Priority:</strong> [sector] – [reason]</li>
-  <li><strong>2nd Priority:</strong> [sector] – [reason]</li>
-  <li><strong>Avoid Now:</strong> [sector] – [reason]</li>
+  <li><strong>1st Priority:</strong> [sector] - [reason]</li>
+  <li><strong>2nd Priority:</strong> [sector] - [reason]</li>
+  <li><strong>Avoid Now:</strong> [sector] - [reason]</li>
 </ul>
 <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
 <ul>
@@ -565,21 +690,15 @@ MANDATORY BLOG STRUCTURE (Blog_Content):
   <li><strong>Lumpsum investors:</strong> [advice]</li>
   <li><strong>Traders:</strong> [advice]</li>
 </ul>
-<p>[Swastika paragraph — 2-5 sentences — once only]</p>
+<p>[Swastika paragraph - 2-5 sentences - once only]</p>
 
-<h2>[Natural section heading — key risks]</h2>
+<h2>[Natural section heading - key risks]</h2>
 !! ONE h3 + ONE ul only. No extra sections. !!
-<h3>[SPECIFIC: Risks of THIS specific action]</h3>
 <ul>
   <li>[Risk 1]</li>
   <li>[Risk 2]</li>
   <li>[Risk 3]</li>
 </ul>
-
-[INTERNAL LINKS — blended in narrative sentence — before FAQ]
-<p>
-  [natural sentence linking to 3 relevant pages with anchor text]
-</p>
 
 <h2>Frequently Asked Questions</h2>
 <h4>[Q1 specific to this article]?</h4>
@@ -591,14 +710,6 @@ MANDATORY BLOG STRUCTURE (Blog_Content):
 <h4>[Q4 specific]?</h4>
 <p>[A4]</p>
 
-<p style="font-size:13px;color:#666;border-top:1px solid #eee;padding-top:12px;margin-top:16px">
-  <strong>Disclaimer:</strong> This article is for educational and
-  informational purposes only. It does not constitute financial advice.
-  Please consult a SEBI-registered investment advisor before making
-  any investment decisions. Past performance is not indicative of
-  future results.
-</p>
-
 !! STOP — no Conclusion or CTA inside Blog_Content !!
 
 
@@ -606,26 +717,26 @@ MANDATORY BLOG STRUCTURE (Blog_Content):
 HTML FORMATTING RULES
 =====================================
 
-1. Lists use <ul><li> — never plain dashes or 1) 2) 3)
-2. FAQ questions use <h4> — never <h3>
+1. Lists use <ul><li> - never plain dashes or 1) 2) 3)
+2. FAQ questions use <h4> - never <h3>
 3. NEVER <h2>TLDR</h2> or <h2>Conclusion</h2> inside Blog_Content
-4. NEVER em dash (—) — use en dash (–) only
+4. NEVER em dash - use en dash only
 5. English only — no foreign characters
 6. No CTA URL inside Blog_Content
-7. Keyword in H1 is enough — do NOT repeat in every H2
+7. Keyword in H1 is enough - do NOT repeat in every H2
 8. Use semantic keyword variations in body text
+9. NO internal links anywhere - no <a href> tags in Blog_Content
 
 
 =====================================
 ANTI-DUPLICATION RULES
 =====================================
 
-1. Internal links — EXACTLY ONCE (before FAQ only)
-2. Swastika paragraph — EXACTLY ONCE (in H2-2 only)
-3. Sector priority list — EXACTLY ONCE
-4. SIP/Lumpsum section — EXACTLY ONCE
-5. Risk section — EXACTLY ONCE
-6. Table — IPO articles only
+1. Swastika paragraph — EXACTLY ONCE (in H2-2 only)
+2. Sector priority list — EXACTLY ONCE
+3. SIP/Lumpsum section — EXACTLY ONCE
+4. Risk section — EXACTLY ONCE
+5. Table — IPO articles only
 
 
 =====================================
@@ -633,14 +744,16 @@ QUALITY RULES
 =====================================
 
 - Blog length: 900-1200 words
-- TLDR: exactly 4 li items with primary keyword in each
+- Blog_Title: 50 to 70 characters
+- Meta_Title: 50 to 60 characters strictly
+- TLDR: exactly 4 complete sentences
 - FAQ: exactly 4 h4 questions
-- FAQ_Schema: same 4 questions
-- Primary keyword: 3-4 times maximum in body text
+- FAQ_Schema: same 4 questions as FAQ
+- Primary keyword: 2-3 times maximum in body text
 - Semantic variations: fill rest of article
 - No markdown — JSON only
 - No text outside JSON
-- NEVER em dash (—) — ALWAYS en dash (–)
+- NEVER em dash — ALWAYS en dash
 - English only throughout
 
 
@@ -648,13 +761,24 @@ QUALITY RULES
 !! FINAL SELF-CHECK BEFORE OUTPUT !!
 =====================================
 
+CHECK 0 — Title quality (run first):
+  □ Blog_Title between 50-70 chars? NO → rewrite
+  □ Meta_Title between 50-60 chars? NO → rewrite
+  □ Title reads as ONE complete natural sentence aloud? NO → rewrite
+  □ Number has a noun after it? NO → rewrite
+  □ Only ONE number in the title? NO → remove the weaker one
+  □ No colon or em-dash splitting two ideas? NO → rewrite
+  □ Keyword or brand name in first 4 words? NO → rewrite
+  □ All banned jargon words removed? NO → replace
+  □ No fail signals from Natural Language Test? NO → rebuild
+
 CHECK 1 — Heading repetition:
   Count how many H2s contain the main company name.
   More than 2? → rewrite them to be natural, topic-relevant.
 
 CHECK 2 — Keyword density:
   Count how many times the exact primary phrase appears.
-  More than 4? → replace some with semantic variations.
+  More than 2? → replace some with semantic variations.
 
 CHECK 3 — TLDR has no H2 above it.
 
@@ -662,15 +786,12 @@ CHECK 4 — FAQ uses h4 not h3.
 
 CHECK 5 — No placeholder H3 text.
 
-CHECK 6 — H3-3 risks section has only one h3 + one ul.
+CHECK 6 — Risk section has only one h3 + one ul.
 
-CHECK 7 — No repeated Swastika, SIP, or links blocks.
+CHECK 7 — No repeated Swastika, SIP, or sector priority sections.
 
-CHECK 8 — Disclaimer paragraph present at end of Blog_Content.
+CHECK 8 — Table only if IPO article.
 
-CHECK 9 — Table only if IPO article.
-
-CHECK 10 — Internal links blended in sentence, not isolated block.
 """
 
     result = cached_model_call(prompt)
