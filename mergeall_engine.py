@@ -1588,11 +1588,23 @@ def run_pipeline(selected_country="India", category="finance"):
             if not zerodha_data:
                 print("[FALLBACK] Zerodha also empty — aborting")
                 return []
+            
+            used_titles  = load_used_titles()
+            fresh_zerodha = [
+                      a for a in zerodha_data
+                     if normalize_title(a.get("Blog_Title", "")) not in used_titles
+                    ]
+            if not fresh_zerodha:
+                print("[FALLBACK] All Zerodha articles already published — aborting")
+                return []
+            print(f"[FALLBACK] {len(zerodha_data)} fetched → "f"{len(fresh_zerodha)} fresh after dedup")
 
             final_item                     = random.choice(zerodha_data)
             final_item["source"]           = "zerodha"
             final_item["_source_type"]     = "news"
             final_item["source_type"]      = "news"
+            print(f"[FALLBACK] Selected: '{final_item.get('Blog_Title','')[:50]}'")
+            
             final_item["blog"]             = clean_newlines(generate_blog(final_item))
             final_item["notify"]           = clean_newlines(generate_notification(final_item))
             final_item["instagram_notify"] = clean_newlines(generate_instagram_caption(final_item))

@@ -674,8 +674,8 @@ def fetch_nse_ipo(top_n: int = 6) -> list:
     #   "Vegorama Punjabi Angithi"
     # ══════════════════════════════════════════════════════════
 
-    TEST_MODE    = True              # ← set False to disable
-    TEST_COMPANY = "Liotech Industries"  # ← change company here
+    TEST_MODE    = False            # ← set False to disable
+    TEST_COMPANY = "Q-Line Biotech Limited"  # ← change company here
 
     if TEST_MODE:
         print(f"[IPO TEST] Injecting {TEST_COMPANY} as fake NSE entry")

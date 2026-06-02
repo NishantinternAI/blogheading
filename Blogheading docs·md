@@ -228,6 +228,8 @@ _validate_ipo_article()
       ↓
 Add to priority stack with _stack_index
 ```
+**NOTE**-
+"If we don't know the price AND we don't know the open date — don't make a blog for this company."
 
 ### 7.2 Data Source Waterfall
 
