@@ -21,4 +21,15 @@ def fetch_5paisa():
 
     return data
 print(len(fetch_5paisa())) # 10
+if __name__ == "__main__":
+    results = fetch_5paisa()
+    print(f"\nTotal: {len(results)}")
+    print("=" * 60)
+    for r in results:
+        print(f"Title   : {r['Blog_Title']}")
+        print(f"Link    : {r['Blog_Links']}")
+        # print(f"Traffic : {r['traffic']}")
+        print(f"Date    : {r['Blog_PublishDate']}")
+        print(f"Content : {r['Blog_Content'][:120]}")
+        print(f"---")
 # print(fetch_5paisa())

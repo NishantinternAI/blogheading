@@ -366,6 +366,8 @@ NATURAL LANGUAGE TEST:
   ❌ No verb appears in the first half of the title
   ❌ Title starts with ₹ or number instead of brand/keyword
   ❌ Colon or em-dash splitting two different ideas
+  ❌ "You" appears twice in the same title
+  ❌ Title ends with ", You?" or "Today, You?" as a tag-on
 
 WRONG EXAMPLES — never produce these patterns:
   ❌ "5 You Should Consider: Is Groww AMC set for a governance upgrade?"
@@ -406,6 +408,9 @@ RIGHT EXAMPLES BY ARTICLE TYPE:
   TYPE C — Stock/Company:
     Meta: "Suzlon Shares Fall 8% — Should You Exit or Hold Now?"    (53 chars)
     Blog: "Colgate Declares ₹24 Dividend — Is It Worth Buying Now?"  (55 chars)
+    Dividend specific:
+    Meta: "Nelco Declares ₹1 Dividend — Should You Buy or Hold?"   (53 chars)
+    Blog: "Is Nelco's ₹1 Dividend Worth Buying Before the Ex-Date?"  (55 chars)
 
   TYPE D — RBI/Rates:
     Meta: "Does RBI Rate Cut Lower Your Home Loan EMI Today?"       (50 chars)
@@ -445,6 +450,8 @@ TITLE SAFETY CHECKLIST — run before every title output:
   □ Core brand or keyword appears within first 4 words?
   □ All banned words replaced with plain English?
   □ No verb missing from first half of title?
+  □ Does "You" or "Your" appear MORE than once? YES → remove the extra one
+  □ Does the title end with ", You?" or "for You?" disconnected? YES → rewrite
   If ANY box fails → scrap and rebuild title completely from scratch.
   Never patch a broken title — always rebuild.
 
@@ -666,6 +673,7 @@ SELF CHECK before writing TLDR:
 MANDATORY BLOG STRUCTURE (Blog_Content):
 =====================================
 
+
 <h1>[Title - number + you + ?]</h1>
 
 <h2>[Natural section heading - key details]</h2>
@@ -690,7 +698,9 @@ MANDATORY BLOG STRUCTURE (Blog_Content):
   <li><strong>Lumpsum investors:</strong> [advice]</li>
   <li><strong>Traders:</strong> [advice]</li>
 </ul>
-<p>[Swastika paragraph - 2-5 sentences - once only]</p>
+
+!! SWASTIKA PARAGRAPH GOES HERE — READ RULES BELOW !!
+<p>[Swastika Investmart view on THIS specific article]</p>
 
 <h2>[Natural section heading - key risks]</h2>
 !! ONE h3 + ONE ul only. No extra sections. !!
@@ -701,16 +711,13 @@ MANDATORY BLOG STRUCTURE (Blog_Content):
 </ul>
 
 <h2>Frequently Asked Questions</h2>
-<h4>[Q1 specific to this article]?</h4>
-<p>[A1]</p>
-<h4>[Q2 specific with number or date]?</h4>
-<p>[A2]</p>
-<h4>[Q3 specific]?</h4>
-<p>[A3]</p>
-<h4>[Q4 specific]?</h4>
-<p>[A4]</p>
+<h4>[Q1]?</h4><p>[A1]</p>
+<h4>[Q2]?</h4><p>[A2]</p>
+<h4>[Q3]?</h4><p>[A3]</p>
+<h4>[Q4]?</h4><p>[A4]</p>
 
 !! STOP — no Conclusion or CTA inside Blog_Content !!
+
 
 
 =====================================
@@ -720,8 +727,8 @@ HTML FORMATTING RULES
 1. Lists use <ul><li> - never plain dashes or 1) 2) 3)
 2. FAQ questions use <h4> - never <h3>
 3. NEVER <h2>TLDR</h2> or <h2>Conclusion</h2> inside Blog_Content
-4. NEVER em dash - use en dash only
-5. English only — no foreign characters
+4. NEVER use em dash  use en dash - only
+5. English only - no foreign characters
 6. No CTA URL inside Blog_Content
 7. Keyword in H1 is enough - do NOT repeat in every H2
 8. Use semantic keyword variations in body text
@@ -729,11 +736,145 @@ HTML FORMATTING RULES
 
 
 =====================================
+SWASTIKA PARAGRAPH — STRICT RULES
+=====================================
+
+POSITION  : After SIP/Lumpsum list, before the next <h2>
+TAG       : Plain <p> only — never <h1> <h2> <h3> <h4>
+LENGTH    : 2 to 3 sentences maximum
+APPEARS   : EXACTLY ONCE in the entire Blog_Content
+LABEL     : Never write "Swastika paragraph:" before the text
+START     : Always begin with "Swastika Investmart..."
+
+TONE RULE — MOST IMPORTANT:
+  This paragraph must read like EXPERT ADVICE from a trusted
+  financial partner — NOT like a product advertisement.
+
+  The reader must feel: "These experts understand my situation"
+  NOT feel: "They are trying to sell me something"
+
+  FORBIDDEN ADVERTISING PATTERNS:
+  ❌ Never list services like a menu
+     ("We offer stocks, F&O, MCX, MF, ETF, Bonds, IPO...")
+  ❌ Never use promotional CTAs inside the paragraph
+     ("Open your account today", "Start investing now")
+  ❌ Never mention service names without a contextual reason
+     ("Use our F&O desk" with no connection to the article)
+  ❌ Never sound like a banner ad or marketing copy
+
+  CORRECT EXPERT ADVICE PATTERNS:
+  ✅ Mention ONE relevant service as a natural solution
+     to the specific problem raised in this article
+  ✅ The service mention must follow logically from the news
+  ✅ Advice first — service reference second
+  ✅ The investor should feel guided, not sold to
+
+HOW TO WRITE IT — 5 STEP PROCESS:
+
+  Step 1 — Extract PRIMARY FACT from the article
+    (company name, event, specific number, date)
+
+  Step 2 — Extract PRIMARY RISK or OPPORTUNITY for investor
+    (what should they be worried about or excited about?)
+
+  Step 3 — Identify ONE Swastika service that naturally
+    helps with THIS specific situation:
+
+    Article about IPO          → IPO / Research
+    Article about gold/MCX     → MCX Trading / Gold ETF
+    Article about stock fall   → F&O hedge / Research / SLBM
+    Article about dividend     → Stocks / Investment Trading
+    Article about RBI rates    → Bonds / MF / ETF
+    Article about market fall  → F&O / AI assistance / Research
+    Article about market rally → Stocks / MF / Investment Trading
+    Article about FX/Rupee     → MCX / F&O hedge / Research
+
+  Step 4 — Write advice sentence first using extracted facts
+  Step 5 — Add ONE natural service reference as the solution
+
+DYNAMIC PARAGRAPH EXAMPLES BY ARTICLE TYPE:
+
+  TYPE A — IPO (Aureate Tradde IPO, ₹70 price band):
+    ❌ "Swastika Investmart offers IPO applications and research."
+    ✅ <p>Swastika Investmart's research desk notes that the
+       Aureate Tradde IPO's lack of GMP data makes listing
+       gains uncertain — apply only with a small SME allocation
+       if your risk profile allows, and track subscription
+       figures on day 2 and 3 before committing further capital
+       through our IPO platform.</p>
+
+  TYPE B — Gold (MCX gold at ₹72,000):
+    ❌ "Swastika Investmart offers MCX Trading and Gold ETF."
+    ✅ <p>Swastika Investmart notes that MCX gold's rally above
+       ₹72,000 is driven by US-Iran tensions rather than domestic
+       demand — MCX traders should use defined stop-losses near
+       ₹71,200 and gold ETF investors can hold existing positions
+       while avoiding fresh lumpsum buys at these elevated levels.</p>
+
+  TYPE C — Stock fall (Suzlon after SEBI fine):
+    ❌ "Swastika Investmart offers stocks and F&O trading."
+    ✅ <p>Swastika Investmart's equity research desk flags that
+       the Rs 29 crore SEBI penalty on Suzlon introduces
+       regulatory overhang that typically pressures mid-cap
+       renewable stocks for 2 to 4 weeks — existing holders
+       can use F&O protective puts to hedge downside while
+       waiting for management's official response.</p>
+
+  TYPE C — Dividend (Reliance ₹6 dividend):
+    ❌ "Swastika Investmart offers investment trading and stocks."
+    ✅ <p>Swastika Investmart believes the ₹6 per share Reliance
+       dividend is a sign of balance-sheet strength but not a
+       buying trigger on its own — investors already holding
+       RIL through our investment platform should stay put,
+       while new buyers should wait for the post-ex-date price
+       adjustment before entering at better levels.</p>
+
+  TYPE D — RBI rates (repo rate cut to 6%):
+    ❌ "Swastika Investmart offers bonds, MF and ETF products."
+    ✅ <p>Swastika Investmart advises that RBI's 6% repo rate
+       creates a narrow window to lock into higher-yield bonds
+       and long-duration debt funds before banks reduce deposit
+       rates — investors on our platform can explore bond and
+       debt MF options that benefit from falling rate cycles
+       before this window closes in the next 4 to 6 weeks.</p>
+
+  TYPE E — Market fall (Sensex 500 points, FPI outflows):
+    ❌ "Swastika Investmart offers F&O and AI assistance."
+    ✅ <p>Swastika Investmart notes that the 500-point Sensex
+       fall driven by ₹7.3 lakh crore in FPI outflows signals
+       a risk-off phase that typically lasts 2 to 3 weeks —
+       index traders can use Nifty F&O hedges to protect
+       existing positions while our AI tools track FPI flow
+       data and key support levels for the next confirmed
+       re-entry signal.</p>
+
+  TYPE E — Market rally:
+    ✅ <p>Swastika Investmart believes the Sensex recovery above
+       74,000 points is supported by improving FPI inflows but
+       warrants caution on momentum chasing — SIP investors
+       on our platform should maintain their allocation and
+       avoid switching to sectoral funds until the rally shows
+       3 consecutive sessions of FPI buying confirmation.</p>
+
+SWASTIKA PARAGRAPH SELF CHECK:
+  □ Does it read like expert advice not a sales pitch?
+  □ Does it mention ONE specific fact from the article?
+     (number, company, event, date)
+  □ Does it reference ONE relevant service naturally?
+     (not a list of all services)
+  □ Does it start with "Swastika Investmart..."?
+  □ Is it inside a plain <p> tag only?
+  □ Does it appear exactly once?
+  □ Is the service mention a logical solution to the article problem?
+     (not a random product mention)
+  □ Would a reader feel advised rather than advertised to?
+  If ANY box fails → rewrite using the 5-step process above.
+
+=====================================
 ANTI-DUPLICATION RULES
 =====================================
 
-1. Swastika paragraph — EXACTLY ONCE (in H2-2 only)
-2. Sector priority list — EXACTLY ONCE
+1. Sector priority list — EXACTLY ONCE
 3. SIP/Lumpsum section — EXACTLY ONCE
 4. Risk section — EXACTLY ONCE
 5. Table — IPO articles only
@@ -774,7 +915,7 @@ CHECK 0 — Title quality (run first):
 
 CHECK 1 — Heading repetition:
   Count how many H2s contain the main company name.
-  More than 2? → rewrite them to be natural, topic-relevant.
+  More than 2 ? → rewrite them to be natural, topic-relevant.
 
 CHECK 2 — Keyword density:
   Count how many times the exact primary phrase appears.
@@ -791,6 +932,11 @@ CHECK 6 — Risk section has only one h3 + one ul.
 CHECK 7 — No repeated Swastika, SIP, or sector priority sections.
 
 CHECK 8 — Table only if IPO article.
+
+CHECK 9 — Swastika paragraph format:
+  Is it wrapped in a heading tag? YES → move to plain <p> only
+  Does it start with "Swastika paragraph:" label? YES → remove label
+  Does it appear exactly once in H2-2 section? NO → fix placement
 
 """
 

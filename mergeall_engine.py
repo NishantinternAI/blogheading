@@ -953,6 +953,7 @@ from RSS.paisa               import fetch_5paisa
 from RSS.livemint            import fetch_livemint
 from RSS.fetch_nse_corporate import fetch_nse_corporate
 from RSS.ipo                 import fetch_nse_ipo
+from RSS.google_trends import fetch_google_trends
 
 # ── Image modules ─────────────────────────────────────────────
 from content_engine.image_module.text_extractor import extract_image_text
@@ -1014,7 +1015,7 @@ POSTING_PATTERN = [
 #  SOURCE CONFIG
 # ══════════════════════════════════════════════════════════════
 
-PRIORITY_SOURCES  = ["nse_ipo"]
+PRIORITY_SOURCES  = ["nse_ipo", "google_trends"]
 CORPORATE_SOURCES = ["nse_corporate"]
 NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint"]
 
@@ -1325,6 +1326,7 @@ def _fetch_all_sources(top_n: int = 6) -> list:
     sources = [
         (fetch_nse_ipo,       "nse_ipo"),
         (fetch_nse_corporate, "nse_corporate"),
+        (fetch_google_trends,  "google_trends"),
         (fetch_zerodha,       "zerodha"),
         (fetch_cnbc,          "cnbc"),
         (fetch_5paisa,        "5paisa"),
@@ -1334,8 +1336,13 @@ def _fetch_all_sources(top_n: int = 6) -> list:
     for fetcher, source_name in sources:
         try:
             with Timer(f"fetch_{source_name}"):
-                data = fetcher(top_n) if source_name == "nse_ipo" \
-                       else fetcher()[:top_n]
+                if source_name == "nse_ipo":
+                    data = fetcher()        # IPO — limited to top_n
+                elif source_name == "google_trends":
+                    data = fetcher()             # Trends — get ALL items
+                else:
+                    data = fetcher()[:top_n]     # Others — limited to top_n
+
                 for article in data:
                     article["source"] = source_name
                 all_data.extend(data)
@@ -1345,7 +1352,6 @@ def _fetch_all_sources(top_n: int = 6) -> list:
 
     print(f"[FETCH] Total: {len(all_data)}")
     return all_data
-
 
 # ══════════════════════════════════════════════════════════════
 #  BUILD STACKS
@@ -1411,8 +1417,34 @@ def _full_fetch_and_build_stack(selected_country: str, category: str) -> dict:
 
     all_data = _fetch_all_sources(top_n=6)
 
-    ipo_articles   = [a for a in all_data if a.get("source") == "nse_ipo"]
-    other_articles = [a for a in all_data if a.get("source") != "nse_ipo"]
+    # ipo_articles   = [a for a in all_data if a.get("source") == "nse_ipo"]
+    # other_articles = [a for a in all_data if a.get("source") != "nse_ipo"]
+    ipo_articles = [
+    a for a in all_data
+    if a.get("source") == "nse_ipo"
+    ]
+
+    google_trends_articles = [
+    a for a in all_data
+    if a.get("source") == "google_trends"
+    ]
+    print(
+    f"[DEBUG] Finance Google Trends: "
+    f"{len(google_trends_articles)}"
+    )
+
+    other_articles = [
+    a for a in all_data
+    if a.get("source") not in ["nse_ipo", "google_trends"]
+    ]
+    finance_trends, _ = filter_by_country_and_category(
+    google_trends_articles,
+    selected_country,
+    category
+    )
+
+    if not finance_trends:
+        print(f"[FILTER] No finance trends found in Google Trends today")
 
     print(f"[FILTER] IPO articles (bypass filter): {len(ipo_articles)}")
 
@@ -1421,7 +1453,11 @@ def _full_fetch_and_build_stack(selected_country: str, category: str) -> dict:
     )
     print(f"[FILTER] Other articles after filter: {len(filtered_other)}")
 
-    filtered_data = ipo_articles + filtered_other
+    filtered_data = (
+    ipo_articles +
+    finance_trends +
+    filtered_other
+    )
     print(f"[FILTER] Total combined: {len(filtered_data)}")
 
     if not filtered_data:
@@ -1442,18 +1478,46 @@ def _fetch_after_timestamp(
 
     all_data = _fetch_all_sources(top_n=6)
 
-    ipo_articles   = [a for a in all_data if a.get("source") == "nse_ipo"]
-    other_articles = [a for a in all_data if a.get("source") != "nse_ipo"]
+    # ── Split into 3 groups ───────────────────────────────────
+    ipo_articles = [
+        a for a in all_data
+        if a.get("source") == "nse_ipo"
+    ]
 
-    print(f"[FILTER] IPO articles (bypass filter): {len(ipo_articles)}")
+    google_trends_articles = [
+        a for a in all_data
+        if a.get("source") == "google_trends"
+    ]
 
+    other_articles = [
+        a for a in all_data
+        if a.get("source") not in ["nse_ipo", "google_trends"]
+    ]
+
+    print(f"[FILTER] IPO articles (bypass filter)    : {len(ipo_articles)}")
+    print(f"[FILTER] Google Trends articles           : {len(google_trends_articles)}")
+    print(f"[FILTER] Other articles (to filter)      : {len(other_articles)}")
+
+    # ── Filter google_trends separately ──────────────────────
+    # Google Trends is already India-specific (geo=IN)
+    # but we still filter for finance category only
+    finance_trends, _ = filter_by_country_and_category(
+        google_trends_articles, selected_country, category
+    )
+
+    if not finance_trends:
+        print(f"[FILTER] No finance trends found in Google Trends today")
+    print(f"[FILTER] Google Trends after filter      : {len(finance_trends)}")
+
+    # ── Filter other sources normally ────────────────────────
     filtered_other, source = filter_by_country_and_category(
         other_articles, selected_country, category
     )
-    print(f"[FILTER] Other articles after filter: {len(filtered_other)}")
+    print(f"[FILTER] Other articles after filter     : {len(filtered_other)}")
 
-    filtered_data = ipo_articles + filtered_other
-    print(f"[FILTER] Total combined: {len(filtered_data)}")
+    # ── Combine all 3 groups ──────────────────────────────────
+    filtered_data = ipo_articles + finance_trends + filtered_other
+    print(f"[FILTER] Total combined                  : {len(filtered_data)}")
 
     if not filtered_data:
         print("[STACK] No new articles yet — retrying next cycle")
@@ -1477,11 +1541,21 @@ def clean_newlines(text):
 
 
 def clean_filename(text: str) -> str:
-    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
-    text = re.sub(r'[\\/*?:"<>|]', '', text)
-    text = text.replace(" ", "_")
-    text = re.sub(r'_+', '_', text)
-    return text[:60]
+    ascii_text = unicodedata.normalize("NFKD", text)\
+                             .encode("ascii", "ignore")\
+                             .decode()
+    ascii_text = re.sub(r'[\\/*?:"<>|]', '', ascii_text)
+    ascii_text = ascii_text.replace(" ", "_")
+    ascii_text = re.sub(r'_+', '_', ascii_text).strip("_")
+
+    # Fallback for regional language titles
+    # that become empty after ASCII stripping
+    if len(ascii_text) < 3:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        print(f"[FILENAME] Regional title → using timestamp: {timestamp}")
+        return timestamp
+
+    return ascii_text[:60]
 
 
 def load_used_titles() -> set:
@@ -1604,7 +1678,7 @@ def run_pipeline(selected_country="India", category="finance"):
             final_item["_source_type"]     = "news"
             final_item["source_type"]      = "news"
             print(f"[FALLBACK] Selected: '{final_item.get('Blog_Title','')[:50]}'")
-            
+
             final_item["blog"]             = clean_newlines(generate_blog(final_item))
             final_item["notify"]           = clean_newlines(generate_notification(final_item))
             final_item["instagram_notify"] = clean_newlines(generate_instagram_caption(final_item))
