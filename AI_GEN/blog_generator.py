@@ -947,6 +947,7 @@ CHECK 9 — Swastika paragraph format:
     data   = fix_all_fields(data, source=source)
 
     return data
+    
 
 # import json
 # import re

@@ -945,6 +945,11 @@ import re
 import unicodedata
 import json
 from datetime import datetime
+# Change this line
+from datetime import datetime
+
+# To this
+from datetime import datetime, timezone, timedelta
 
 # ── RSS Fetchers ──────────────────────────────────────────────
 from RSS.zerodha             import fetch_zerodha
@@ -954,6 +959,9 @@ from RSS.livemint            import fetch_livemint
 from RSS.fetch_nse_corporate import fetch_nse_corporate
 from RSS.ipo                 import fetch_nse_ipo
 from RSS.google_trends import fetch_google_trends
+from RSS.google_news_business import fetch_google_news_business
+from RSS.economic_times import fetch_economic_times
+from RSS.ndtv_profit         import fetch_ndtv_profit
 
 # ── Image modules ─────────────────────────────────────────────
 from content_engine.image_module.text_extractor import extract_image_text
@@ -975,6 +983,7 @@ from AI_GEN.get_system_timestamp        import get_run_timestamp
 from AI_GEN.blog_generator              import generate_blog
 from storage.save_output                import save_output
 from utils.timer import timed, Timer, print_timing_summary, reset_timings
+from utils.date_filter import filter_fresh_articles
 
 
 # ══════════════════════════════════════════════════════════════
@@ -1017,7 +1026,7 @@ POSTING_PATTERN = [
 
 PRIORITY_SOURCES  = ["nse_ipo", "google_trends"]
 CORPORATE_SOURCES = ["nse_corporate"]
-NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint"]
+NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint","google_news_business","economic_times","ndtv_profit"]
 
 
 # ══════════════════════════════════════════════════════════════
@@ -1035,6 +1044,40 @@ def _get_ipo_template_path() -> str:
         return ipo_template
     print("[IPO TEMPLATE] File NOT found")
     return ""
+
+def _clear_stale_stacks():
+    """
+    Clears all stack files if they were built on a previous date.
+    Ensures stack only contains today's articles.
+    Called at start of every pipeline run.
+    """
+    saved_ts = load_timestamp()
+    if not saved_ts:
+        return
+
+    try:
+        IST          = timezone(timedelta(hours=5, minutes=30))
+        now_ist      = datetime.now(IST)
+        saved_dt     = datetime.strptime(saved_ts, "%Y-%m-%d %H:%M:%S")
+        saved_dt_ist = saved_dt.replace(tzinfo=IST)
+
+        if saved_dt_ist.date() < now_ist.date():
+            print(f"[STACK] Stale stack from {saved_dt_ist.date()} "
+                  f"— today is {now_ist.date()} → clearing")
+
+            for source_type, path in STACK_FILES.items():
+                if os.path.exists(path):
+                    with open(path, "w") as f:
+                        json.dump([], f)
+                    print(f"[STACK] Cleared: {source_type}")
+
+            if os.path.exists(TIMESTAMP_FILE):
+                os.remove(TIMESTAMP_FILE)
+
+            print(f"[STACK] All stacks cleared ✅")
+
+    except Exception as e:
+        print(f"[STACK] Clear stale check failed: {e}")
 
 
 def _get_ipo_inner_template_path() -> str:
@@ -1152,6 +1195,21 @@ def load_stack(source_type: str) -> list:
 
 def load_all_stacks() -> dict:
     stacks = {t: load_stack(t) for t in STACK_FILES}
+
+    # ── Remove stale articles from loaded stacks ──────────────
+    total_before = sum(len(v) for v in stacks.values())
+
+    for source_type in stacks:
+        filtered = filter_fresh_articles(stacks[source_type])
+        if len(filtered) != len(stacks[source_type]):
+            stacks[source_type] = filtered
+            save_stack(filtered, source_type)
+
+    total_after = sum(len(v) for v in stacks.values())
+    if total_before != total_after:
+        print(f"[STACK] Removed {total_before - total_after} "
+              f"stale articles from loaded stacks")
+
     print(f"[STACK] Loaded → Priority:{len(stacks['priority'])} | "
           f"News:{len(stacks['news'])} | Corporate:{len(stacks['corporate'])}")
     return stacks
@@ -1327,6 +1385,9 @@ def _fetch_all_sources(top_n: int = 6) -> list:
         (fetch_nse_ipo,       "nse_ipo"),
         (fetch_nse_corporate, "nse_corporate"),
         (fetch_google_trends,  "google_trends"),
+        (fetch_google_news_business, "google_news_business"),
+        (fetch_economic_times,       "economic_times"),
+        (fetch_ndtv_profit,        "ndtv_profit"),
         (fetch_zerodha,       "zerodha"),
         (fetch_cnbc,          "cnbc"),
         (fetch_5paisa,        "5paisa"),
@@ -1339,12 +1400,15 @@ def _fetch_all_sources(top_n: int = 6) -> list:
                 if source_name == "nse_ipo":
                     data = fetcher()        # IPO — limited to top_n
                 elif source_name == "google_trends":
-                    data = fetcher()             # Trends — get ALL items
+                    data = fetcher()   
+                elif source_name == "google_news_business":
+                    data = fetcher(top_n=top_n)          # Business news — pass top_n to fetcher
                 else:
                     data = fetcher()[:top_n]     # Others — limited to top_n
 
                 for article in data:
                     article["source"] = source_name
+                data = filter_fresh_articles(data)
                 all_data.extend(data)
                 print(f"[FETCH] {source_name:<15} → {len(data)} articles")
         except Exception as e:
@@ -1636,6 +1700,9 @@ def run_pipeline(selected_country="India", category="finance"):
     os.makedirs(OUTPUT_IMG_JPG_DIR,  exist_ok=True)
     os.makedirs(OUTPUT_IMG_WEBP_DIR, exist_ok=True)
     results = []
+     
+    # ── Clear stale stacks from previous day ──────────────────
+    _clear_stale_stacks()
 
     # ══════════════════════════════════════════════════════════
     # STEP 1 — Load all 3 stacks from disk
