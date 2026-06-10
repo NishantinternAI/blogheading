@@ -980,7 +980,7 @@ from utils.combined_filter import filter_by_country_and_category
 from AI_GEN.notify_generator            import generate_notification
 from AI_GEN.generate_instagram_caption  import generate_instagram_caption
 from AI_GEN.get_system_timestamp        import get_run_timestamp
-from AI_GEN.blog_generator              import generate_blog
+from AI_GEN.blog_generator import generate_blog, generate_ipo_blog
 from storage.save_output                import save_output
 from utils.timer import timed, Timer, print_timing_summary, reset_timings
 from utils.date_filter import filter_fresh_articles
@@ -1032,6 +1032,52 @@ NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint","google_news_busine
 # ══════════════════════════════════════════════════════════════
 #  IPO TEMPLATE FINDERS
 # ══════════════════════════════════════════════════════════════
+
+
+def _parse_blog_output(raw: str) -> dict:
+    """
+    Parses blog generator output into clean dict.
+
+    Handles 3 cases:
+      Case 1: Already a dict → return as-is
+      Case 2: JSON string    → parse and return
+      Case 3: ```json wrapped string → strip and parse
+
+    Always returns a dict — never a string.
+    """
+    # Case 1 — already parsed dict
+    if isinstance(raw, dict):
+        return raw
+
+    if not isinstance(raw, str):
+        print(f"[BLOG PARSE] Unexpected type: {type(raw)}")
+        return {}
+
+    # Case 2 + 3 — strip ```json wrapper if present
+    text = raw.strip()
+
+    if text.startswith("```"):
+        # Remove ```json or ``` at start
+        lines  = text.split("\n")
+        lines  = lines[1:]  # remove first line (```json)
+
+        # Remove ``` at end
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+
+        text = "\n".join(lines).strip()
+
+    # Parse JSON
+    try:
+        data = json.loads(text)
+        print(f"[BLOG PARSE] ✅ Parsed successfully")
+        return data
+    except json.JSONDecodeError as e:
+        print(f"[BLOG PARSE] ❌ JSON parse failed: {e}")
+        print(f"[BLOG PARSE] Raw (first 200 chars): {text[:200]}")
+        return {"Blog_Content": raw, "parse_error": str(e)}
+    
+
 
 def _get_ipo_template_path() -> str:
     """Returns IPO Alert template path (for blog outer + instagram)."""
@@ -1643,6 +1689,10 @@ def _generate_blog(item):
     return generate_blog(item)
 
 @timed
+def _generate_ipo_blog(item):          # ← add this
+    return generate_ipo_blog(item)
+
+@timed
 def _generate_notification(item):
     return generate_notification(item)
 
@@ -1700,7 +1750,7 @@ def run_pipeline(selected_country="India", category="finance"):
     os.makedirs(OUTPUT_IMG_JPG_DIR,  exist_ok=True)
     os.makedirs(OUTPUT_IMG_WEBP_DIR, exist_ok=True)
     results = []
-     
+
     # ── Clear stale stacks from previous day ──────────────────
     _clear_stale_stacks()
 
@@ -1729,35 +1779,42 @@ def run_pipeline(selected_country="India", category="finance"):
             if not zerodha_data:
                 print("[FALLBACK] Zerodha also empty — aborting")
                 return []
-            
-            used_titles  = load_used_titles()
+
+            used_titles   = load_used_titles()
             fresh_zerodha = [
-                      a for a in zerodha_data
-                     if normalize_title(a.get("Blog_Title", "")) not in used_titles
-                    ]
+                a for a in zerodha_data
+                if normalize_title(a.get("Blog_Title", "")) not in used_titles
+            ]
             if not fresh_zerodha:
                 print("[FALLBACK] All Zerodha articles already published — aborting")
                 return []
-            print(f"[FALLBACK] {len(zerodha_data)} fetched → "f"{len(fresh_zerodha)} fresh after dedup")
+            print(
+                f"[FALLBACK] {len(zerodha_data)} fetched → "
+                f"{len(fresh_zerodha)} fresh after dedup"
+            )
 
-            final_item                     = random.choice(zerodha_data)
-            final_item["source"]           = "zerodha"
-            final_item["_source_type"]     = "news"
-            final_item["source_type"]      = "news"
+            final_item                 = random.choice(fresh_zerodha)
+            final_item["source"]       = "zerodha"
+            final_item["_source_type"] = "news"
+            final_item["source_type"]  = "news"
             print(f"[FALLBACK] Selected: '{final_item.get('Blog_Title','')[:50]}'")
 
+            # Fallback always uses standard blog generator (zerodha = news)
+            print(f"[BLOG] FALLBACK news article → generate_blog")
             final_item["blog"]             = clean_newlines(generate_blog(final_item))
             final_item["notify"]           = clean_newlines(generate_notification(final_item))
             final_item["instagram_notify"] = clean_newlines(generate_instagram_caption(final_item))
             final_item["Run_Timestamp"]    = get_run_timestamp()
+            final_item["blog"]             = _parse_blog_output(final_item["blog"])
 
-            safe_title     = clean_filename(final_item["Blog_Title"])
-            image_text     = extract_image_text(
+            safe_title = clean_filename(final_item["Blog_Title"])
+            image_text = extract_image_text(
                 final_item["Blog_Title"],
                 final_item.get("Blog_Content", ""),
                 category.upper()
             )
             final_item["image_text"] = image_text
+
             template_pair  = select_template_pair_smart(
                 category,
                 final_item["Blog_Title"],
@@ -1827,17 +1884,39 @@ def run_pipeline(selected_country="India", category="finance"):
     try:
         # ══════════════════════════════════════════════════════
         # STEP 6 — Generate blog + notification + instagram (AI)
+        #
+        # BLOG GENERATOR ROUTING:
+        #   IPO  (priority + nse_ipo)    → generate_ipo_blog
+        #   NEWS (news sources)          → generate_blog
+        #   CORPORATE (nse_corporate)    → generate_blog
+        #   PRIORITY non-IPO             → generate_blog
+        #                                  (e.g. google_trends)
+        #
+        # WHY double condition for IPO:
+        #   PRIORITY_SOURCES contains both nse_ipo and google_trends.
+        #   google_trends priority articles must use generate_blog,
+        #   not the IPO prompt. Only nse_ipo gets generate_ipo_blog.
         # ══════════════════════════════════════════════════════
-        final_item["blog"]             = clean_newlines(_generate_blog(final_item))
+        final_item["_source_type"] = pop_type
+        article_source             = final_item.get("source", "")
+
+        if pop_type == "priority" and article_source == "nse_ipo":
+            print(f"[BLOG] IPO article (priority + nse_ipo) → generate_ipo_blog")
+            final_item["blog"] = clean_newlines(_generate_ipo_blog(final_item))
+        else:
+            print(f"[BLOG] {pop_type.upper()} article "
+                  f"(source={article_source}) → generate_blog")
+            final_item["blog"] = clean_newlines(_generate_blog(final_item))
+
         final_item["notify"]           = clean_newlines(_generate_notification(final_item))
         final_item["instagram_notify"] = clean_newlines(_generate_instagram(final_item))
         final_item["Run_Timestamp"]    = get_run_timestamp()
         final_item["source_type"]      = pop_type
+        final_item["blog"]             = _parse_blog_output(final_item["blog"])
 
-        safe_title     = clean_filename(final_item["Blog_Title"])
-        article_source = final_item.get("source", "")
+        safe_title = clean_filename(final_item["Blog_Title"])
 
-        # File paths (shared by all branches)
+        # File paths — shared by all image branches
         blog_jpg_path        = os.path.join(OUTPUT_IMG_JPG_DIR,  f"blog_{safe_title}.jpg")
         blog_webp_path       = os.path.join(OUTPUT_IMG_WEBP_DIR, f"blog_{safe_title}.webp")
         blog_inner_jpg_path  = os.path.join(OUTPUT_IMG_JPG_DIR,  f"blog_inner_{safe_title}.jpg")
@@ -1861,9 +1940,6 @@ def run_pipeline(selected_country="India", category="finance"):
         # ══════════════════════════════════════════════════════
 
         # ── BRANCH A: IPO article — ALWAYS template ───────────
-        # Checked FIRST — before USE_AI_IMAGES
-        # IPO Alert template always looks better than AI generation
-        # and contains structured zone data (date, price, lot...)
         if pop_type == "priority" and article_source == "nse_ipo":
             print(f"[IMAGE] IPO article → ipo_compositor.py "
                   f"(always template, ignores USE_AI_IMAGES)")
@@ -1872,29 +1948,25 @@ def run_pipeline(selected_country="India", category="finance"):
             ipo_inner_template = _get_ipo_inner_template_path()
 
             if ipo_template:
-                # Blog outer (640×480) — ipo_alert.png + zones
-                print(f"[IMAGE] Blog outer (640×480) + IPO zone values")
+                print(f"[IMAGE] Blog outer  (640×480)   + IPO zone values")
                 final_item["blog_image"] = _compose_ipo_image(
                     ipo_template, final_item,
                     blog_jpg_path, blog_webp_path, "blog"
                 )
 
-                # Blog inner (1920×490) — ipo_inner.png (dedicated, no resize)
-                print(f"[IMAGE] Blog inner (1920×490) — dedicated template")
+                print(f"[IMAGE] Blog inner  (1920×490)  — dedicated template")
                 final_item["blog_image_inner"] = _compose_ipo_image(
                     ipo_inner_template, final_item,
                     blog_inner_jpg_path, blog_inner_webp_path, "blog_inner"
                 )
 
-                # Instagram (1080×1080) — ipo_alert.png + zones
-                print(f"[IMAGE] Instagram (1080×1080) + IPO zone values")
+                print(f"[IMAGE] Instagram   (1080×1080) + IPO zone values")
                 final_item["instagram_image"] = _compose_ipo_image(
                     ipo_template, final_item,
                     insta_jpg_path, insta_webp_path, "instagram"
                 )
-
             else:
-                # Fallback if ipo_alert.png missing
+                # Fallback: ipo_alert.png missing
                 print(f"[IMAGE] IPO fallback → smart template + text overlay")
                 ipo_text      = _extract_ipo_image_text(final_item)
                 template_pair = _select_template_pair_smart(
@@ -1918,7 +1990,6 @@ def run_pipeline(selected_country="India", category="finance"):
             final_item["image_text"] = _extract_ipo_image_text(final_item)
 
         # ── BRANCH B: non-IPO + USE_AI_IMAGES=True ───────────
-        # AI generation only for news/corporate when flag is True
         elif USE_AI_IMAGES:
             print(f"[IMAGE MODE] AI images → {OUTPUT_FILENAME}")
             images = _generate_ai_image(
@@ -1926,15 +1997,15 @@ def run_pipeline(selected_country="India", category="finance"):
                 final_item.get("Blog_Content", ""),
                 blog_outer_paths={
                     "jpg":  os.path.join(OUTPUT_IMG_JPG_DIR,  f"blog_outer_{safe_title}.jpg"),
-                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"blog_outer_{safe_title}.webp")
+                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"blog_outer_{safe_title}.webp"),
                 },
                 blog_inner_paths={
                     "jpg":  os.path.join(OUTPUT_IMG_JPG_DIR,  f"blog_inner_{safe_title}.jpg"),
-                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"blog_inner_{safe_title}.webp")
+                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"blog_inner_{safe_title}.webp"),
                 },
                 instagram_paths={
                     "jpg":  os.path.join(OUTPUT_IMG_JPG_DIR,  f"insta_{safe_title}.jpg"),
-                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"insta_{safe_title}.webp")
+                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"insta_{safe_title}.webp"),
                 },
                 quality="medium"
             )
@@ -1943,7 +2014,6 @@ def run_pipeline(selected_country="India", category="finance"):
             final_item["instagram_image"]  = images["instagram"]
 
         # ── BRANCH C: non-IPO + USE_AI_IMAGES=False ──────────
-        # Template compositor for news/corporate
         else:
             print(f"[IMAGE] {pop_type.upper()} "
                   f"(source={article_source}) → compositor.py")
@@ -1962,17 +2032,17 @@ def run_pipeline(selected_country="India", category="finance"):
             outer_template = template_pair["outer"]
             inner_template = template_pair["inner"]
 
-            print(f"[IMAGE] Blog outer → {os.path.basename(outer_template)}")
+            print(f"[IMAGE] Blog outer  → {os.path.basename(outer_template)}")
             final_item["blog_image"] = _compose_image(
                 outer_template, final_item["image_text"],
                 blog_jpg_path, blog_webp_path, "blog"
             )
-            print(f"[IMAGE] Blog inner → {os.path.basename(inner_template)}")
+            print(f"[IMAGE] Blog inner  → {os.path.basename(inner_template)}")
             final_item["blog_image_inner"] = _compose_image(
                 inner_template, {},
                 blog_inner_jpg_path, blog_inner_webp_path, "blog_inner"
             )
-            print(f"[IMAGE] Instagram → {os.path.basename(outer_template)}")
+            print(f"[IMAGE] Instagram   → {os.path.basename(outer_template)}")
             final_item["instagram_image"] = _compose_image(
                 outer_template, final_item["image_text"],
                 insta_jpg_path, insta_webp_path, "instagram"
@@ -1995,8 +2065,6 @@ def run_pipeline(selected_country="India", category="finance"):
 
     print_timing_summary()
     return results
-
-
 
 
 

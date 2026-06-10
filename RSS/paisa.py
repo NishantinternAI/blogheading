@@ -30,6 +30,6 @@ if __name__ == "__main__":
         print(f"Link    : {r['Blog_Links']}")
         # print(f"Traffic : {r['traffic']}")
         print(f"Date    : {r['Blog_PublishDate']}")
-        print(f"Content : {r['Blog_Content'][:120]}")
+        print(f"Content : {r['Blog_Content']}")
         print(f"---")
 # print(fetch_5paisa())
