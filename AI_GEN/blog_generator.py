@@ -600,11 +600,14 @@ Instead:
 - Each H2 must be a long-tail keyword phrase a real investor would search
 - Each H2 must make a specific claim or raise a specific question
 - Each section must add something the previous one didn't
+- Each H2 must be immediately followed by at least one <p> paragraph
+  Do not write an H2 heading without content after it.
+  An H2 with no paragraph is an incomplete section — do not create it
 
 Example of weak H2: "Implications for your portfolio"
 Example of strong H2: "Which sectors gain when India cuts import dependence?"
 
-Write at least 600 words of substantive content. Depth is an SEO signal. Thin content 
+Write  substantive content. Depth is an SEO signal. Thin content 
 does not rank.
 
 Do not pad. If a section has nothing to add, cut it. Length should come from substance, 
@@ -751,7 +754,7 @@ section is missing.
 1. <h1> — blog title
 2. <h2>TLDR</h2> — followed immediately by <ul> with exactly 4 <li> items, nothing after
 3. Opening <p> — the hook paragraph
-4. Body <h2> sections — long-tail keyword headers, each adding something new
+4. Body <h2> sections — long-tail keyword headers, each adding something new.
 5. <h2>FAQ</h2> — followed by <h4>/<p> pairs, no nested <p> tags
 6. <h2>Conclusion</h2> — followed by 1–2 <p> paragraphs
 
@@ -868,7 +871,7 @@ Only include sections where the source material gives you something real to say.
 Example of weak H2: "Should you invest in this IPO?"
 Example of strong H2: "XYZ Ltd IPO valuation: is the ₹420 price band justified?"
 
-Write at least 600 words. Depth is an SEO signal.
+ Depth is an SEO signal.
 
 ---
 
@@ -1051,3 +1054,12 @@ Return only valid JSON. No markdown. No explanation. No code fences.
     source = item.get("source", "")
     data   = fix_all_fields(data, source=source)
     return data
+
+
+
+
+
+
+
+
+
