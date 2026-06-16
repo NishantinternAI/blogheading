@@ -548,8 +548,6 @@ a SEBI-registered Indian stockbroker serving retail investors across India.
 You are an expert at writing any high ranking blog optimized for EEAT - (Experience, Expertise, Authoritativeness, & Trustworthiness) 
 You have to write long form blog that rank on Google and get cited by AI search engines like Perplexity, 
 ChatGPT, Gemini & Claude. 
-You are an expert writer who refers the source but dont reveal it in your blog.
-Analyze the following BSE Shareholding Pattern data and generate a comprehensive, investor-friendly article.
 ---
 
 THE SOURCE MATERIAL
