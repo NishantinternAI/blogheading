@@ -1,10 +1,11 @@
 import json
 import re
+from bs4 import BeautifulSoup
 from add_cached import cached_model_call
 
 
 # ══════════════════════════════════════════════════════════════
-#  POST-PROCESSORS — guaranteed fixes regardless of AI output
+#  POST-PROCESSORS
 # ══════════════════════════════════════════════════════════════
 
 def fix_em_dash(text: str) -> str:
@@ -65,18 +66,13 @@ def fix_faq_h2_keyword(html: str, blog_title: str) -> str:
 
 
 def fix_placeholder_h3(html: str) -> str:
-    """
-    Remove generic placeholder H3 text the AI writes
-    when it cannot think of a specific heading.
-    CHANGE 5+6: Added 2 new patterns + removed '...' truncation.
-    """
     PLACEHOLDER_PATTERNS = [
         r'<h3[^>]*>\s*How this affects sector allocations in your portfolio\s*</h3>',
         r'<h3[^>]*>\s*Which sectors could be affected the most\s*</h3>',
         r'<h3[^>]*>\s*Which specific stocks[^<]*are affected[^<]*</h3>',
         r'<h3[^>]*>\s*HOW does this specific event affect YOUR holdings[^<]*</h3>',
-        r'<h3[^>]*>\s*How does this event affect YOUR holdings[^<]*</h3>',  # ← NEW
-        r'<h3[^>]*>\s*Which stocks[/]sectors are affected[^<]*</h3>',        # ← NEW
+        r'<h3[^>]*>\s*How does this event affect YOUR holdings[^<]*</h3>',
+        r'<h3[^>]*>\s*Which stocks[/]sectors are affected[^<]*</h3>',
         r'<h3[^>]*>\s*WHICH specific stocks[^<]*</h3>',
         r'<h3[^>]*>\s*What caused it[^<]*deeper context[^<]*</h3>',
         r'<h3[^>]*>\s*What this means for your portfolio\s*</h3>',
@@ -84,15 +80,12 @@ def fix_placeholder_h3(html: str) -> str:
         r'<h3[^>]*>\s*What happened[^<]*simple explanation[^<]*</h3>',
         r'<h3[^>]*>\s*Sectors to watch[^<]*priority order[^<]*</h3>',
     ]
-
     for pattern in PLACEHOLDER_PATTERNS:
         h3_match = re.search(pattern, html, re.IGNORECASE)
         if h3_match:
             after = html[h3_match.end():]
-
             if after.lstrip().startswith('<ul'):
                 html = html[:h3_match.start()] + html[h3_match.end():]
-
             elif after.lstrip().startswith('<p'):
                 p_match = re.match(r'\s*<p[^>]*>(.*?)</p>', after,
                                    re.IGNORECASE | re.DOTALL)
@@ -100,7 +93,6 @@ def fix_placeholder_h3(html: str) -> str:
                     p_text = re.sub(r'<[^>]+>', '', p_match.group(1))
                     words  = p_text.split()[:10]
                     text   = ' '.join(words)
-                    # CHANGE 5: no "..." truncation — clean heading only
                     if len(text) > 65:
                         text = text[:62]
                     new_h3 = '<h3>' + text + '</h3>'
@@ -109,51 +101,17 @@ def fix_placeholder_h3(html: str) -> str:
                     html = html[:h3_match.start()] + html[h3_match.end():]
             else:
                 html = html[:h3_match.start()] + html[h3_match.end():]
-
     return html
 
 
-# def fix_duplicate_links(html: str) -> str:
-#     links_pattern = re.compile(
-#         r'<p>\s*<strong>Also read:</strong>.*?</p>',
-#         re.IGNORECASE | re.DOTALL
-#     )
-#     matches = list(links_pattern.finditer(html))
-#     if len(matches) > 1:
-#         for match in reversed(matches[:-1]):
-#             html = html[:match.start()] + html[match.end():]
-#     return html
-
-
-# def fix_links_before_faq(html: str) -> str:
-#     """Move internal links block immediately before FAQ section."""
-#     links_pattern = re.compile(
-#         r'<p>\s*<strong>Also read:</strong>.*?</p>',
-#         re.IGNORECASE | re.DOTALL
-#     )
-#     match = links_pattern.search(html)
-#     if not match:
-#         return html
-
-#     links_block = match.group(0)
-#     html = html[:match.start()] + html[match.end():]
-
-#     faq_pattern = re.compile(
-#         r'<h2[^>]*>.*?(?:frequently asked questions|faq).*?</h2>',
-#         re.IGNORECASE | re.DOTALL
-#     )
-#     faq_match = faq_pattern.search(html)
-#     if not faq_match:
-#         return html + '\n' + links_block
-
-#     insert_pos = faq_match.start()
-#     html = html[:insert_pos] + links_block + '\n' + html[insert_pos:]
-#     return html
-
-
 def fix_duplicate_swastika(html: str) -> str:
+    """
+    Keep only the first Swastika reference in Blog_Content.
+    Matches any <p> containing 'Swastika' — with or without 'Investmart',
+    covering 'Swastika's Sarthi', 'Swastika's platform', etc.
+    """
     swastika_pattern = re.compile(
-        r'<p>[^<]*Swastika Investmart[^<]*(?:<[^/][^>]*>[^<]*</[^>]+>[^<]*)*</p>',
+        r'<p>[^<]*[Ss]wastika[^<]*(?:<[^/][^>]*>[^<]*</[^>]+>[^<]*)*</p>',
         re.IGNORECASE | re.DOTALL
     )
     matches = list(swastika_pattern.finditer(html))
@@ -173,25 +131,11 @@ def fix_table_na(html: str) -> str:
 
 
 def fix_remove_non_ipo_table(html: str, source: str) -> str:
+    """Remove tables from non-IPO articles only."""
     if source == "nse_ipo":
         return html
     html = re.sub(r'<table.*?</table>', '', html,
                   flags=re.IGNORECASE | re.DOTALL)
-    return html
-
-
-def fix_extra_ipo_h2(html: str, source: str) -> str:
-    if source != "nse_ipo":
-        return html
-    ALLOWED = [
-        r'key details', r'gmp', r'should you apply',
-        r'risks of investing', r'frequently asked questions', r'faq',
-    ]
-    h2_pattern = re.compile(r'<h2[^>]*>(.*?)</h2>', re.IGNORECASE | re.DOTALL)
-    for match in reversed(list(h2_pattern.finditer(html))):
-        h2_text = re.sub(r'<[^>]+>', '', match.group(1)).lower()
-        if not any(re.search(p, h2_text) for p in ALLOWED):
-            html = html[:match.start()] + html[match.end():]
     return html
 
 
@@ -207,1779 +151,789 @@ def fix_garbage_characters(text: str) -> str:
     return cleaned
 
 
+def fix_nested_p_tags(html: str) -> str:
+    """Remove nested <p> tags: <p><p>text</p></p> → <p>text</p>"""
+    html = re.sub(r'<p>\s*<p>', '<p>', html)
+    html = re.sub(r'</p>\s*</p>', '</p>', html)
+    return html
+
+
+def fix_meta_length(data: dict) -> dict:
+    """Hard-truncate Meta_Title (60 chars) and Meta_Description (155 chars)."""
+    if data.get("Meta_Title") and len(data["Meta_Title"]) > 60:
+        data["Meta_Title"] = data["Meta_Title"][:57].rstrip() + "..."
+    if data.get("Meta_Description") and len(data["Meta_Description"]) > 155:
+        data["Meta_Description"] = data["Meta_Description"][:152].rstrip() + "..."
+    return data
+
+
+def fix_faq_schema_answers(data: dict) -> dict:
+    """Strip HTML tags from FAQ_Schema acceptedAnswer text fields."""
+    entities = data.get("FAQ_Schema", {}).get("mainEntity", [])
+    for entity in entities:
+        answer_obj = entity.get("acceptedAnswer", {})
+        raw_text   = answer_obj.get("text", "")
+        if raw_text:
+            answer_obj["text"] = BeautifulSoup(
+                raw_text, "html.parser"
+            ).get_text(strip=True)
+    return data
+
+
+def fix_strip_tldr_from_content(html: str) -> str:
+    """
+    Removes TLDR / Key Takeaways block from Blog_Content.
+    Case A — wrapped in <h2>TLDR</h2> or <h2>Key Takeaways</h2>
+    Case B — bare <ul>/<ol> dumped directly after <h1> with no wrapper
+    """
+    soup = BeautifulSoup(html, "html.parser")
+
+    TLDR_PREFIXES = ("tldr", "key takeaways")
+    for h2 in soup.find_all("h2"):
+        if h2.get_text(strip=True).lower().startswith(TLDR_PREFIXES):
+            current = h2.next_sibling
+            while current:
+                next_node = current.next_sibling
+                if hasattr(current, "name") and current.name == "h2":
+                    break
+                if hasattr(current, "decompose"):
+                    current.decompose()
+                current = next_node
+            h2.decompose()
+
+    first_h2 = soup.find("h2")
+    if first_h2:
+        for tag in first_h2.find_all_previous(["ul", "ol"]):
+            tag.decompose()
+
+    return str(soup).strip()
+
+
+def fix_conclusion_labels(html: str) -> str:
+    """
+    Removes inline label prefixes that the model writes inside conclusion
+    paragraphs — e.g. 'Conclusion:', 'Takeaway:', 'Key takeaway:',
+    'In summary:', 'Summary:' — leaving only the clean prose that follows.
+
+    Also removes duplicate conclusion paragraphs that just restate the
+    heading (e.g. a <p> that starts with 'Conclusion:' when <h2>Conclusion
+    </h2> already exists).
+    """
+    LABEL_PATTERN = re.compile(
+        r'^\s*(?:conclusion|takeaway|key takeaway|in summary|summary'
+        r'|final thought|final recommendation|bottom line)\s*:\s*',
+        re.IGNORECASE
+    )
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    conclusion_h2 = None
+    for h2 in soup.find_all("h2"):
+        if h2.get_text(strip=True).lower().startswith("conclusion"):
+            conclusion_h2 = h2
+            break
+
+    if not conclusion_h2:
+        return html
+
+    # Walk paragraphs inside the conclusion section
+    current = conclusion_h2.next_sibling
+    while current:
+        next_node = current.next_sibling
+        if hasattr(current, "name"):
+            if current.name == "h2":
+                break
+            if current.name == "p":
+                raw = current.decode_contents()
+                # Strip the label prefix from the paragraph text
+                cleaned = LABEL_PATTERN.sub("", raw).strip()
+                if cleaned:
+                    current.clear()
+                    current.append(BeautifulSoup(cleaned, "html.parser"))
+                else:
+                    # Paragraph was only the label — remove it entirely
+                    current.decompose()
+        current = next_node
+
+    return str(soup).strip()
+
+
+def fix_swastika_paragraph_start(html: str) -> str:
+    """Prevent <p> tags that open with 'Swastika' as the first word."""
+    return re.sub(
+        r'(<p>)(Swastika)',
+        r'\1For stock-level analysis, \2',
+        html,
+        flags=re.IGNORECASE,
+    )
+
+
+def fix_swastika_heading(html: str) -> str:
+    """
+    Removes any H2/H3/H4 that contains 'Swastika' in its text.
+    The model occasionally creates a branded section header like:
+    <h2>Swastika's insights: how to gauge entry levels</h2>
+    which is never valid — Swastika references must appear in <p> only.
+
+    The heading is removed along with any empty content that follows
+    before the next heading.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+
+    for tag in soup.find_all(["h2", "h3", "h4"]):
+        if "swastika" in tag.get_text(strip=True).lower():
+            # Remove any immediately following empty or Swastika-only paragraphs
+            current = tag.next_sibling
+            while current:
+                next_node = current.next_sibling
+                if hasattr(current, "name"):
+                    if current.name in ("h2", "h3", "h4"):
+                        break
+                    if current.name == "p":
+                        text = current.get_text(strip=True)
+                        # Only remove if the paragraph is empty or also Swastika-branded
+                        if not text or "swastika" in text.lower():
+                            current.decompose()
+                        else:
+                            break
+                current = next_node
+            tag.decompose()
+
+    return str(soup).strip()
+
+
+def fix_faq_before_conclusion(html: str) -> str:
+    """
+    If FAQ appears after Conclusion in Blog_Content, swap them
+    so stored JSON always follows: body → FAQ → Conclusion.
+    The dashboard re-appends both sections in correct order,
+    but fixing it in stored JSON keeps the data canonical.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+
+    conclusion_h2 = None
+    faq_h2        = None
+
+    for h2 in soup.find_all("h2"):
+        text = h2.get_text(strip=True).lower()
+        if text.startswith("conclusion") and conclusion_h2 is None:
+            conclusion_h2 = h2
+        if (text.startswith("faq") or text.startswith("frequently")) and faq_h2 is None:
+            faq_h2 = h2
+
+    if not conclusion_h2 or not faq_h2:
+        return html
+
+    all_h2s       = soup.find_all("h2")
+    conclusion_pos = all_h2s.index(conclusion_h2)
+    faq_pos        = all_h2s.index(faq_h2)
+
+    # Already in correct order
+    if faq_pos < conclusion_pos:
+        return html
+
+    # Extract entire FAQ block (h2 + all siblings until next h2)
+    faq_block = [faq_h2]
+    current   = faq_h2.next_sibling
+    while current:
+        next_node = current.next_sibling
+        if hasattr(current, "name") and current.name == "h2":
+            break
+        faq_block.append(current.extract())
+        current = next_node
+
+    # Insert FAQ block before the Conclusion h2
+    for node in reversed(faq_block):
+        conclusion_h2.insert_before(node)
+    faq_h2.extract()
+
+    return str(soup).strip()
+
+
+def fix_ensure_conclusion(html: str) -> str:
+    """
+    Ensures Blog_Content has a properly tagged <h2>Conclusion</h2>
+    with real content after it.
+
+    Case A — properly tagged, real content follows             → do nothing
+    Case E — conclusion h2 exists but nothing follows it       → look backwards
+             (model stopped writing after the heading)           for real paragraphs,
+                                                                 then fall to Case D
+    Case B — tag exists, placeholder follows, real paragraphs  → move real paragraphs
+             sit BEFORE the tag                                   from before to after
+    Case C — conclusion-like paragraph exists after FAQ        → insert <h2> above it
+             but has no heading
+    Case D — no conclusion at all                              → append placeholder
+    """
+    PLACEHOLDER = "this article was published without a generated conclusion"
+    CONCLUSION_SIGNALS = (
+        "next step", "in summary", "to summarise", "to summarize",
+        "the bottom line", "the key takeaway", "for retail investors",
+        "approach with", "worth applying", "wait for listing",
+        "the single most", "what to do next", "going forward",
+        "overall,", "ultimately,", "in conclusion",
+        "the takeaway", "to conclude", "presents a", "mental model",
+        "watch the listing", "treat this as", "wait for more",
+        "monitor the official", "optimal move",
+    )
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    conclusion_h2 = None
+    for h2 in soup.find_all("h2"):
+        if h2.get_text(strip=True).lower().startswith("conclusion"):
+            conclusion_h2 = h2
+            break
+
+    if conclusion_h2:
+        next_p      = conclusion_h2.find_next_sibling("p")
+        next_p_text = next_p.get_text(strip=True).lower() if next_p else ""
+
+        # Case A: real content already follows the tag
+        if next_p and PLACEHOLDER not in next_p_text:
+            return str(soup).strip()
+
+        # Case E: nothing follows the conclusion h2 at all (model stopped early)
+        # OR only a placeholder follows — look backwards for real paragraphs
+        real_paragraphs = []
+        prev = conclusion_h2.find_previous_sibling()
+        while prev and prev.name == "p":
+            text = prev.get_text(strip=True).lower()
+            if any(signal in text for signal in CONCLUSION_SIGNALS):
+                real_paragraphs.insert(0, prev.extract())
+                prev = conclusion_h2.find_previous_sibling()
+            else:
+                break
+
+        if real_paragraphs:
+            # Remove placeholder if present
+            if next_p and PLACEHOLDER in next_p_text:
+                next_p.decompose()
+            for p in reversed(real_paragraphs):
+                conclusion_h2.insert_after(p)
+            return str(soup).strip()
+
+        # No real paragraphs found before the tag either —
+        # remove the empty heading and fall through to Case C/D
+        # so the function can try to detect a conclusion-like paragraph elsewhere
+        conclusion_h2.decompose()
+        conclusion_h2 = None
+
+    # Case C: no conclusion h2 — find conclusion-like paragraph after FAQ
+    faq_h2 = None
+    for h2 in soup.find_all("h2"):
+        if h2.get_text(strip=True).lower().startswith(("faq", "frequently")):
+            faq_h2 = h2
+            break
+
+    if faq_h2:
+        current = faq_h2.next_sibling
+        while current:
+            if hasattr(current, "name"):
+                if current.name == "p":
+                    p_text = current.get_text(strip=True).lower()
+                    if any(signal in p_text for signal in CONCLUSION_SIGNALS):
+                        conclusion_tag = BeautifulSoup(
+                            "<h2>Conclusion</h2>", "html.parser"
+                        ).find("h2")
+                        current.insert_before(conclusion_tag)
+                        return str(soup).strip()
+                elif current.name == "h2":
+                    break
+            current = current.next_sibling
+
+    # Case D: nothing found anywhere — append placeholder
+    if not conclusion_h2:
+        fallback = (
+            "\n<h2>Conclusion</h2>\n"
+            "<p>This article was published without a generated conclusion. "
+            "Please review and add a conclusion before publishing.</p>\n"
+        )
+        faq_match = re.search(
+            r"(<h2[^>]*>\s*(?:faq|frequently).*?</h2>.*?)(<h2|$)",
+            str(soup), re.IGNORECASE | re.DOTALL,
+        )
+        if faq_match:
+            rebuilt = str(soup)
+            insert_pos = faq_match.end(1)
+            return rebuilt[:insert_pos] + fallback + rebuilt[insert_pos:]
+        return str(soup).strip() + fallback
+
+    return str(soup).strip()
+
+
+# ══════════════════════════════════════════════════════════════
+#  fix_all_fields — main pipeline entry point
+# ══════════════════════════════════════════════════════════════
+
 def fix_all_fields(data: dict, source: str = "") -> dict:
-    blog_title = data.get('Blog_Title', '')
-    for key, value in data.items():
+    """
+    Post-processes raw LLM JSON output before storage.
+
+    Pipeline order:
+      1.  Meta length enforcement
+      2.  FAQ schema answer cleanup
+      3.  String-level fixes on all keys (em-dash, garbage chars)
+      4.  Blog_Content transformations:
+            a. Strip TLDR from content
+            b. Nested <p> cleanup
+            c. TLDR h2 removal
+            d. FAQ tag normalisation (h3→h4 inside FAQ)
+            e. FAQ heading keyword enrichment
+            f. Placeholder h3 removal
+            g. Duplicate Swastika fix        (now matches all Swastika refs)
+            h. Swastika paragraph-start fix
+            i. Table N/A cleanup
+            j. Non-IPO table removal
+            k. FAQ before Conclusion swap    (new — corrects reversed order)
+            l. Ensure conclusion             (tag + real content)
+    """
+    blog_title = data.get("Blog_Title", "")
+
+    # ── 1. Meta length ────────────────────────────────────────
+    data = fix_meta_length(data)
+
+    # ── 2. FAQ schema answer cleanup ─────────────────────────
+    data = fix_faq_schema_answers(data)
+
+    # ── 3. String-level fixes ─────────────────────────────────
+    for key, value in list(data.items()):
+
         if isinstance(value, str):
             value = fix_em_dash(value)
-            if key in ('Blog_Title', 'Meta_Title', 'Meta_Description', 'Conclusion'):
+
+            if key in ("Blog_Title", "Meta_Title", "Meta_Description", "Conclusion"):
                 value = fix_garbage_characters(value)
-            if key == 'Blog_Content':
-                value = fix_tldr_h2(value)
-                value = fix_faq_tags(value)
-                value = fix_faq_h2_keyword(value, blog_title)
-                value = fix_placeholder_h3(value)
-                # value = fix_duplicate_links(value)
-                # value = fix_links_before_faq(value)
+
+            if key == "Blog_Content":
+                value = value.replace('\\n', ' ').replace('\n', ' ')  # ← FIRST
+                value = fix_strip_tldr_from_content(value)      # a
+                value = fix_nested_p_tags(value)                 # b
+                value = fix_tldr_h2(value)                       # c
+                value = fix_faq_tags(value)                      # d
+                value = fix_faq_h2_keyword(value, blog_title)    # e
+                value = fix_placeholder_h3(value)                # f
                 value = fix_duplicate_swastika(value)
-                value = fix_table_na(value)
-                value = fix_remove_non_ipo_table(value, source)
-                value = fix_extra_ipo_h2(value, source)
+                value = fix_swastika_heading(value)            # g
+                value = fix_swastika_paragraph_start(value)      # h
+                value = fix_table_na(value)                      # i
+                value = fix_remove_non_ipo_table(value, source)  # j
+                value = fix_faq_before_conclusion(value)         # k
+                value = fix_ensure_conclusion(value)  
+                value = fix_conclusion_labels(value)           # l
+
             data[key] = value
+
         elif isinstance(value, list):
             data[key] = [
-                fix_em_dash(fix_garbage_characters(v)) if isinstance(v, str) else v
+                fix_em_dash(fix_garbage_characters(v))
+                if isinstance(v, str) else v
                 for v in value
             ]
+
         elif isinstance(value, dict):
-            data[key] = fix_all_fields(value, source)
+            data[key] = fix_all_fields(value, source="")
+
     return data
 
 
 # ══════════════════════════════════════════════════════════════
-#  MAIN FUNCTION
+#  BLOG GENERATORS
 # ══════════════════════════════════════════════════════════════
 
-def generate_blog(item):
+def generate_blog(item: dict) -> dict:
     prompt = f"""
-You are a senior financial analyst and blog writer for Swastika Investmart,
-writing for RETAIL INVESTORS in India.
+You are a SEO & GEO Blog strategist writing for Swastika Investmart — 
+a SEBI-registered Indian stockbroker serving retail investors across India.
+You are an expert at writing any high ranking blog optimized for EEAT - (Experience, Expertise, Authoritativeness, & Trustworthiness) 
+You have to write long form blog that rank on Google and get cited by AI search engines like Perplexity, 
+ChatGPT, Gemini & Claude. 
+You are an expert writer who refers the source but dont reveal it in your blog.
+Analyze the following BSE Shareholding Pattern data and generate a comprehensive, investor-friendly article.
+---
 
-NEWS:
-Title: {item['Blog_Title']}
-Content: {item['Blog_Content']}
+THE SOURCE MATERIAL
 
-Return ONLY valid JSON in this format:
+ News URL: {item['Blog_Links']}
+---
+
+YOUR MISSION
+
+Write a GEO & SEO optimized plagirism free blog which looks alot human written. 
+Blogs must be optimized for longtail & short tail keywords and follow AI SEO optimization blog structure
+
+---
+
+BLOG TITLE
+
+Write a blog title that does three things at once:
+- Contains the primary long-tail keyword naturally
+- Should rank higher in GEO and SEO
+
+The title is the most important SEO signal in the entire blog.
+---
+
+OPENING
+
+Start with the sharpest hook, most interesting thing 
+about this story — a tension, a number, a consequence, a question worth answering.
+
+---
+
+BODY STRUCTURE
+
+Let the story decide the structure.
+
+Instead:
+- Each H2 must be a long-tail keyword phrase a real investor would search
+- Each H2 must make a specific claim or raise a specific question
+- Each section must add something the previous one didn't
+
+---
+
+TLDR
+
+Write exactly 4 short, punchy sentences. No bullet formatting beyond the list structure. Each sentence must stand alone and deliver real information.
+
+---
+
+TABLES
+
+Add a table only whenever needed.
+---
+
+FAQ
+
+Write 4–6 FAQ questions and Answers that would rank in Google Search. 
+Answers must be specific, factual, and grounded in the source article.
+
+---
+
+CONCLUSION
+
+The conclusion is the last thing the investor reads. Make it the most useful paragraph in the blog.
+
+Write 2 paragraphs under <h2>Conclusion</h2>:
+Summarize what this story means for the retail investor right now - not a recap of facts, but the so-what.
+Give the investor one clear next step or mental model they can apply.
+
+
+---
+
+SWASTIKA CONTEXT
+
+Swastika offers: stocks, F&O, mutual funds, IPOs, ETFs, bonds, MCX, SLBM, pledging, 
+research reports, and Sarthi — an AI stock assistant that gives institutional-level 
+research on any stock or index to retail investors.
+
+Place one implicit CTA in the body where it genuinely fits the article context. A natural bridge between what the investor 
+just learned and what they might do next.
+---
+
+SEO OUTPUT REQUIREMENTS
+
+Meta Title: Under 60 characters. Must contain the primary keyword. Must create click 
+intent. Count the characters.
+
+Meta Description: Under 155 characters. One sentence. Tell the reader exactly what 
+insight they'll get from clicking. Count the characters.
+
+---
+
+HTML RULES
+
+These are allowed tags which you can use: <h1> <h2> <h3> <h4> <p> <ul> <li> <strong> <u> <a href=""> 
+<table> <tr> <th> <td>
+
+TLDR points go in <li> tags with no paragraph following them.
+FAQ questions use <h4>. Answers use <p>.
+Every major section needs an <h2>. Use <h3> only for genuine subsections.
+
+---
+
+OUTPUT
+
+Return only valid JSON. No markdown. No explanation. No code fences.
 
 {{
-  "Meta_Title": "SEO title 50-60 chars strictly - keyword first - number + you + question",
-  "Meta_Description": "Under 160 chars with keyword + action",
-  "TLDR": [
-    "Complete sentence - what happened - with specific number/date. No labels.",
-    "Complete sentence - direct effect on investor money - specific sector named.",
-    "Complete sentence - which specific sector or stock to watch and why.",
-    "Complete sentence - one clear action investor takes today - not generic."
-  ],
-  "Blog_Title": "50-70 chars - keyword first - number + you/your + question mark",
-  "Blog_Content": "HTML blog as per structure below",
-  "Investor_Impact": {{
-    "primary_sector": "Most important sector affected",
-    "secondary_sector": "Second most important sector",
-    "avoid_sector": "Sector to avoid right now",
-    "action": "Buy / Hold / Wait / Avoid",
-    "reason": "One line reason for the action"
-  }},
-  "Action_Points": [
-    "Specific action investor can take TODAY",
-    "What to watch this week",
-    "Risk to keep in mind"
-  ],
+  "Blog_Title": "",
+  "Meta_Title": "",
+  "Meta_Description": "",
+  "TLDR": ["", "", "", ""],
+  "Blog_Content": "",
   "FAQ_Schema": {{
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "mainEntity": [
-      {{
-        "@type": "Question",
-        "name": "Investor focused question",
-        "acceptedAnswer": {{
-          "@type": "Answer",
-          "text": "Clear actionable answer for investor"
-        }}
-      }}
-    ]
-  }},
-  "Conclusion": "2-3 sentence investor-focused summary with clear next step",
-  "CTA": "https://trade.swastika.co.in/"
+    "mainEntity": []
+  }}
 }}
 
-
-=====================================
-!! STEP 1 — DETECT ARTICLE TYPE FIRST !!
-=====================================
-
-TYPE A — IPO article
-  signals: "ipo", "lot size", "allotment", "price band",
-           "subscribed", "prosp", "rhp", "listing date"
-
-TYPE B — Gold / Silver article
-  signals: "gold", "silver", "bullion", "mcx", "precious metal"
-
-TYPE C — Stock / Company article
-  signals: company name + "shares", "stock", "results",
-           "profit", "revenue", "target", "dividend"
-
-TYPE D — RBI / Interest Rate article
-  signals: "rbi", "repo rate", "monetary policy",
-           "interest rate", "inflation", "cpi"
-
-TYPE E — Market / Index article
-  signals: "sensex", "nifty", "market", "rally",
-           "crash", "bulls", "bears", "points"
-
-TYPE F — General Finance (if none above match)
-
-
-=====================================
-!! STEP 2 — TITLE RULES !!
-=====================================
-
-Every Blog_Title and Meta_Title MUST contain ALL 3 elements
-inside ONE single natural flowing sentence:
-  1. ONE NUMERIC VALUE  (₹ amount, %, crore, points, or date)
-  2. ONE PERSONA WORD   (You, Your, Are You, Should You)
-  3. ONE QUESTION MARK  (must end the title)
-
-LENGTH — STRICT SEO BOUNDARIES:
-  Meta_Title : 50 to 60 characters STRICTLY (shown on Google)
-  Blog_Title : 50 to 70 characters MAXIMUM  (shown on website)
-  Every space, letter, punctuation = 1 character.
-  Under 50 = too weak for SEO.
-  Over 60 chars on Meta_Title = Google truncates with "..."
-
-CRITICAL GRAMMAR RULE:
-  All 3 elements must form ONE single flowing thought.
-  Never split into two ideas using colon (:) or em-dash.
-  The number, persona word, and question must interact
-  naturally within the same phrase — not as separate fragments.
-
-NUMERIC NOUN CONSTRAINT:
-  Every number must be immediately followed by a descriptive noun.
-  ✅ "5 reasons"  ✅ "3 stocks"  ✅ "7 risks"  ✅ "₹500 crore"
-  ❌ "5 You"      ❌ "3 Investors"              ❌ "7 Should"
-
-SINGLE NUMBER RULE:
-  Use only ONE numeric value per title.
-  Two numbers = two competing hooks = confused reader.
-  ❌ "₹576 Cr Revenue Signpost India Expands to 100 Cities — Are You Ready?"
-  ✅ "Signpost India Posts ₹576 Cr Revenue — Should You Invest Now?"
-  Pick the number that matters most to the investor. Drop the rest.
-
-NATURAL LANGUAGE TEST:
-  Read the title aloud as if speaking to a friend.
-  Ask: would a human financial journalist write this sentence?
-
-  FAIL signals — if ANY appear, rebuild the title completely:
-  ❌ Title sounds like 3 separate fragments joined together
-  ❌ "Are You Ready?" or "Should You Know?" floats disconnected
-     from the rest of the sentence
-  ❌ Two numbers appear competing for attention
-  ❌ No verb appears in the first half of the title
-  ❌ Title starts with ₹ or number instead of brand/keyword
-  ❌ Colon or em-dash splitting two different ideas
-
-WRONG EXAMPLES — never produce these patterns:
-  ❌ "5 You Should Consider: Is Groww AMC set for a governance upgrade?"
-     (number has no noun, colon splits two ideas)
-  ❌ "23,000 Level: Should You Brace for Nifty's Next Support Breach?"
-     (colon splits, "support breach" is jargon, number has no noun)
-  ❌ "₹576 crore revenue Signpost India to 100 cities Are You Ready?"
-     (two numbers, no verb, "Are You Ready" disconnected)
-  ❌ "3 Things to Know: Will Nifty Fall Below 23,000?"
-     (colon splits two ideas)
-
-RIGHT EXAMPLES — Meta_Title (50-60 chars):
-  ✅ "Should You Buy Groww AMC Before Its ₹2,000 Cr IPO?"  (52 chars)
-  ✅ "Is Your Portfolio Safe After Sensex Falls 800 Pts?"    (51 chars)
-  ✅ "Does RBI Rate Cut Lower Your Home Loan EMI Today?"     (50 chars)
-  ✅ "Suzlon Shares Fall 8% — Should You Exit or Hold?"      (50 chars)
-  ✅ "Is Signpost India's ₹576 Cr Growth a Buy Signal?"     (50 chars)
-  ✅ "Nifty at 23,000 — Is It Time to Protect Your Money?"  (52 chars)
-
-RIGHT EXAMPLES — Blog_Title (50-70 chars):
-  ✅ "Is a ₹2,000 Crore Groww AMC Listing Worth Your Money?"      (54 chars)
-  ✅ "5 Reasons Groww AMC's New Management Could Grow Your Returns" (61 chars)
-  ✅ "Will the 500 Point Nifty Drop Damage Your Portfolio Today?"   (58 chars)
-  ✅ "Does RBI Rate Cut Mean Your Monthly Home Loan EMI Falls?"     (56 chars)
-  ✅ "Signpost India Posts ₹576 Cr Revenue — Should You Invest?"    (58 chars)
-  ✅ "Is Nifty's Fall to 23,000 Points a Risk for Your Portfolio?"  (60 chars)
-
-RIGHT EXAMPLES BY ARTICLE TYPE:
-
-  TYPE A — IPO:
-    Meta: "Should You Apply for Groww AMC IPO at ₹450 Price Band?"  (55 chars)
-    Blog: "Is Groww AMC's ₹2,000 Cr IPO Worth Your Hard Earned Money?" (59 chars)
-
-  TYPE B — Gold/Silver:
-    Meta: "Gold Rises 2% This Week — Should You Buy More Now?"      (51 chars)
-    Blog: "Is MCX Gold at ₹72,000 Still a Good Buy for Your Portfolio?" (60 chars)
-
-  TYPE C — Stock/Company:
-    Meta: "Suzlon Shares Fall 8% — Should You Exit or Hold Now?"    (53 chars)
-    Blog: "Colgate Declares ₹24 Dividend — Is It Worth Buying Now?"  (55 chars)
-
-  TYPE D — RBI/Rates:
-    Meta: "Does RBI Rate Cut Lower Your Home Loan EMI Today?"       (50 chars)
-    Blog: "RBI Cuts Repo Rate 0.25% — Will Your FD Returns Drop Now?" (57 chars)
-
-  TYPE E — Market/Index:
-    Meta: "Sensex Falls 800 Points — Is Your Portfolio Safe Now?"   (53 chars)
-    Blog: "Nifty Drops 500 Points — Should You Buy the Dip Today?"   (55 chars)
-
-BANNED WORDS IN TITLE — replace instantly with plain English:
-  Ex-Date          → Buy Before [date]
-  PAT / Net Profit → Profit / Net Earnings
-  YoY / QoQ        → vs Last Year / vs Last Quarter
-  Basis Points/bps → % / Interest Rate Change
-  Volatile         → Up and Down
-  Correction       → Market Fall
-  Geopolitical     → War / Global Tensions
-  Macroeconomic    → Economy / Market Conditions
-  Governance       → Fund Management / Board Control
-  AUM              → Total Fund Size
-  Corporate Action → Dividend / Bonus / Stock Split
-  Valuation        → Stock Price / What You Pay
-  Support Breach   → Falls Below [level]
-  Brace            → Prepare / Watch Out / Be Careful
-
-DASH RULE CLARIFICATION:
-  Em-dash and colon → BANNED inside Blog_Title and Meta_Title
-  En-dash (-)       → ALLOWED inside H2/H3 headings and body text
-
-TITLE SAFETY CHECKLIST — run before every title output:
-  □ Meta_Title strictly between 50 and 60 characters?
-  □ Blog_Title between 50 and 70 characters?
-  □ Title reads naturally aloud as ONE single flowing thought?
-  □ Numeric value has a meaningful noun immediately after it?
-  □ Only ONE number used in the entire title?
-  □ No colon or em-dash separating two different ideas?
-  □ Core brand or keyword appears within first 4 words?
-  □ All banned words replaced with plain English?
-  □ No verb missing from first half of title?
-  If ANY box fails → scrap and rebuild title completely from scratch.
-  Never patch a broken title — always rebuild.
-
-
-=====================================
-!! STEP 3 — HEADING HIERARCHY RULES !!
-=====================================
-
-CRITICAL: Google's NLP reads H1 to understand the page topic.
-Once H1 defines the subject, H2 and H3 do NOT need to repeat
-the company name or keyword every time.
-Keyword stuffing in headings = over-optimisation penalty.
-
-RULE:
-  H1 → full keyword (company + event + question)
-  H2 → natural, readable section headings
-       May include keyword ONCE or TWICE maximum
-       Should not repeat keyword in every H2
-  H3 → specific sub-topics, natural language
-
-WRONG — keyword repeated in every heading:
-  <h1>Suzlon Energy Shares Slump After SEBI Fines Rs 29 Crore</h1>
-  <h2>Key Takeaways-Suzlon Energy Shares Slump</h2>     ← repeat
-  <h2>Suzlon Energy Shares Today - Key Data</h2>        ← repeat
-  <h2>Suzlon Energy Shares Impact on Your Money</h2>    ← repeat
-  <h2>Suzlon Energy Shares - Key Risks</h2>             ← repeat
-  <h2>FAQ-Suzlon Energy Shares Slump For Investors</h2> ← repeat
-
-RIGHT — H1 sets topic, H2/H3 flow naturally:
-  <h1>Suzlon Energy Shares Slump After SEBI Fines Rs 29 Crore - Should You Exit?</h1>
-  <h2>Key Takeaways from the SEBI Order</h2>
-  <h2>Understanding the Rs 29 Crore Penalty</h2>
-    <h3>Why the Stock is Falling Today</h3>
-    <h3>SEBI Findings - Inflated Profits and Subsidiary Transactions</h3>
-  <h2>Impact on Investors - What Should You Do?</h2>
-    <h3>How This Affects Your Portfolio</h3>
-    <h3>Which Sectors Face Spillovers?</h3>
-    <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-  <h2>Key Risks of Holding or Buying the Stock</h2>
-  <h2>Frequently Asked Questions</h2>
-
-H2 STRUCTURE BY ARTICLE TYPE (natural language, not keyword-stuffed):
-
-TYPE A — IPO (consistent - investors ask same questions every time):
-  <h2>[Company] IPO - Key Details and Dates</h2>
-  <h2>[Company] IPO GMP and Market Sentiment</h2>
-  <h2>Should You Apply For [Company] IPO?</h2>
-  <h2>Risks of Investing in [Company] IPO</h2>
-
-TYPE B — Gold/Silver:
-  <h2>Gold Price Today - Key Data</h2>
-  <h2>Impact on Your Portfolio</h2>
-  <h2>Key Risks for Investors</h2>
-
-TYPE C — Stock/Company:
-  <h2>[Company] Share Price - Key Data</h2>
-  <h2>What This Means for Investors</h2>
-  <h2>Key Risks of Holding or Buying</h2>
-
-TYPE D — RBI/Rates:
-  <h2>RBI Decision - What Changed</h2>
-  <h2>Impact on Your Money</h2>
-  <h2>Key Risks After This Decision</h2>
-
-TYPE E — Market/Index:
-  <h2>Market Overview - Key Data</h2>
-  <h2>Impact on Your Portfolio</h2>
-  <h2>Key Risks to Watch</h2>
-
-
-=====================================
-!! STEP 4 — SEMANTIC KEYWORD RULES !!
-=====================================
-
-Modern Google uses NLP — it understands topic from context.
-Do NOT repeat the exact same keyword phrase over and over.
-Use SEMANTIC VARIATIONS (LSI keywords) throughout the article.
-
-For a STOCK article about Suzlon + SEBI penalty:
-  Primary keyword: "Suzlon Energy shares"
-  Use these variations instead of repeating primary:
-    "SUZLON stock" (NSE ticker — major SEO entity)
-    "Suzlon regulatory risk"
-    "wind energy stock governance"
-    "SEBI penalty on renewable company"
-    "Suzlon corporate governance"
-    "renewable energy mid-cap"
-    "wind energy sector India"
-
-  Rule: use primary keyword 2-3 times maximum.
-  Fill rest of article with semantic variations.
-
-For a GOLD article:
-  Primary: "gold price India"
-  Variations: "MCX gold", "gold ETF", "gold futures",
-              "precious metal rally", "yellow metal", "bullion"
-
-For an IPO article:
-  Primary: "[Company] IPO"
-  Variations: "[Company] SME listing", "BSE SME IPO",
-              "[Company] subscription", "[Company] GMP",
-              "grey market premium [Company]"
-
-For RBI article:
-  Primary: "RBI rate cut"
-  Variations: "repo rate decision", "monetary policy",
-              "home loan EMI", "RBI MPC", "interest rate India"
-
-
-=====================================
-!! STEP 5 — H3 DYNAMIC RULE !!
-=====================================
-
-H3 must be specific to this article — no placeholders.
-Only ONE H3 stays consistent:
-  "What SIP, Lumpsum and Traders Should Do Now"
-
-ALL OTHER H3 must contain real details.
-
-BANNED GENERIC H3:
-  X <h3>How does this event affect YOUR holdings?</h3>
-  X <h3>Which stocks/sectors are affected?</h3>
-  X <h3>What This Means For Your Portfolio</h3>
-  X <h3>Sectors To Watch - Priority Order</h3>
-  X <h3>What Happened - Simple Explanation</h3>
-
-RIGHT — specific with company/event/number:
-  OK <h3>Why Suzlon Shares Fell After Rs 29 Crore SEBI Fine</h3>
-  OK <h3>How SEBI Penalty Affects Renewable Energy Stocks</h3>
-  OK <h3>Why Gold Fell 1% - US-Iran Tensions Explained</h3>
-
-
-=====================================
-!! STEP 6 — DATA TABLE !!
-=====================================
-
-ONLY TYPE A IPO articles get a data table.
-ALL OTHER types — NO table anywhere.
-
-IPO table format (after first H2 only):
-  <table>
-    <thead><tr><th>Detail</th><th>Information</th></tr></thead>
-    <tbody>
-      <tr><td>IPO Open Date</td>      <td>[date or To be announced]</td></tr>
-      <tr><td>IPO Close Date</td>     <td>[date or To be announced]</td></tr>
-      <tr><td>Price / Price Band</td> <td>[₹X or To be announced]</td></tr>
-      <tr><td>Lot Size</td>           <td>[N shares or To be announced]</td></tr>
-      <tr><td>Minimum Investment</td> <td>[₹amount or To be announced]</td></tr>
-      <tr><td>Issue Size</td>         <td>[₹X Crore or To be announced]</td></tr>
-      <tr><td>Listing Exchange</td>   <td>[BSE SME / NSE / BSE]</td></tr>
-      <tr><td>Listing Date</td>       <td>[date or To be announced]</td></tr>
-    </tbody>
-  </table>
-  Never write N/A. Table appears once only.
-
-
-=====================================
-!! TLDR RULES — READ BEFORE WRITING !!
-=====================================
-
-TLDR = 4 bullet points. Each bullet MUST be:
-  1. A COMPLETE SENTENCE - not a label or template fragment
-  2. SPECIFIC - contains real company name, number, date, or action
-  3. USEFUL - investor can act on it or understand it immediately
-  4. NATURAL - reads like a human financial analyst wrote it
-
-RULES:
-  Each bullet has the keyword naturally — NOT forced at the start.
-  No dashes used as label separators (keyword - label - context).
-  No template words: "what happened", "portfolio effects", "sector", "action".
-  No repeating the full company name in every bullet.
-  No generic statements: "market may be volatile", "watch the sector".
-
-WRONG — template labels visible, keyword stuffed, dashes as separators:
-  ❌ "RBI rate cut - June 5 policy decision - what happened"
-  ❌ "RBI rate cut impact - yields, loan costs - portfolio effects"
-  ❌ "RBI rate cut sector - banks and financials to watch"
-  ❌ "RBI rate cut action - review EMIs and rebalance today"
-
-WRONG — company name repeated in every bullet:
-  ❌ "Colgate Palmolive (India) shares - interim Rs 24 dividend"
-  ❌ "Colgate Palmolive (India) shares - near-term returns may improve"
-  ❌ "Colgate Palmolive (India) shares - watch FMCG sector"
-  ❌ "Colgate Palmolive (India) shares - action: Hold now"
-
-RIGHT — complete sentences, specific, natural, keyword once or twice:
-  RBI article:
-  ✅ "RBI cuts repo rate by 25 basis points to 6% on June 5, 2026"
-  ✅ "Home loan EMIs may drop Rs 500-800 per month if banks pass on the cut"
-  ✅ "Bank stocks and housing finance companies stand to benefit most"
-  ✅ "Lock your FD rates today before banks reduce deposit rates"
-
-  Colgate dividend:
-  ✅ "Colgate India announces Rs 24 interim dividend with record date June 1, 2026"
-  ✅ "Buying before the ex-date qualifies you for the payout but price adjusts after"
-  ✅ "FMCG and consumer staples sector may see mild movement around record date"
-  ✅ "Hold if you already own it - avoid buying purely for the dividend"
-
-  IPO article:
-  ✅ "Aureate Tradde IPO opens May 29 at Rs 70 per share on BSE SME"
-  ✅ "No GMP data yet makes listing gains uncertain for retail investors"
-  ✅ "Watch subscription demand and GMP signals closely before applying"
-  ✅ "Apply only with a small allocation if your risk tolerance allows SME exposure"
-
-  Sensex fall:
-  ✅ "Sensex fell 500 points today on FPI outflows and global risk-off mood"
-  ✅ "Equity portfolios may see 1-2% drawdown with financials and IT hit hardest"
-  ✅ "Defensive sectors like FMCG and pharma could hold better than cyclicals"
-  ✅ "SIP investors should stay invested - avoid stopping SIPs on market dips"
-
-SELF CHECK before writing TLDR:
-  Does each bullet read like a sentence a financial analyst would say? YES/NO
-  Does any bullet contain a template label like "what happened"? If YES → rewrite
-  Does any bullet repeat the full company name 4 times? If YES → use variation
-  Is each bullet specific with a number, date, or named action? YES/NO
-
-
-=====================================
-MANDATORY BLOG STRUCTURE (Blog_Content):
-=====================================
-
-<h1>[Title - number + you + ?]</h1>
-
-<h2>[Natural section heading - key details]</h2>
-[IPO ONLY: data table here]
-<h3>[SPECIFIC: WHY + company/number/event]</h3>
-<p>[2-3 lines. First sentence has main keyword.]</p>
-<h3>[SPECIFIC: deeper context with real details]</h3>
-<p>[market context specific to this article]</p>
-
-<h2>[Natural section heading - impact on investors]</h2>
-<h3>[SPECIFIC: HOW this affects specific holdings]</h3>
-<p>[direct investor impact]</p>
-<h3>[SPECIFIC: WHICH sectors/stocks by name]</h3>
-<ul>
-  <li><strong>1st Priority:</strong> [sector] - [reason]</li>
-  <li><strong>2nd Priority:</strong> [sector] - [reason]</li>
-  <li><strong>Avoid Now:</strong> [sector] - [reason]</li>
-</ul>
-<h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-<ul>
-  <li><strong>SIP investors:</strong> [advice]</li>
-  <li><strong>Lumpsum investors:</strong> [advice]</li>
-  <li><strong>Traders:</strong> [advice]</li>
-</ul>
-<p>[Swastika paragraph - 2-5 sentences - once only]</p>
-
-<h2>[Natural section heading - key risks]</h2>
-!! ONE h3 + ONE ul only. No extra sections. !!
-<ul>
-  <li>[Risk 1]</li>
-  <li>[Risk 2]</li>
-  <li>[Risk 3]</li>
-</ul>
-
-<h2>Frequently Asked Questions</h2>
-<h4>[Q1 specific to this article]?</h4>
-<p>[A1]</p>
-<h4>[Q2 specific with number or date]?</h4>
-<p>[A2]</p>
-<h4>[Q3 specific]?</h4>
-<p>[A3]</p>
-<h4>[Q4 specific]?</h4>
-<p>[A4]</p>
-
-!! STOP — no Conclusion or CTA inside Blog_Content !!
-
-
-=====================================
-HTML FORMATTING RULES
-=====================================
-
-1. Lists use <ul><li> - never plain dashes or 1) 2) 3)
-2. FAQ questions use <h4> - never <h3>
-3. NEVER <h2>TLDR</h2> or <h2>Conclusion</h2> inside Blog_Content
-4. NEVER em dash - use en dash only
-5. English only — no foreign characters
-6. No CTA URL inside Blog_Content
-7. Keyword in H1 is enough - do NOT repeat in every H2
-8. Use semantic keyword variations in body text
-9. NO internal links anywhere - no <a href> tags in Blog_Content
-
-
-=====================================
-ANTI-DUPLICATION RULES
-=====================================
-
-1. Swastika paragraph — EXACTLY ONCE (in H2-2 only)
-2. Sector priority list — EXACTLY ONCE
-3. SIP/Lumpsum section — EXACTLY ONCE
-4. Risk section — EXACTLY ONCE
-5. Table — IPO articles only
-
-
-=====================================
-QUALITY RULES
-=====================================
-
-- Blog length: 900-1200 words
-- Blog_Title: 50 to 70 characters
-- Meta_Title: 50 to 60 characters strictly
-- TLDR: exactly 4 complete sentences
-- FAQ: exactly 4 h4 questions
-- FAQ_Schema: same 4 questions as FAQ
-- Primary keyword: 2-3 times maximum in body text
-- Semantic variations: fill rest of article
-- No markdown — JSON only
-- No text outside JSON
-- NEVER em dash — ALWAYS en dash
-- English only throughout
-
-
-=====================================
-!! FINAL SELF-CHECK BEFORE OUTPUT !!
-=====================================
-
-CHECK 0 — Title quality (run first):
-  □ Blog_Title between 50-70 chars? NO → rewrite
-  □ Meta_Title between 50-60 chars? NO → rewrite
-  □ Title reads as ONE complete natural sentence aloud? NO → rewrite
-  □ Number has a noun after it? NO → rewrite
-  □ Only ONE number in the title? NO → remove the weaker one
-  □ No colon or em-dash splitting two ideas? NO → rewrite
-  □ Keyword or brand name in first 4 words? NO → rewrite
-  □ All banned jargon words removed? NO → replace
-  □ No fail signals from Natural Language Test? NO → rebuild
-
-CHECK 1 — Heading repetition:
-  Count how many H2s contain the main company name.
-  More than 2? → rewrite them to be natural, topic-relevant.
-
-CHECK 2 — Keyword density:
-  Count how many times the exact primary phrase appears.
-  More than 2? → replace some with semantic variations.
-
-CHECK 3 — TLDR has no H2 above it.
-
-CHECK 4 — FAQ uses h4 not h3.
-
-CHECK 5 — No placeholder H3 text.
-
-CHECK 6 — Risk section has only one h3 + one ul.
-
-CHECK 7 — No repeated Swastika, SIP, or sector priority sections.
-
-CHECK 8 — Table only if IPO article.
-
 """
-
     result = cached_model_call(prompt)
     data   = json.loads(result)
-
     source = item.get("source", "")
     data   = fix_all_fields(data, source=source)
-
     return data
 
-# import json
-# import re
-# from add_cached import cached_model_call
-
-
-# # ══════════════════════════════════════════════════════════════
-# #  POST-PROCESSORS — fix AI output regardless of prompt
-# # ══════════════════════════════════════════════════════════════
-
-# def fix_em_dash(text: str) -> str:
-#     text = text.replace('\u2014', '\u2013')
-#     text = text.replace('&mdash;', '–')
-#     text = text.replace('&#8212;', '–')
-#     return text
-
-
-# def fix_tldr_h2(html: str) -> str:
-#     html = re.sub(r'<h2[^>]*>\s*TLDR\s*</h2>', '', html, flags=re.IGNORECASE)
-#     return html
-
-
-# def fix_faq_tags(html: str) -> str:
-#     """
-#     FIX 1 — Inside FAQ section: replace ALL h3 with h4.
-#     Only affects FAQ section — h3 tags outside FAQ untouched.
-#     """
-#     faq_pattern = re.compile(
-#         r'(<h2[^>]*>.*?(?:frequently asked questions|faq).*?</h2>)',
-#         re.IGNORECASE | re.DOTALL
-#     )
-#     match = faq_pattern.search(html)
-#     if not match:
-#         return html
-#     before_faq  = html[:match.end()]
-#     faq_section = html[match.end():]
-#     faq_section = re.sub(r'<h3([^>]*)>', r'<h4\1>', faq_section)
-#     faq_section = re.sub(r'</h3>', '</h4>', faq_section)
-#     return before_faq + faq_section
- 
- 
-# def fix_faq_h2_keyword(html: str, blog_title: str) -> str:
-#     """
-#     FIX 2 — Add keyword to FAQ h2 if it has no keyword.
-#     Converts:
-#       <h2>Frequently Asked Questions</h2>
-#     To:
-#       <h2>Frequently Asked Questions – FPI Outflow For Investors</h2>
- 
-#     Keyword = first 3 meaningful words from Blog_Title.
-#     """
-#     # Words to skip when extracting keyword
-#     STOP = {
-#         'should','you','buy','sell','now','is','are','was','were',
-#         'the','a','an','in','on','for','your','this','that','these',
-#         'it','how','what','why','will','can','could','would','do',
-#         'does','did','has','have','had','be','been','being','at',
-#         'by','from','with','about','into','after','before','than',
-#         'or','and','but','if','so','as','not','no','its','our',
-#         'their','which','who','when','where','while','also','just'
-#     }
- 
-#     # Extract keyword from blog title
-#     # Remove dashes and special chars, split into words
-#     clean_title = re.sub(r'[–—\-\?!\|]', ' ', blog_title)
-#     title_words = clean_title.split()
-#     keyword_words = [
-#         w for w in title_words
-#         if w.lower() not in STOP and len(w) > 2 and w.isascii()
-#     ]
-#     # Take first 3-4 meaningful words
-#     keyword = ' '.join(keyword_words[:4]) if keyword_words else 'Finance'
- 
-#     # Find FAQ h2 that is bare (no extra text after FAQ/Frequently)
-#     bare_faq = re.compile(
-#         r'(<h2[^>]*>)\s*((?:frequently asked questions|faq))\s*(</h2>)',
-#         re.IGNORECASE
-#     )
-#     match = bare_faq.search(html)
-#     if match:
-#         replacement = (
-#             f'{match.group(1)}'
-#             f'Frequently Asked Questions – {keyword} For Investors'
-#             f'{match.group(3)}'
-#         )
-#         html = html[:match.start()] + replacement + html[match.end():]
- 
-#     return html
- 
- 
-# def fix_placeholder_h3(html: str) -> str:
-#     """
-#     FIX 3 — Remove generic placeholder H3 text.
-#     These exact strings are placeholder text the AI writes
-#     when it cannot think of a specific heading.
- 
-#     Strategy: find these h3 tags and replace with the
-#     paragraph text that follows as the new (more specific) heading,
-#     or simply remove the h3 and let the paragraph stand.
-#     """
-#     PLACEHOLDER_PATTERNS = [
-#         r'<h3[^>]*>\s*How this affects sector allocations in your portfolio\s*</h3>',
-#         r'<h3[^>]*>\s*Which sectors could be affected the most\s*</h3>',
-#         r'<h3[^>]*>\s*Which specific stocks[^<]*are affected[^<]*</h3>',
-#         r'<h3[^>]*>\s*HOW does this specific event affect YOUR holdings[^<]*</h3>',
-#         r'<h3[^>]*>\s*WHICH specific stocks[^<]*</h3>',
-#         r'<h3[^>]*>\s*What caused it[^<]*deeper context[^<]*</h3>',
-#         r'<h3[^>]*>\s*What this means for your portfolio\s*</h3>',
-#         r'<h3[^>]*>\s*Why this matters for investors\s*</h3>',
-#         r'<h3[^>]*>\s*What happened[^<]*simple explanation[^<]*</h3>',
-#         r'<h3[^>]*>\s*Sectors to watch[^<]*priority order[^<]*</h3>',
-#     ]
- 
-#     for pattern in PLACEHOLDER_PATTERNS:
-#         # Find the placeholder h3 and the next <ul> or <p>
-#         h3_match = re.search(pattern, html, re.IGNORECASE)
-#         if h3_match:
-#             # Look at what comes after the h3
-#             after = html[h3_match.end():]
- 
-#             # If next tag is <ul> — the h3 is a list heading
-#             # Keep the ul, remove the vague h3
-#             if after.lstrip().startswith('<ul'):
-#                 html = html[:h3_match.start()] + html[h3_match.end():]
- 
-#             # If next tag is <p> — use first 8 words of p as new h3
-#             elif after.lstrip().startswith('<p'):
-#                 p_match = re.match(r'\s*<p[^>]*>(.*?)</p>', after,
-#                                    re.IGNORECASE | re.DOTALL)
-#                 if p_match:
-#                     p_text = re.sub(r'<[^>]+>', '', p_match.group(1))
-#                     words  = p_text.split()[:8]
-#                     new_h3 = '<h3>' + ' '.join(words) + '...</h3>'
-#                     html = html[:h3_match.start()] + new_h3 + html[h3_match.end():]
-#                 else:
-#                     html = html[:h3_match.start()] + html[h3_match.end():]
-#             else:
-#                 html = html[:h3_match.start()] + html[h3_match.end():]
- 
-#     return html
- 
- 
-
-
-# def fix_duplicate_links(html: str) -> str:
-#     links_pattern = re.compile(
-#         r'<p>\s*<strong>Also read:</strong>.*?</p>',
-#         re.IGNORECASE | re.DOTALL
-#     )
-#     matches = list(links_pattern.finditer(html))
-#     if len(matches) > 1:
-#         for match in reversed(matches[:-1]):
-#             html = html[:match.start()] + html[match.end():]
-#     return html
-
-
-# def fix_duplicate_swastika(html: str) -> str:
-#     swastika_pattern = re.compile(
-#         r'<p>[^<]*Swastika Investmart[^<]*(?:<[^/][^>]*>[^<]*</[^>]+>[^<]*)*</p>',
-#         re.IGNORECASE | re.DOTALL
-#     )
-#     matches = list(swastika_pattern.finditer(html))
-#     if len(matches) > 1:
-#         for match in reversed(matches[1:]):
-#             html = html[:match.start()] + html[match.end():]
-#     return html
-
-
-# def fix_table_na(html: str) -> str:
-#     html = re.sub(
-#         r'<td>\s*(?:N/A|n/a|NA|na|None|-|--)\s*</td>',
-#         '<td>To be announced</td>',
-#         html
-#     )
-#     html = re.sub(r'<td>\s*</td>', '<td>To be announced</td>', html)
-#     return html
-
-
-# def fix_remove_non_ipo_table(html: str, source: str) -> str:
-#     """
-#     IPO articles (source=nse_ipo) keep their table.
-#     All other article types have table removed.
-#     """
-#     if source == "nse_ipo":
-#         return html
-#     html = re.sub(
-#         r'<table.*?</table>',
-#         '',
-#         html,
-#         flags=re.IGNORECASE | re.DOTALL
-#     )
-#     return html
-
-
-# def fix_garbage_characters(text: str) -> str:
-#     cleaned = ''
-#     for char in text:
-#         code = ord(char)
-#         if (code < 128 or char in '₹–\u2013°""''…'):
-#             cleaned += char
-#         else:
-#             cleaned += ' '
-#     cleaned = re.sub(r'  +', ' ', cleaned)
-#     return cleaned
-
-
-# def fix_tldr_list(tldr_list: list) -> list:
-#     return [fix_garbage_characters(item) for item in tldr_list]
-
-
-# def fix_all_fields(data: dict, source: str = "") -> dict:
-#     blog_title = data.get('Blog_Title', '')
-#     for key, value in data.items():
-#         if isinstance(value, str):
-#             value = fix_em_dash(value)
-#             if key in ('Blog_Title', 'Meta_Title', 'Meta_Description', 'Conclusion'):
-#                 value = fix_garbage_characters(value)
-#             if key == 'Blog_Content':
-#                 value = fix_tldr_h2(value)
-#                 value = fix_faq_tags(value)
-#                 value = fix_faq_h2_keyword(value, blog_title)
-#                 value = fix_placeholder_h3(value) 
-#                 value = fix_duplicate_links(value)
-#                 value = fix_duplicate_swastika(value)
-#                 value = fix_table_na(value)
-#                 value = fix_remove_non_ipo_table(value, source)
-#             data[key] = value
-#         elif isinstance(value, list):
-#             fixed = []
-#             for item in value:
-#                 if isinstance(item, str):
-#                     item = fix_em_dash(item)
-#                     item = fix_garbage_characters(item)
-#                 fixed.append(item)
-#             data[key] = fixed
-#         elif isinstance(value, dict):
-#             data[key] = fix_all_fields(value, source)
-#     return data
-
-
-# # ══════════════════════════════════════════════════════════════
-# #  MAIN FUNCTION
-# # ══════════════════════════════════════════════════════════════
-
-# def generate_blog(item):
-#     prompt = f"""
-# You are a financial blog writer for Swastika Investmart, writing for RETAIL INVESTORS in India.
-
-# NEWS:
-# Title: {item['Blog_Title']}
-# Content: {item['Blog_Content']}
-
-# Return ONLY valid JSON in this format:
-
-# {{
-#   "Meta_Title": "SEO friendly title under 60 characters",
-#   "Meta_Description": "Short description under 160 characters",
-#   "TLDR": [
-#     "PRIMARY KEYWORD first — what happened — with specific number or date",
-#     "PRIMARY KEYWORD impact — direct effect on investor portfolio — name the sector",
-#     "PRIMARY KEYWORD sector — specific sector or stock name to watch",
-#     "PRIMARY KEYWORD action — one specific action investor should take today"
-#   ],
-#   "Blog_Title": "Catchy investor-focused blog title",
-#   "Blog_Content": "HTML blog using H1, H2, H3, H4 tags (900-1200 words) - structure below",
-#   "Investor_Impact": {{
-#     "primary_sector": "Most important sector affected",
-#     "secondary_sector": "Second most important sector",
-#     "avoid_sector": "Sector to avoid right now",
-#     "action": "Buy / Hold / Wait / Avoid",
-#     "reason": "One line reason for the action"
-#   }},
-#   "Action_Points": [
-#     "Specific action investor can take TODAY",
-#     "What to watch this week",
-#     "Risk to keep in mind"
-#   ],
-#   "FAQ_Schema": {{
-#     "@context": "https://schema.org",
-#     "@type": "FAQPage",
-#     "mainEntity": [
-#       {{
-#         "@type": "Question",
-#         "name": "Investor focused question",
-#         "acceptedAnswer": {{
-#           "@type": "Answer",
-#           "text": "Clear actionable answer for investor"
-#         }}
-#       }}
-#     ]
-#   }},
-#   "Conclusion": "Short investor-focused summary with clear next step",
-#   "CTA": "https://trade.swastika.co.in/"
-# }}
-
-
-# =====================================
-# !! STEP 1 — DETECT ARTICLE TYPE FIRST !!
-# =====================================
-
-# Read Blog_Title and Blog_Content carefully.
-# Identify which type this article is.
-# This determines your H2, H3 and TABLE structure below.
-
-# TYPE A — IPO article
-#   signals: "ipo", "lot size", "allotment", "price band",
-#            "subscribed", "prosp", "rhp", "listing date"
-
-# TYPE B — Gold / Silver / Bullion article
-#   signals: "gold", "silver", "bullion", "mcx", "precious metal"
-
-# TYPE C — Stock / Company article
-#   signals: company name + "shares", "stock", "results",
-#            "profit", "revenue", "target", "dividend"
-
-# TYPE D — RBI / Interest Rate article
-#   signals: "rbi", "repo rate", "monetary policy",
-#            "interest rate", "inflation", "cpi"
-
-# TYPE E — Market / Index article
-#   signals: "sensex", "nifty", "market", "rally",
-#            "crash", "bulls", "bears", "points"
-
-# TYPE F — General Finance (if none above match)
-
-
-# =====================================
-# !! MOST CRITICAL - READ BEFORE WRITING TITLE !!
-# =====================================
-
-# EVERY Blog_Title and Meta_Title MUST have ALL 3 of these.
-# If ANY one is missing - title is WRONG. Rewrite it.
-
-# MANDATORY 3:
-# 1. ONE NUMBER    -> Rs amount, %, crore, points, times, date
-# 2. ONE "YOU"     -> "You", "Your", "Are You", "Should You"
-# 3. ONE QUESTION  -> ends with "?" OR ends with clear benefit
-
-# SELF CHECK BEFORE WRITING:
-# Ask: Does my title have a number? YES/NO
-# Ask: Does my title have "You" or "Your"? YES/NO
-# Ask: Does my title end with question or benefit? YES/NO
-# -> All 3 must be YES. If any NO -> rewrite.
-
-# THESE TITLES ARE WRONG - missing mandatory 3:
-# X "Sugar Stocks Slide After Centre Tightens Export Rules"
-#    Missing: number, "you", question
-
-# THESE ARE CORRECT - have all mandatory 3:
-# OK "Sugar Stocks Fall 5% on Export Rules - Should You Sell Now?"
-#    Has: 5% (number), "You" (personal), "?" (question)
-
-# OK "Block Deals Surge Today - Which Stocks Should You Watch Now?"
-#    Has: "Today" (time ref), "You" (personal), "?" (question)
-
-
-# =====================================
-# BANNED WORDS - NEVER USE IN TITLE OR META
-# =====================================
-
-# BANNED            -> REPLACE WITH
-# Ex-Date           -> Last Date to Buy / Buy Before [date-1]
-# Record Date       -> Remove it or say Eligibility Date
-# PAT               -> Profit
-# EBITDA            -> Operating Profit
-# YoY               -> vs Last Year
-# QoQ               -> vs Last Quarter
-# Consolidated      -> Total Company
-# Standalone        -> India Business
-# Basis Points      -> Interest Rate
-# Monetary Policy   -> RBI Decision
-# Geopolitical      -> War / Conflict
-# Macroeconomic     -> Economy
-# Liquidity         -> Cash
-# Headwinds         -> Challenges
-# Tailwinds         -> Benefits
-# Volatile          -> Up and Down
-# Correction        -> Market Fall
-# Sequential        -> Quarter on Quarter
-
-
-# =====================================
-# TITLE FORMULA - FOLLOW THIS STRUCTURE
-# =====================================
-
-# [Company/Topic + Number] - [Simple Fact] - [Your Question]
-
-# STEP 1 -> Company name + Rs amount or %     <- SEO keyword first
-# STEP 2 -> Simple fact what happened         <- User understands instantly
-# STEP 3 -> End with "Your" question "?"      <- Personal + clickable
-
-# EXAMPLES BY NEWS TYPE:
-
-# DIVIDEND NEWS:
-# Input:  "SBI - Ex-Date: 15-May-2026, Dividend Rs 17"
-# Output: "SBI Gives Rs 17 Dividend - Buy Before May 14, Are You Eligible?"
-
-# PROFIT/LOSS NEWS:
-# Input:  "Dr Reddy Q4 PAT falls 86% YoY"
-# Output: "Dr Reddy Profit Falls 86% - Should You Buy or Exit Now?"
-
-# MARKET FALL:
-# Input:  "Sensex down 3400 points in 4 sessions"
-# Output: "Sensex Falls 3,400 Points in 4 Days - Is Your Money Safe?"
-
-# POLICY NEWS:
-# Input:  "RBI cuts repo rate by 25 basis points"
-# Output: "RBI Cuts Rate - Will Your Home Loan EMI Drop This Month?"
-
-# EXPORT/RULE NEWS:
-# Input:  "Centre tightens sugar export rules"
-# Output: "Sugar Export Rules Tighten - Should You Sell Sugar Stocks Now?"
-
-# IPO NEWS:
-# Input:  "Simca Advertising IPO subscribed 80x"
-# Output: "This IPO Got 80x Demand - Should You Apply Before Deadline?"
-
-# GOLD/SILVER NEWS:
-# Input:  "Gold price hits Rs 16789 today"
-# Output: "Gold Hits Rs 16,789 Today - Good Time to Buy or Wait?"
-
-
-# =====================================
-# GOOD TITLES - ALL PASS MANDATORY 3 CHECK:
-# =====================================
-# OK "SBI Gives Rs 17 Dividend - Are You Eligible Before May 15?"
-# OK "Sensex Falls 3,400 Points - Is Your Money Safe?"
-# OK "HDFC Life Rs 2.10 Dividend - Buy Before June 18, Are You Eligible?"
-# OK "Nifty IT Crashes 3% - Is Your Portfolio at Risk Today?"
-# OK "Gold Hits Rs 16,789 - Should You Buy Now or Wait?"
-# OK "RBI Cuts Rate - Will Your Home Loan EMI Drop This Month?"
-# OK "Dr Reddy Profit Falls 86% - Should You Buy or Exit Now?"
-# OK "Sugar Stocks Fall 5% on Export Rules - Should You Sell Now?"
-
-# BAD TITLES - FAIL MANDATORY 3 CHECK:
-# =====================================
-# X "Sugar Stocks Slide After Centre Tightens Export Rules Till S"
-# X "Block deal rush sparks revival hopes in Indian stock market"
-# X "SBI Q4 Consolidated PAT Falls 86% YoY on Lower Revenue"
-# X "Macroeconomic Headwinds Impact Nifty Trajectory Today"
-
-
-# =====================================
-# STRICT HTML FORMATTING RULES - NEVER BREAK THESE
-# =====================================
-
-# 1. NEVER put multiple points on the same line
-# 2. NEVER use plain dashes (-) for bullet points always use <ul><li>
-# 3. NEVER use 1) 2) 3) numbered format - always use <ul><li>
-# 4. NEVER output \\n or \\n\\n - use HTML tags only
-# 5. Sectors To Watch MUST use <ul><li> - one <li> per priority
-# 6. Action Points MUST use <ul><li> - one <li> per investor type
-# 7. Key Risks MUST use <ul><li> - one <li> per risk
-# 8. Key Takeaways MUST use <ul><li> - exactly 4 <li> items
-# 9. FAQ questions MUST use <h4> - one <h4> per question
-# 10. NEVER add <h2>Conclusion</h2> inside Blog_Content
-# 11. NEVER add CTA URL inside Blog_Content
-# 12. NEVER use em dash — anywhere in the blogs
-#     ALWAYS use en dash – instead.
-# 13. Write ONLY in English — no foreign language characters
-
-# WRONG FORMAT - NEVER DO THIS:
-# X <p>1st Priority: FMCG - reason. 2nd Priority: IT - reason.</p>
-# X <p>- SIP investors: advice - Lumpsum investors: advice</p>
-# X <p>1) Risk one 2) Risk two 3) Risk three</p>
-# X <h2>What is EGR?</h2>   <- FAQ must be H4, not H2
-
-# CORRECT FORMAT - ALWAYS DO THIS:
-# OK <ul>
-#      <li><strong>1st Priority:</strong> FMCG - reason</li>
-#      <li><strong>2nd Priority:</strong> IT - reason</li>
-#      <li><strong>Avoid Now:</strong> Real Estate - reason</li>
-#    </ul>
-
-# OK <h4>What is NSE EGR and how does it work?</h4>
-#    <p>Answer here...</p>
-
-
-# =====================================
-# !! STEP 2 — SEO H2 RULES (CRITICAL) !!
-# =====================================
-
-# RULE: Every H2 MUST contain the PRIMARY KEYWORD.
-
-# THESE GENERIC H2 TAGS ARE BANNED — NEVER USE:
-#   X <h2>News Context and Market Impact</h2>
-#   X <h2>Portfolio and Strategy Focus</h2>
-#   X <h2>Risks and Cautions</h2>
-#   X <h2>Key Takeaways</h2>
-
-# REPLACE with keyword-specific versions based on detected TYPE:
-
-# ─────────────────────────────────────────────
-# TYPE A — IPO article H2 structure:
-# ─────────────────────────────────────────────
-#   <h2>[Company] IPO - Key Details and Dates</h2>
-#   [DATA TABLE here - ONLY IPO gets a table - see STEP 3]
-#     <h3>What is [Company] IPO?</h3>
-#     <h3>Why This IPO Matters For Investors</h3>
-
-#   <h2>[Company] IPO GMP and Market Sentiment</h2>
-#     <h3>Current GMP Analysis - What The Numbers Show</h3>
-#     <h3>What [X]% GMP Signals About The Listing</h3>
-
-#   <h2>Should You Apply For [Company] IPO?</h2>
-#     <h3>Reasons to Apply - Pros</h3>
-#     <ul><li>...</li></ul>
-#     <h3>Reasons to Avoid - Risks</h3>
-#     <ul><li>...</li></ul>
-
-#   <h2>Risks of Investing in [Company] IPO</h2>
-#     <h3>Key Risks To Watch</h3>
-#     <ul><li>...</li></ul>
-
-# NOTE: IPO H3 tags stay consistent across all IPO articles
-# because investors ask the same questions for every IPO.
-
-# ─────────────────────────────────────────────
-# TYPE B - Gold / Silver article H2 structure:
-# ─────────────────────────────────────────────
-#   <h2>Gold Price in India [Today/This Week] - Live Data</h2>
-#   [NO TABLE — go directly to h3]
-#   H3 tags - DYNAMIC based on what happened:
-
-#   IF gold fell:
-#     <h3>Why Gold Price Fell [X]% Today - Key Reasons</h3>
-#     <h3>Which Factor Hit Gold Hardest - [US data/Oil/Dollar]</h3>
-
-#   IF gold rose / hit record:
-#     <h3>Why Gold Surged to ₹[X] Today - Key Drivers</h3>
-#     <h3>What Is Fuelling This Gold Rally in India</h3>
-
-#   IF gold sideways / uncertain:
-#     <h3>Why Gold Is Stuck at ₹[X] - What to Expect</h3>
-#     <h3>Key Triggers That Could Move Gold Either Way</h3>
-
-#   <h2>Impact of Gold Price [Fall/Rise] on Your Portfolio</h2>
-#   H3 tags - DYNAMIC based on direction:
-
-#   IF gold fell:
-#     <h3>What Gold Price Fall Means For Your Holdings</h3>
-#     <h3>Should You Add Gold ETF Now or Wait for Lower Levels?</h3>
-#     <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-
-#   IF gold rose:
-#     <h3>What Record Gold Price Means For Your Portfolio</h3>
-#     <h3>Is This the Right Time to Book Profits on Gold?</h3>
-#     <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-
-#   <h2>Key Risks of [Buying/Holding] Gold Right Now</h2>
-#   H3 tags - DYNAMIC:
-#     <h3>Risks of [Buying/Holding] Gold at ₹[X] Level</h3>
-#     <ul><li>...</li></ul>
-
-# ─────────────────────────────────────────────
-# TYPE C — Stock / Company article H2 structure:
-# ─────────────────────────────────────────────
-#   <h2>[Company] Share Price Today - Key Data</h2>
-#   [NO TABLE — go directly to h3]
-#   H3 tags - DYNAMIC based on what happened:
-
-#   IF stock rose:
-#     <h3>Why [Company] Shares Rose [X]% Today</h3>
-#     <h3>Is This [Company] Rally Sustainable?</h3>
-
-#   IF stock fell:
-#     <h3>Why [Company] Shares Fell [X]% Today</h3>
-#     <h3>Is This [Company] Fall Temporary or Serious?</h3>
-
-#   IF results / earnings:
-#     <h3>[Company] Q[X] Results - Revenue and Profit Numbers</h3>
-#     <h3>Why [Company] Numbers [Beat/Missed] Expectations</h3>
-
-#   IF dividend:
-#     <h3>[Company] Announces ₹[X] Dividend - Who Gets It?</h3>
-#     <h3>How to Be Eligible For [Company] Dividend</h3>
-
-#   <h2>Impact of [Company] News on Your Portfolio</h2>
-#   H3 tags - DYNAMIC based on direction:
-
-#   IF stock rose:
-#     <h3>How [Company] Rise Affects Your [Sector] Holdings</h3>
-#     <h3>Which [Sector] Stocks Gain From [Company] Rally?</h3>
-#     <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-
-#   IF stock fell:
-#     <h3>How [Company] Fall Hits Your Portfolio</h3>
-#     <h3>Should You Buy the Dip in [Company]?</h3>
-#     <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-
-#   IF results:
-#     <h3>How [Company] Results Impact Your [Sector] Funds</h3>
-#     <h3>Which Stocks Move With [Company] Results?</h3>
-#     <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-
-#   <h2>Key Risks of [Buying/Holding] [Company] Shares Now</h2>
-#   H3 tags - DYNAMIC:
-#     <h3>Risks of [Specific Action] in [Company] Now</h3>
-#     <ul><li>...</li></ul>
-
-# ─────────────────────────────────────────────
-# TYPE D — RBI / Interest Rate H2 structure:
-# ─────────────────────────────────────────────
-#   <h2>RBI Rate Decision Today - What Changed</h2>
-#   [NO TABLE — go directly to h3]
-#   H3 tags - DYNAMIC based on decision:
-
-#   IF rate cut:
-#     <h3>RBI Cuts Repo Rate by [X] Points - Full Breakdown</h3>
-#     <h3>Why RBI Chose to Cut Rates Now</h3>
-
-#   IF rate hold:
-#     <h3>RBI Holds Repo Rate at [X]% - What It Means</h3>
-#     <h3>Why RBI Did Not Cut Despite Pressure</h3>
-
-#   IF rate hike:
-#     <h3>RBI Hikes Repo Rate by [X] Points - Full Breakdown</h3>
-#     <h3>Why RBI Raised Rates - Inflation Concerns Explained</h3>
-
-#   <h2>Impact of RBI [Cut/Hold/Hike] on Your Money</h2>
-#   H3 tags - DYNAMIC based on decision:
-
-#   IF rate cut:
-#     <h3>How Much Will Your Home Loan EMI Fall After Rate Cut?</h3>
-#     <h3>Which Bank and NBFC Stocks Gain From Rate Cut?</h3>
-#     <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-
-#   IF rate hold:
-#     <h3>Why Your Home Loan EMI Stays Same After RBI Hold</h3>
-#     <h3>Which Sectors Benefit When RBI Holds Rates?</h3>
-#     <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-
-#   IF rate hike:
-#     <h3>How Much Will Your Home Loan EMI Rise After Hike?</h3>
-#     <h3>Which Sectors Are Hit Hardest by Rate Hike?</h3>
-#     <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-
-#   <h2>Key Risks After RBI [Cut/Hold/Hike] Decision</h2>
-#   H3 tags - DYNAMIC:
-#     <h3>Risks For Investors After RBI [Decision Type]</h3>
-#     <ul><li>...</li></ul>
-
-# ─────────────────────────────────────────────
-# TYPE E - Market / Index article H2 structure:
-# ─────────────────────────────────────────────
-#   <h2>Sensex Nifty [Today/This Week] - Market Data</h2>
-#   [NO TABLE — go directly to h3]
-#   H3 tags - DYNAMIC based on direction:
-
-#   IF market fell:
-#     <h3>Why Sensex Fell [X] Points Today - [X] Key Reasons</h3>
-#     <h3>Which Global and Domestic Factors Triggered the Fall</h3>
-
-#   IF market rose:
-#     <h3>Why Sensex Rallied [X] Points Today - Key Drivers</h3>
-#     <h3>Which Sectors Led the Market Rally Today</h3>
-
-#   IF market sideways:
-#     <h3>Why Sensex is Stuck in a Range - What to Watch</h3>
-#     <h3>Key Triggers That Could Break This Market Consolidation</h3>
-
-#   <h2>Impact of [Market Fall/Rally] on Your Portfolio</h2>
-#   H3 tags - DYNAMIC based on direction:
-
-#   IF market fell:
-#     <h3>How Bad Can This Market Fall Get - Key Levels</h3>
-#     <h3>Is This a Buying Opportunity or More Pain Ahead?</h3>
-#     <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-
-#   IF market rose:
-#     <h3>Should You Ride This Rally or Book Profits?</h3>
-#     <h3>Which Sectors Can Still Give Returns in This Rally?</h3>
-#     <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-
-#   <h2>Key Risks in the Market Right Now</h2>
-#   H3 tags - DYNAMIC:
-#     <h3>Risks That Could [Deepen the Fall / End the Rally]</h3>
-#     <ul><li>...</li></ul>
-
-
-# =====================================
-# !! STEP 2B — DYNAMIC H3 MASTER RULE !!
-# =====================================
-
-# H3 tags must reflect WHAT ACTUALLY HAPPENED in the article.
-# NEVER copy-paste the same H3 across different articles.
-
-# ONLY ONE H3 stays consistent across ALL article types:
-#   "What SIP, Lumpsum and Traders Should Do Now"
-#   ← this appears in the second H2 of every non-IPO article
-
-# ALL OTHER H3 tags must be unique to the specific news.
-# Use the actual number, company name, or direction in the H3.
-
-# WRONG — generic, repeated across articles:
-#   X <h3>What This Means For Your Portfolio</h3>
-#   X <h3>Sectors To Watch - Priority Order</h3>
-#   X <h3>What Happened</h3>
-#   X <h3>Why This Matters</h3>
-
-# CORRECT - specific to the actual news:
-#   OK <h3>Why Gold Fell 1% - US-Iran Tensions Explained</h3>
-#   OK <h3>Should You Add Gold ETF or Wait for ₹72,000?</h3>
-#   OK <h3>Why TCS Profit Fell 86% - Full Breakdown</h3>
-#   OK <h3>Should You Buy TCS on This 8% Dip?</h3>
-#   OK <h3>How RBI Rate Cut Affects Your ₹50L Home Loan EMI</h3>
-#   OK <h3>Why Sensex Fell 500 Points - 3 Key Reasons</h3>
-
-
-# =====================================
-# !! STEP 3 — DATA TABLE !!
-# =====================================
-
-# ╔══════════════════════════════════════════════════════╗
-# ║  TABLE RULE — READ CAREFULLY                        ║
-# ║                                                      ║
-# ║  ONLY TYPE A (IPO articles) get a data table.        ║
-# ║  ALL OTHER types — NO TABLE at all.                  ║
-# ║                                                      ║
-# ║  TYPE A IPO   → WRITE table after first H2           ║
-# ║  TYPE B Gold  → NO table anywhere                    ║
-# ║  TYPE C Stock → NO table anywhere                    ║
-# ║  TYPE D RBI   → NO table anywhere                    ║
-# ║  TYPE E Market→ NO table anywhere                    ║
-# ║  TYPE F Other → NO table anywhere                    ║
-# ╚══════════════════════════════════════════════════════╝
-
-# WHY IPO GETS A TABLE — WHY OTHERS DO NOT:
-#   IPO data (price, dates, lot size) is FIXED after announcement.
-#   It stays accurate for the entire 5-7 day IPO window.
-#   Table = perfect for fixed structured data.
-
-#   Gold/Stock/Market prices change every minute.
-#   Writing a table with ₹74,000 gold price makes it stale next day.
-#   These articles use paragraphs instead — they age better.
-
-# TYPE A — IPO TABLE FORMAT:
-
-#   Write this table immediately after first H2.
-#   Use only values from Blog_Content — never invent numbers.
-#   If a value is unknown, write "To be announced" — never N/A.
-
-#   <table>
-#     <thead>
-#       <tr>
-#         <th>Detail</th>
-#         <th>Information</th>
-#       </tr>
-#     </thead>
-#     <tbody>
-#       <tr><td>IPO Open Date</td>      <td>[date or "To be announced"]</td></tr>
-#       <tr><td>IPO Close Date</td>     <td>[date or "To be announced"]</td></tr>
-#       <tr><td>Price / Price Band</td> <td>[₹X per share or "To be announced"]</td></tr>
-#       <tr><td>Lot Size</td>           <td>[N shares or "To be announced"]</td></tr>
-#       <tr><td>Minimum Investment</td> <td>[₹amount or "To be announced"]</td></tr>
-#       <tr><td>Issue Size</td>         <td>[₹X Crore or "To be announced"]</td></tr>
-#       <tr><td>Listing Exchange</td>   <td>[BSE SME / NSE / BSE]</td></tr>
-#       <tr><td>Listing Date</td>       <td>[date or "To be announced"]</td></tr>
-#     </tbody>
-#   </table>
-
-#   IPO TABLE RULES:
-#     Never write N/A → use "To be announced"
-#     Never write empty cell → use "To be announced"
-#     Only use values from Blog_Content — never invent
-#     Write table once only — do NOT repeat in other H2 sections
-
-
-# =====================================
-# !! STEP 4 — INTERNAL LINKS (MANDATORY) !!
-# =====================================
-
-# Just BEFORE the FAQ section in Blog_Content,
-# add exactly 3 internal links.
-# Use EXACTLY this format:
-
-#   <p>
-#     <strong>Also read:</strong><br>
-#     <a href="/[link-1]/">[Anchor text 1 with keyword]</a><br>
-#     <a href="/[link-2]/">[Anchor text 2 with keyword]</a><br>
-#     <a href="/[link-3]/">[Anchor text 3 with keyword]</a>
-#   </p>
-
-# Links by article type:
-
-#   TYPE A IPO:
-#     /ipo-calendar-2026/ → View all upcoming IPOs in 2026
-#     /how-to-apply-ipo-upi/ → How to apply for IPO via UPI — step by step
-#     /ipo-allotment-status/ → How to check IPO allotment status
-
-#   TYPE B Gold:
-#     /gold-price-india/ → Gold price in India today — live rates
-#     /how-to-invest-gold-etf/ → How to invest in Gold ETF in India
-#     /gold-vs-fixed-deposit/ → Gold vs Fixed Deposit — which is better?
-
-#   TYPE C Stock:
-#     /stock-analysis-india/ → How to analyse stocks before buying
-#     /fundamental-analysis-guide/ → Fundamental analysis guide for beginners
-#     /how-to-buy-stocks-india/ → How to buy stocks in India — complete guide
-
-#   TYPE D RBI:
-#     /rbi-monetary-policy-2026/ → RBI monetary policy 2026 — all decisions
-#     /home-loan-emi-calculator/ → Home loan EMI calculator — check impact
-#     /best-fd-rates-india-2026/ → Best FD rates in India 2026
-
-#   TYPE E Market:
-#     /sensex-nifty-today/ → Sensex Nifty live — today's market update
-#     /top-stocks-to-buy-india/ → Top stocks to buy in India this week
-#     /how-to-invest-stock-market/ → How to start investing in stock market
-
-
-# =====================================
-# SEO HEADING HIERARCHY - FOLLOW EXACTLY
-# =====================================
-
-# RULE:
-# - H1  -> Blog title only (once at top)
-# - H2  -> Longtail keyword-rich GROUP heading (must contain main keyword)
-# - H3  -> Dynamic sub-sections - specific to the actual news
-# - H4  -> FAQ questions only
-
-# WRONG - generic H3 repeated on every page:
-# X <h3>What This Means For Your Portfolio</h3>
-# X <h3>Sectors To Watch - Priority Order</h3>
-# X <h3>What Happened</h3>
-# X <h3>Why This Matters</h3>
-
-# CORRECT - dynamic H3 specific to this article:
-# OK <h3>Why Gold Fell 1% - US-Iran Tensions Explained</h3>
-# OK <h3>Should You Add Gold ETF or Wait for ₹72,000?</h3>
-# OK <h3>Why Sensex Fell 500 Points - 3 Key Reasons</h3>
-# OK <h3>How RBI Cut Affects Your ₹50L Home Loan EMI</h3>
-
-
-# =====================================
-# MANDATORY BLOG STRUCTURE (Blog_Content):
-# =====================================
-
-# ╔══════════════════════════════════════════════════════╗
-# ║  IPO ARTICLES (TYPE A) — use this structure         ║
-# ╚══════════════════════════════════════════════════════╝
-
-# <h1>[Blog Title - with number + you + question]</h1>
-
-# <h2>[Company] IPO - Key Details and Dates</h2>
-# [IPO DATA TABLE — 8 rows — mandatory for IPO only]
-#   <h3>What is [Company] IPO?</h3>
-#   <p>...</p>
-#   <h3>Why This IPO Matters For Investors</h3>
-#   <p>...</p>
-
-# <h2>[Company] IPO GMP and Market Sentiment</h2>
-#   <h3>Current GMP Analysis - What The Numbers Show</h3>
-#   <p>...</p>
-#   <h3>What GMP Signals About The Listing</h3>
-#   <p>...</p>
-
-# <h2>Should You Apply For [Company] IPO?</h2>
-#   <h3>Reasons to Apply - Pros</h3>
-#   <ul><li>...</li><li>...</li><li>...</li></ul>
-#   <h3>Reasons to Avoid - Risks</h3>
-#   <ul><li>...</li><li>...</li><li>...</li></ul>
-#   <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-#   <ul>
-#     <li><strong>SIP investors:</strong> [advice]</li>
-#     <li><strong>Lumpsum investors:</strong> [advice]</li>
-#     <li><strong>Traders:</strong> [advice]</li>
-#   </ul>
-#   <p>[Swastika paragraph — once only here]</p>
-
-# <h2>Risks of Investing in [Company] IPO</h2>
-#   <h3>Key Risks To Watch</h3>
-#   <ul>
-#     <li>[Risk 1]</li>
-#     <li>[Risk 2]</li>
-#     <li>[Risk 3]</li>
-#   </ul>
-
-# <p>
-#   <strong>Also read:</strong><br>
-#   <a href="/ipo-calendar-2026/">View all upcoming IPOs in 2026</a><br>
-#   <a href="/how-to-apply-ipo-upi/">How to apply for IPO via UPI</a><br>
-#   <a href="/ipo-allotment-status/">How to check IPO allotment status</a>
-# </p>
-
-# <h2>FAQ - [Company] IPO For Retail Investors</h2>
-#   <h4>[Q1]?</h4><p>[A1]</p>
-#   <h4>[Q2]?</h4><p>[A2]</p>
-#   <h4>[Q3]?</h4><p>[A3]</p>
-#   <h4>[Q4]?</h4><p>[A4]</p>
-
-
-# ╔══════════════════════════════════════════════════════╗
-# ║  ALL OTHER ARTICLES (TYPE B/C/D/E/F) — use this    ║
-# ╚══════════════════════════════════════════════════════╝
-
-# <h1>[Blog Title - with number + you + question]</h1>
-
-# <h2>[TYPE-SPECIFIC H2 with main keyword - Key Details]</h2>
-# [NO TABLE — start directly with h3]
-#   <h3>[DYNAMIC - WHY did specific thing happen?]</h3>
-#   <p>2-3 lines. First sentence MUST contain main keyword.</p>
-#   <h3>[DYNAMIC - WHAT caused it / deeper context?]</h3>
-#   <p>Market context - specific to this article.</p>
-
-# <h2>[TYPE-SPECIFIC H2 with main keyword - Impact on Your Money]</h2>
-#   <h3>[DYNAMIC - HOW does THIS specific event affect YOUR holdings?]</h3>
-#   <p>Direct investor impact specific to this news.</p>
-#   <h3>[DYNAMIC - WHICH specific stocks/sectors are affected?]</h3>
-#   <ul>
-#     <li><strong>1st Priority:</strong> [sector] - [one line why]</li>
-#     <li><strong>2nd Priority:</strong> [sector] - [one line why]</li>
-#     <li><strong>Avoid Now:</strong> [sector] - [one line why]</li>
-#   </ul>
-#   <h3>What SIP, Lumpsum and Traders Should Do Now</h3>
-#   <ul>
-#     <li><strong>SIP investors:</strong> [specific advice]</li>
-#     <li><strong>Lumpsum investors:</strong> [specific advice]</li>
-#     <li><strong>Traders:</strong> [specific advice]</li>
-#   </ul>
-#   <p>[Swastika paragraph - once only here]</p>
-
-# <h2>[TYPE-SPECIFIC H2 with main keyword - Key Risks]</h2>
-# !! THIS H2 = one h3 + one ul only. No extra sections. !!
-#   <h3>[DYNAMIC - Risks of SPECIFIC ACTION related to this news]</h3>
-#   <ul>
-#     <li>[Risk 1 - specific]</li>
-#     <li>[Risk 2 - specific]</li>
-#     <li>[Risk 3 - specific]</li>
-#   </ul>
-
-# <p>
-#   <strong>Also read:</strong><br>
-#   <a href="/[link-1]/">[anchor text 1]</a><br>
-#   <a href="/[link-2]/">[anchor text 2]</a><br>
-#   <a href="/[link-3]/">[anchor text 3]</a>
-# </p>
-
-# <h2>FAQ - [Main Keyword] For Retail Investors</h2>
-#   <h4>[FAQ Q1 - specific to this news]?</h4>
-#   <p>[Answer]</p>
-#   <h4>[FAQ Q2 - specific to this news]?</h4>
-#   <p>[Answer]</p>
-#   <h4>[FAQ Q3 - specific to this news]?</h4>
-#   <p>[Answer]</p>
-#   <h4>[FAQ Q4 - specific to this news]?</h4>
-#   <p>[Answer]</p>
-
-# !! STOP HERE - Blog_Content ends after FAQ section !!
-# - DO NOT add Conclusion section inside Blog_Content
-# - DO NOT add CTA link or URL inside Blog_Content
-# - Conclusion goes ONLY in the "Conclusion" JSON field
-# - CTA goes ONLY in the "CTA" JSON field
-
-
-# =====================================
-# INVESTOR TONE RULES:
-# =====================================
-# - Always talk directly to investor ("your portfolio", "you should")
-# - Every section must end with investor implication
-# - Give CLEAR priority — not everything is equally important
-# - Avoid vague: "markets may move" — be specific
-# - If bullish: say "consider buying X"
-# - If bearish: say "avoid or reduce exposure to X"
-# - Keep beginner-friendly — no complex jargon
-
-# SWASTIKA RULE:
-# - Include Swastika Investmart in ONLY ONE paragraph inside Blog_Content
-# - That paragraph must be 2-5 sentences maximum
-# - Naturally blended - not a separate section
-# - Do NOT sound like promotion or advertisement
-# - Keep it informational and relevant to topic
-
-# QUALITY RULES:
-# - Blog length: 900-1200 words
-# - Use H1, H2, H3, H4 tags as per hierarchy above
-# - TLDR must have exactly 4 points
-# - Generate exactly 4 FAQs inside Blog_Content using H4
-# - FAQ_Schema JSON field must also have same 4 questions
-# - No markdown - only JSON output
-# - No extra text outside JSON.
-
-# TLDR KEYWORD RULES — MANDATORY
-# Each TLDR point MUST start with or contain
-# the PRIMARY KEYWORD of the article.
-
-# PRIMARY KEYWORD by article type:
-#   IPO article    → company name + "IPO"
-#   Gold article   → "Gold price" or "Gold"
-#   Stock article  → company name + "shares" or "stock"
-#   RBI article    → "RBI" or "RBI rate"
-#   Market article → "Sensex" or "Nifty"
-#   Fuel article   → "Fuel prices" or "Petrol diesel"
-
-# WRONG — generic TLDR (no keyword):
-#   X "What happened - prices moved today"
-#   X "Direct impact on investor portfolio"
-#   X "Top priority sector to watch"
-#   X "Action - review your exposure"
-
-# CORRECT — keyword in every point:
-#   OK "Gold price fell 1% today on MCX to ₹74,000"
-#   OK "Gold price fall reduces portfolio hedge value"
-#   OK "Watch Gold ETFs and MCX gold futures this week"
-#   OK "Add gold ETF gradually — avoid lumpsum now"
-
-#   OK "Aureate Tradde IPO opens May 29 at ₹70 per share"
-#   OK "Aureate Tradde IPO carries SME liquidity risk"
-#   OK "SME IPO space — watch subscription demand closely"
-#   OK "Apply Aureate Tradde IPO only with small allocation"
-
-# RULES:
-#   Point 1 → keyword + what happened + number/date
-#   Point 2 → keyword + portfolio impact + specific sector
-#   Point 3 → keyword + specific sector or stock to watch
-#   Point 4 → keyword + specific action (not "review exposure")
-
-# =====================================
-# STRICT ANTI-DUPLICATION RULES
-# =====================================
-
-# Before generating Blog_Content, check for duplicate sections.
-
-# 1. Internal links block must appear EXACTLY ONCE.
-#    Place it only immediately before the FAQ section.
-
-# 2. Swastika Investmart paragraph must appear EXACTLY ONCE.
-#    Use only one paragraph mentioning Swastika Investmart.
-
-# 3. Never repeat sector recommendations.
-#    If sectors are listed once, do not create another sector list.
-
-# 4. Never create a second risk or opportunity section.
-#    Only one dedicated risk section is allowed.
-
-# 5. Every H2 must introduce NEW information.
-#    No H2 may repeat information covered by a previous H2.
-
-# 6. Before returning output, verify:
-#    - Internal links count = 1
-#    - Swastika paragraph count = 1
-#    - Risk section count = 1
-#    - Sector recommendation section count = 1
-#    - Table appears only if article is TYPE A (IPO)
-#    - No repeated H2 topics
-
-
-# =====================================
-# !! FINAL SELF-CHECK BEFORE OUTPUT !!
-# READ THIS BEFORE GENERATING JSON
-# =====================================
-
-# CHECK 1 — Table rule:
-#   Is this a TYPE A IPO article?
-#   YES → table must be present after first H2
-#   NO  → no table anywhere in Blog_Content
-#         If you wrote a table → DELETE it
-
-# CHECK 2 — H2 TLDR:
-#   Is there a <h2>TLDR</h2> in my output?
-#   YES → DELETE the h2 tag, keep the ul list
-
-# CHECK 3 — FAQ heading:
-#   Does FAQ h2 contain main keyword?
-#   NO → Add keyword: <h2>FAQ — [Topic] For Investors</h2>
-
-# CHECK 4 — FAQ tag format:
-#   Are FAQ questions using <h4> tags?
-#   NO → Change <h3> or bold text to <h4>
-
-# CHECK 5 — Lists format:
-#   Are sectors and action points in <ul><li>?
-#   NO → Wrap in proper <ul><li><strong> format
-
-# CHECK 6 — H3 placeholders:
-#   Do any H3 contain placeholder words like
-#   "What caused it" or "deeper context"?
-#   YES → Rewrite with specific company/event name
-
-# CHECK 7 — THIRD H2 IS RISKS ONLY:
-#   Does my third H2 contain "Opportunities" or
-#   a second priority/sectors list?
-#   YES → Remove it. Third H2 = risks ul list only.
-#   WRONG: <h2>Key Risks and Opportunities</h2>
-#   RIGHT: <h2>Key Risks in the Market Right Now</h2>
-
-# CHECK 8 — NO REPETITIONS:
-#   Count how many times these appear in Blog_Content:
-#   Swastika paragraph     → must be exactly 1
-#   SIP/Lumpsum section    → must be exactly 1
-#   Internal links block   → must be exactly 1
-#   Priority/sectors ul    → must be exactly 1
-#   If any appear more than once → delete the extra ones
-# """
 
-#     result = cached_model_call(prompt)
-#     data   = json.loads(result)
 
-#     # Post-processors: fix issues regardless of AI output
-#     source = item.get("source", "")
-#     data   = fix_all_fields(data, source=source)
+def generate_ipo_blog(item: dict) -> dict:
+    prompt = f"""
+You are a senior financial journalist and SEO strategist writing for Swastika Investmart — 
+a SEBI-registered Indian stockbroker serving retail investors across India.
 
-#     return data
+You write IPO blogs that rank on Google and get cited by AI search engines like Perplexity 
+and ChatGPT. Your IPO coverage is trusted because it gives retail investors exactly what 
+they need to make a decision — not just a press release rewrite.
 
+---
 
+THE SOURCE MATERIAL
 
+News URL: {item['Blog_Links']}
 
 
+---
 
+YOUR MISSION
 
+Turn this IPO news into a blog that a retail investor would read the night before deciding 
+whether to apply. They have limited time, limited capital, and real skin in the game. 
+Every sentence must earn its place.
 
+Before you write, ask: what is the single most useful thing this investor needs to know 
+about this IPO right now? Build the entire blog around that answer.
 
+---
 
+BLOG TITLE
 
+Write a title that does three things:
+- Contains the company name + "IPO" as the primary keyword naturally
+- Signals whether this is worth the investor's attention
+- Makes the investor feel like they'll know something actionable after reading
 
+Weak title: "XYZ Ltd IPO Opens Today"
+Strong title: "XYZ Ltd IPO: Should You Apply, Avoid, or Wait for the Listing Dip?"
 
+The title is the most important SEO signal. Treat it that way.
 
+---
 
+OPENING
 
+Start with the sharpest thing about this IPO — the price band, the GMP signal, the 
+subscription trend, the valuation concern, or the business angle that makes this one 
+different. Do not open with "XYZ Ltd has launched its IPO." That is not news. Give the 
+investor the one line that makes them want to read on.
 
+---
 
+BODY STRUCTURE
 
+IPO blogs have a natural structure investors actually search for. Use it — but write each 
+section like a journalist, not a form filler. Each H2 must be a specific question or claim 
+a real investor would search.
 
+Cover what is relevant from the source material. Do not pad with sections that have no 
+data behind them. Relevant IPO angles include:
 
+Business & promoter background — what does the company actually do, and who is behind it?
+IPO details — price band, lot size, issue size, open/close dates, listing exchange
+Subscription & GMP signals — if data exists, what does live demand look like?
+Financial snapshot — revenue, profit, margins, debt — only if numbers exist in the source
+Valuation — is the asking price reasonable relative to peers or historical earnings?
+Risks — what could go wrong? Every IPO has at least one real risk worth naming.
+Allotment & listing timeline — when to expect allotment, listing date, what to watch
 
+Only include sections where the source material gives you something real to say.
 
+Example of weak H2: "Should you invest in this IPO?"
+Example of strong H2: "XYZ Ltd IPO valuation: is the ₹420 price band justified?"
 
+ Depth is an SEO signal.
 
+---
 
+TLDR
 
+Write exactly 4 short, punchy sentences. No paragraph after the TLDR. Each sentence 
+must stand alone:
 
+Sentence 1: What this IPO is and the price band / issue size
+Sentence 2: The one signal that matters most right now (GMP, subscription, valuation)
+Sentence 3: The key risk or concern investors should weigh
+Sentence 4: The concrete action — apply, avoid, or watchlist, and why
 
+---
 
+TABLES
 
+IPO blogs benefit from structured data. Add a table when the source provides numbers 
+that are clearer in tabular form than prose. Good IPO table candidates:
 
+- IPO details table (price band, lot size, open date, close date, listing date, exchange)
+- Financial summary (revenue, PAT, margins across 2–3 years if available)
+- Peer comparison (P/E, EV/EBITDA, RoE vs listed competitors if data exists)
 
+Never add a table with empty or fabricated data. Never reference a table without 
+immediately generating it.
 
+---
 
+FAQ
 
+Write 4–6 questions a retail investor would actually type into Google or ask an AI 
+search engine about this specific IPO. Generic IPO questions are useless here — 
+every question must be tied to this company and this issue.
 
+Bad FAQ: "Should I invest in IPOs?"
+Good FAQ: "Is XYZ Ltd IPO worth applying for at ₹420 price band?"
 
+One question must address the GMP or listing gain expectation.
+One question must address the key risk or concern.
+One question must address allotment odds or lot size.
+Answers must be grounded in source data — no invented numbers.
 
+---
 
+CONCLUSION
 
+The conclusion is not optional and it is not a summary. It is the last thing the investor
+reads — make it the most useful sentence in the article.
 
+Write 1–2 paragraphs under <h2>Conclusion</h2>. The heading comes first, the paragraphs
+after it. Never write the conclusion paragraph before the heading.
 
+The conclusion must do two things:
+- Tell the investor plainly what this IPO means for them right now
+- End with one sentence: apply, avoid, or watchlist — and the single reason why
 
+What a good conclusion sounds like:
+"Utkal Speciality is a small-ticket SME bet with no financial visibility and no GMP signal.
+That combination suits only one type of investor: someone with defined SME risk tolerance,
+spare capital under ₹1.5 lakh, and a post-listing plan. Everyone else should watch the
+listing day and decide with data."
 
+What a bad conclusion sounds like:
+"In conclusion, the Utkal Speciality IPO opens on June 10. Investors should weigh the
+risks and rewards. Use Swastika's platform to apply before the window closes."
 
+The conclusion must be plain prose only. Do not begin any sentence
+with labels like "Conclusion:", "Takeaway:", "Key takeaway:",
+"In summary:", or "Final recommendation:". These are heading-style
+labels that belong nowhere in a paragraph. Write sentences, not bullets
+dressed as sentences.
 
+Write it like the final paragraph of a good stock research note — not a checklist.
 
+---
 
+SWASTIKA CONTEXT
 
+Swastika offers IPO applications directly through its platform, along with Sarthi — an AI 
+stock assistant that provides institutional-grade research on any stock or index.
 
+Place one Swastika IPO reference naturally in the body. It must:
+- Appear inside a <p> tag only — never in any heading tag
+- Read as a mid-sentence continuation, not a standalone CTA paragraph
+- Never begin a <p> tag — it must appear mid-sentence in an existing paragraph
+- Feel like a knowledgeable friend mentioning a useful next step
 
+Never create a section heading (H2, H3, or H4) that contains the word
+"Swastika". There should be no heading like "Swastika's insights" or
+"How Swastika can help". Swastika appears in prose only, never as a
+section title.
 
+The right moment is when you're telling the investor how to act — applying, checking 
+allotment, or researching the stock post-listing.
 
+Examples:
 
+In an application paragraph:
+"...retail investors can apply through platforms like Swastika before the issue closes 
+on [date]."
 
+In a post-listing research paragraph:
+"...for entry levels and risk parameters after listing, Sarthi provides institutional-grade 
+research on [company name] including upside and downside scenarios."
 
+Do not mention Swastika more than once. Do not list other Swastika products unless 
+directly relevant.
 
+---
 
+SEO OUTPUT REQUIREMENTS
 
+Meta Title: Under 60 characters. Must contain company name + "IPO". Must signal 
+value to the reader. Count the characters.
 
+Meta Description: Under 155 characters. One sentence. Tell the reader whether this 
+IPO is worth their attention and what they'll learn. Count the characters.
 
+---
 
+HTML RULES
 
+Use only these tags: <h1> <h2> <h3> <h4> <p> <ul> <li> <strong> <u> <a href=""> 
+<table> <tr> <th> <td>
 
+TLDR points go in <li> tags. No paragraph after the closing </ul> of TLDR.
+FAQ questions use <h4>. Answers use <p>. No nested <p> tags inside <p> tags.
+Tables use <table><tr><th><td> only. No inline styles.
+Every major section uses <h2>. Use <h3> only for genuine subsections.
 
+---
 
+MANDATORY BLOG STRUCTURE
 
+Blog_Content must follow this exact section order. The blog is incomplete if any 
+section is missing.
 
+1. <h1> — blog title
+2. <h2>TLDR</h2> — followed immediately by <ul> with exactly 4 <li> items, nothing after
+3. Opening <p> — the hook paragraph
+4. Body <h2> sections — IPO-specific long-tail keyword headers
+5. <h2>FAQ</h2> — followed by <h4>/<p> pairs, no nested <p> tags
+6. <h2>Conclusion</h2> — followed by 1–2 <p> paragraphs
 
+The conclusion paragraphs must be written immediately after <h2>Conclusion</h2>.
+Do not end the Blog_Content with just the heading and no paragraphs.
+An empty conclusion heading is not a conclusion.
 
+The <h2>Conclusion</h2> tag must appear first, then the paragraph(s) after it.
+Do not write a concluding paragraph before the tag and a placeholder after it.
+The content goes AFTER the heading, never before it.
 
+The Conclusion is not optional. It comes after FAQ, every time, no exceptions.
+It must tell the investor plainly: what this IPO means for them and what to do next.
+End with one sentence that gives a clear mental model or next step.
+Write it like the final paragraph of a good stock research note — not a checklist.
 
+---
 
+OUTPUT
 
+Return only valid JSON. No markdown. No explanation. No code fences.
 
+{{
+  "Blog_Title": "",
+  "Meta_Title": "",
+  "Meta_Description": "",
+  "TLDR": ["", "", "", ""],
+  "Blog_Content": "",
+  "FAQ_Schema": {{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": []
+  }}
+}}
+"""
+    result = cached_model_call(prompt)
+    data   = json.loads(result)
+    source = item.get("source", "")
+    data   = fix_all_fields(data, source=source)
+    return data
 
 
 
@@ -1988,154 +942,8 @@ CHECK 8 — Table only if IPO article.
 
 
 
+if __name__ == "__main__":
+    d1={}
+    print(generate_blog(d1))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    

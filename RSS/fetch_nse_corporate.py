@@ -25,7 +25,7 @@ def fetch_nse_corporate():
     for entry in feed.entries:
         item = {
             "Blog_Title": entry.get("title", "").strip(),
-            "Blog_Link": entry.get("link", "").strip(),
+            "Blog_Links": entry.get("link", "").strip(),
             "Blog_PublishDate": entry.get("published", "").strip(),
             "Blog_Content": entry.get("summary", "").strip(),
             "Source": "NSE Corporate Actions",
@@ -40,3 +40,17 @@ def fetch_nse_corporate():
 # Test
 result = fetch_nse_corporate()
 print("NSE COUNT:", len(result))
+
+
+if __name__ == "__main__":
+    results = fetch_nse_corporate()
+
+    print(f"\nTotal: {len(results)}")
+    print("=" * 60)
+
+    for i, r in enumerate(results, 1):
+        print(f"\n[{i}] Title   : {r['Blog_Title']}")
+        print(f"    Link    : {r['Blog_Links']}")
+        print(f"    Date    : {r['Blog_PublishDate']}")
+        print(f"    Content : {r['Blog_Content']}...")
+        print(f"    ---")

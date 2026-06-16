@@ -945,6 +945,11 @@ import re
 import unicodedata
 import json
 from datetime import datetime
+# Change this line
+from datetime import datetime
+
+# To this
+from datetime import datetime, timezone, timedelta
 
 # ── RSS Fetchers ──────────────────────────────────────────────
 from RSS.zerodha             import fetch_zerodha
@@ -953,6 +958,11 @@ from RSS.paisa               import fetch_5paisa
 from RSS.livemint            import fetch_livemint
 from RSS.fetch_nse_corporate import fetch_nse_corporate
 from RSS.ipo                 import fetch_nse_ipo
+from RSS.google_trends import fetch_google_trends
+from RSS.google_news_business import fetch_google_news_business
+from RSS.economic_times import fetch_economic_times
+from RSS.ndtv_profit         import fetch_ndtv_profit
+from RSS.Business_Standard import fetch_business_standard
 
 # ── Image modules ─────────────────────────────────────────────
 from content_engine.image_module.text_extractor import extract_image_text
@@ -971,9 +981,10 @@ from utils.combined_filter import filter_by_country_and_category
 from AI_GEN.notify_generator            import generate_notification
 from AI_GEN.generate_instagram_caption  import generate_instagram_caption
 from AI_GEN.get_system_timestamp        import get_run_timestamp
-from AI_GEN.blog_generator              import generate_blog
+from AI_GEN.blog_generator import generate_blog, generate_ipo_blog
 from storage.save_output                import save_output
 from utils.timer import timed, Timer, print_timing_summary, reset_timings
+from utils.date_filter import filter_fresh_articles
 
 
 # ══════════════════════════════════════════════════════════════
@@ -1014,14 +1025,60 @@ POSTING_PATTERN = [
 #  SOURCE CONFIG
 # ══════════════════════════════════════════════════════════════
 
-PRIORITY_SOURCES  = ["nse_ipo"]
+PRIORITY_SOURCES  = ["nse_ipo", "google_trends"]
 CORPORATE_SOURCES = ["nse_corporate"]
-NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint"]
+NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint","google_news_business","economic_times","ndtv_profit","business_standard"]
 
 
 # ══════════════════════════════════════════════════════════════
 #  IPO TEMPLATE FINDERS
 # ══════════════════════════════════════════════════════════════
+
+
+def _parse_blog_output(raw: str) -> dict:
+    """
+    Parses blog generator output into clean dict.
+
+    Handles 3 cases:
+      Case 1: Already a dict → return as-is
+      Case 2: JSON string    → parse and return
+      Case 3: ```json wrapped string → strip and parse
+
+    Always returns a dict — never a string.
+    """
+    # Case 1 — already parsed dict
+    if isinstance(raw, dict):
+        return raw
+
+    if not isinstance(raw, str):
+        print(f"[BLOG PARSE] Unexpected type: {type(raw)}")
+        return {}
+
+    # Case 2 + 3 — strip ```json wrapper if present
+    text = raw.strip()
+
+    if text.startswith("```"):
+        # Remove ```json or ``` at start
+        lines  = text.split("\n")
+        lines  = lines[1:]  # remove first line (```json)
+
+        # Remove ``` at end
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+
+        text = "\n".join(lines).strip()
+
+    # Parse JSON
+    try:
+        data = json.loads(text)
+        print(f"[BLOG PARSE] ✅ Parsed successfully")
+        return data
+    except json.JSONDecodeError as e:
+        print(f"[BLOG PARSE] ❌ JSON parse failed: {e}")
+        print(f"[BLOG PARSE] Raw (first 200 chars): {text[:200]}")
+        return {"Blog_Content": raw, "parse_error": str(e)}
+    
+
 
 def _get_ipo_template_path() -> str:
     """Returns IPO Alert template path (for blog outer + instagram)."""
@@ -1034,6 +1091,40 @@ def _get_ipo_template_path() -> str:
         return ipo_template
     print("[IPO TEMPLATE] File NOT found")
     return ""
+
+def _clear_stale_stacks():
+    """
+    Clears all stack files if they were built on a previous date.
+    Ensures stack only contains today's articles.
+    Called at start of every pipeline run.
+    """
+    saved_ts = load_timestamp()
+    if not saved_ts:
+        return
+
+    try:
+        IST          = timezone(timedelta(hours=5, minutes=30))
+        now_ist      = datetime.now(IST)
+        saved_dt     = datetime.strptime(saved_ts, "%Y-%m-%d %H:%M:%S")
+        saved_dt_ist = saved_dt.replace(tzinfo=IST)
+
+        if saved_dt_ist.date() < now_ist.date():
+            print(f"[STACK] Stale stack from {saved_dt_ist.date()} "
+                  f"— today is {now_ist.date()} → clearing")
+
+            for source_type, path in STACK_FILES.items():
+                if os.path.exists(path):
+                    with open(path, "w") as f:
+                        json.dump([], f)
+                    print(f"[STACK] Cleared: {source_type}")
+
+            if os.path.exists(TIMESTAMP_FILE):
+                os.remove(TIMESTAMP_FILE)
+
+            print(f"[STACK] All stacks cleared ✅")
+
+    except Exception as e:
+        print(f"[STACK] Clear stale check failed: {e}")
 
 
 def _get_ipo_inner_template_path() -> str:
@@ -1151,6 +1242,21 @@ def load_stack(source_type: str) -> list:
 
 def load_all_stacks() -> dict:
     stacks = {t: load_stack(t) for t in STACK_FILES}
+
+    # ── Remove stale articles from loaded stacks ──────────────
+    total_before = sum(len(v) for v in stacks.values())
+
+    for source_type in stacks:
+        filtered = filter_fresh_articles(stacks[source_type])
+        if len(filtered) != len(stacks[source_type]):
+            stacks[source_type] = filtered
+            save_stack(filtered, source_type)
+
+    total_after = sum(len(v) for v in stacks.values())
+    if total_before != total_after:
+        print(f"[STACK] Removed {total_before - total_after} "
+              f"stale articles from loaded stacks")
+
     print(f"[STACK] Loaded → Priority:{len(stacks['priority'])} | "
           f"News:{len(stacks['news'])} | Corporate:{len(stacks['corporate'])}")
     return stacks
@@ -1325,19 +1431,32 @@ def _fetch_all_sources(top_n: int = 6) -> list:
     sources = [
         (fetch_nse_ipo,       "nse_ipo"),
         (fetch_nse_corporate, "nse_corporate"),
+        (fetch_google_trends,  "google_trends"),
+        (fetch_google_news_business, "google_news_business"),
+        (fetch_economic_times,       "economic_times"),
+        (fetch_ndtv_profit,        "ndtv_profit"),
         (fetch_zerodha,       "zerodha"),
         (fetch_cnbc,          "cnbc"),
         (fetch_5paisa,        "5paisa"),
         (fetch_livemint,      "livemint"),
+        (fetch_business_standard, "business_standard"),
     ]
 
     for fetcher, source_name in sources:
         try:
             with Timer(f"fetch_{source_name}"):
-                data = fetcher(top_n) if source_name == "nse_ipo" \
-                       else fetcher()[:top_n]
+                if source_name == "nse_ipo":
+                    data = fetcher()        # IPO — limited to top_n
+                elif source_name == "google_trends":
+                    data = fetcher()   
+                elif source_name == "google_news_business":
+                    data = fetcher(top_n=top_n)          # Business news — pass top_n to fetcher
+                else:
+                    data = fetcher()[:top_n]     # Others — limited to top_n
+
                 for article in data:
                     article["source"] = source_name
+                data = filter_fresh_articles(data)
                 all_data.extend(data)
                 print(f"[FETCH] {source_name:<15} → {len(data)} articles")
         except Exception as e:
@@ -1345,7 +1464,6 @@ def _fetch_all_sources(top_n: int = 6) -> list:
 
     print(f"[FETCH] Total: {len(all_data)}")
     return all_data
-
 
 # ══════════════════════════════════════════════════════════════
 #  BUILD STACKS
@@ -1411,8 +1529,34 @@ def _full_fetch_and_build_stack(selected_country: str, category: str) -> dict:
 
     all_data = _fetch_all_sources(top_n=6)
 
-    ipo_articles   = [a for a in all_data if a.get("source") == "nse_ipo"]
-    other_articles = [a for a in all_data if a.get("source") != "nse_ipo"]
+    # ipo_articles   = [a for a in all_data if a.get("source") == "nse_ipo"]
+    # other_articles = [a for a in all_data if a.get("source") != "nse_ipo"]
+    ipo_articles = [
+    a for a in all_data
+    if a.get("source") == "nse_ipo"
+    ]
+
+    google_trends_articles = [
+    a for a in all_data
+    if a.get("source") == "google_trends"
+    ]
+    print(
+    f"[DEBUG] Finance Google Trends: "
+    f"{len(google_trends_articles)}"
+    )
+
+    other_articles = [
+    a for a in all_data
+    if a.get("source") not in ["nse_ipo", "google_trends"]
+    ]
+    finance_trends, _ = filter_by_country_and_category(
+    google_trends_articles,
+    selected_country,
+    category
+    )
+
+    if not finance_trends:
+        print(f"[FILTER] No finance trends found in Google Trends today")
 
     print(f"[FILTER] IPO articles (bypass filter): {len(ipo_articles)}")
 
@@ -1421,7 +1565,11 @@ def _full_fetch_and_build_stack(selected_country: str, category: str) -> dict:
     )
     print(f"[FILTER] Other articles after filter: {len(filtered_other)}")
 
-    filtered_data = ipo_articles + filtered_other
+    filtered_data = (
+    ipo_articles +
+    finance_trends +
+    filtered_other
+    )
     print(f"[FILTER] Total combined: {len(filtered_data)}")
 
     if not filtered_data:
@@ -1442,18 +1590,46 @@ def _fetch_after_timestamp(
 
     all_data = _fetch_all_sources(top_n=6)
 
-    ipo_articles   = [a for a in all_data if a.get("source") == "nse_ipo"]
-    other_articles = [a for a in all_data if a.get("source") != "nse_ipo"]
+    # ── Split into 3 groups ───────────────────────────────────
+    ipo_articles = [
+        a for a in all_data
+        if a.get("source") == "nse_ipo"
+    ]
 
-    print(f"[FILTER] IPO articles (bypass filter): {len(ipo_articles)}")
+    google_trends_articles = [
+        a for a in all_data
+        if a.get("source") == "google_trends"
+    ]
 
+    other_articles = [
+        a for a in all_data
+        if a.get("source") not in ["nse_ipo", "google_trends"]
+    ]
+
+    print(f"[FILTER] IPO articles (bypass filter)    : {len(ipo_articles)}")
+    print(f"[FILTER] Google Trends articles           : {len(google_trends_articles)}")
+    print(f"[FILTER] Other articles (to filter)      : {len(other_articles)}")
+
+    # ── Filter google_trends separately ──────────────────────
+    # Google Trends is already India-specific (geo=IN)
+    # but we still filter for finance category only
+    finance_trends, _ = filter_by_country_and_category(
+        google_trends_articles, selected_country, category
+    )
+
+    if not finance_trends:
+        print(f"[FILTER] No finance trends found in Google Trends today")
+    print(f"[FILTER] Google Trends after filter      : {len(finance_trends)}")
+
+    # ── Filter other sources normally ────────────────────────
     filtered_other, source = filter_by_country_and_category(
         other_articles, selected_country, category
     )
-    print(f"[FILTER] Other articles after filter: {len(filtered_other)}")
+    print(f"[FILTER] Other articles after filter     : {len(filtered_other)}")
 
-    filtered_data = ipo_articles + filtered_other
-    print(f"[FILTER] Total combined: {len(filtered_data)}")
+    # ── Combine all 3 groups ──────────────────────────────────
+    filtered_data = ipo_articles + finance_trends + filtered_other
+    print(f"[FILTER] Total combined                  : {len(filtered_data)}")
 
     if not filtered_data:
         print("[STACK] No new articles yet — retrying next cycle")
@@ -1477,11 +1653,21 @@ def clean_newlines(text):
 
 
 def clean_filename(text: str) -> str:
-    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
-    text = re.sub(r'[\\/*?:"<>|]', '', text)
-    text = text.replace(" ", "_")
-    text = re.sub(r'_+', '_', text)
-    return text[:60]
+    ascii_text = unicodedata.normalize("NFKD", text)\
+                             .encode("ascii", "ignore")\
+                             .decode()
+    ascii_text = re.sub(r'[\\/*?:"<>|]', '', ascii_text)
+    ascii_text = ascii_text.replace(" ", "_")
+    ascii_text = re.sub(r'_+', '_', ascii_text).strip("_")
+
+    # Fallback for regional language titles
+    # that become empty after ASCII stripping
+    if len(ascii_text) < 3:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        print(f"[FILENAME] Regional title → using timestamp: {timestamp}")
+        return timestamp
+
+    return ascii_text[:60]
 
 
 def load_used_titles() -> set:
@@ -1503,6 +1689,10 @@ def load_used_titles() -> set:
 @timed
 def _generate_blog(item):
     return generate_blog(item)
+
+@timed
+def _generate_ipo_blog(item):          # ← add this
+    return generate_ipo_blog(item)
 
 @timed
 def _generate_notification(item):
@@ -1563,6 +1753,9 @@ def run_pipeline(selected_country="India", category="finance"):
     os.makedirs(OUTPUT_IMG_WEBP_DIR, exist_ok=True)
     results = []
 
+    # ── Clear stale stacks from previous day ──────────────────
+    _clear_stale_stacks()
+
     # ══════════════════════════════════════════════════════════
     # STEP 1 — Load all 3 stacks from disk
     # ══════════════════════════════════════════════════════════
@@ -1588,35 +1781,42 @@ def run_pipeline(selected_country="India", category="finance"):
             if not zerodha_data:
                 print("[FALLBACK] Zerodha also empty — aborting")
                 return []
-            
-            used_titles  = load_used_titles()
+
+            used_titles   = load_used_titles()
             fresh_zerodha = [
-                      a for a in zerodha_data
-                     if normalize_title(a.get("Blog_Title", "")) not in used_titles
-                    ]
+                a for a in zerodha_data
+                if normalize_title(a.get("Blog_Title", "")) not in used_titles
+            ]
             if not fresh_zerodha:
                 print("[FALLBACK] All Zerodha articles already published — aborting")
                 return []
-            print(f"[FALLBACK] {len(zerodha_data)} fetched → "f"{len(fresh_zerodha)} fresh after dedup")
+            print(
+                f"[FALLBACK] {len(zerodha_data)} fetched → "
+                f"{len(fresh_zerodha)} fresh after dedup"
+            )
 
-            final_item                     = random.choice(zerodha_data)
-            final_item["source"]           = "zerodha"
-            final_item["_source_type"]     = "news"
-            final_item["source_type"]      = "news"
+            final_item                 = random.choice(fresh_zerodha)
+            final_item["source"]       = "zerodha"
+            final_item["_source_type"] = "news"
+            final_item["source_type"]  = "news"
             print(f"[FALLBACK] Selected: '{final_item.get('Blog_Title','')[:50]}'")
-            
+
+            # Fallback always uses standard blog generator (zerodha = news)
+            print(f"[BLOG] FALLBACK news article → generate_blog")
             final_item["blog"]             = clean_newlines(generate_blog(final_item))
             final_item["notify"]           = clean_newlines(generate_notification(final_item))
             final_item["instagram_notify"] = clean_newlines(generate_instagram_caption(final_item))
             final_item["Run_Timestamp"]    = get_run_timestamp()
+            final_item["blog"]             = _parse_blog_output(final_item["blog"])
 
-            safe_title     = clean_filename(final_item["Blog_Title"])
-            image_text     = extract_image_text(
+            safe_title = clean_filename(final_item["Blog_Title"])
+            image_text = extract_image_text(
                 final_item["Blog_Title"],
                 final_item.get("Blog_Content", ""),
                 category.upper()
             )
             final_item["image_text"] = image_text
+
             template_pair  = select_template_pair_smart(
                 category,
                 final_item["Blog_Title"],
@@ -1686,17 +1886,39 @@ def run_pipeline(selected_country="India", category="finance"):
     try:
         # ══════════════════════════════════════════════════════
         # STEP 6 — Generate blog + notification + instagram (AI)
+        #
+        # BLOG GENERATOR ROUTING:
+        #   IPO  (priority + nse_ipo)    → generate_ipo_blog
+        #   NEWS (news sources)          → generate_blog
+        #   CORPORATE (nse_corporate)    → generate_blog
+        #   PRIORITY non-IPO             → generate_blog
+        #                                  (e.g. google_trends)
+        #
+        # WHY double condition for IPO:
+        #   PRIORITY_SOURCES contains both nse_ipo and google_trends.
+        #   google_trends priority articles must use generate_blog,
+        #   not the IPO prompt. Only nse_ipo gets generate_ipo_blog.
         # ══════════════════════════════════════════════════════
-        final_item["blog"]             = clean_newlines(_generate_blog(final_item))
+        final_item["_source_type"] = pop_type
+        article_source             = final_item.get("source", "")
+
+        if pop_type == "priority" and article_source == "nse_ipo":
+            print(f"[BLOG] IPO article (priority + nse_ipo) → generate_ipo_blog")
+            final_item["blog"] = clean_newlines(_generate_ipo_blog(final_item))
+        else:
+            print(f"[BLOG] {pop_type.upper()} article "
+                  f"(source={article_source}) → generate_blog")
+            final_item["blog"] = clean_newlines(_generate_blog(final_item))
+
         final_item["notify"]           = clean_newlines(_generate_notification(final_item))
         final_item["instagram_notify"] = clean_newlines(_generate_instagram(final_item))
         final_item["Run_Timestamp"]    = get_run_timestamp()
         final_item["source_type"]      = pop_type
+        final_item["blog"]             = _parse_blog_output(final_item["blog"])
 
-        safe_title     = clean_filename(final_item["Blog_Title"])
-        article_source = final_item.get("source", "")
+        safe_title = clean_filename(final_item["Blog_Title"])
 
-        # File paths (shared by all branches)
+        # File paths — shared by all image branches
         blog_jpg_path        = os.path.join(OUTPUT_IMG_JPG_DIR,  f"blog_{safe_title}.jpg")
         blog_webp_path       = os.path.join(OUTPUT_IMG_WEBP_DIR, f"blog_{safe_title}.webp")
         blog_inner_jpg_path  = os.path.join(OUTPUT_IMG_JPG_DIR,  f"blog_inner_{safe_title}.jpg")
@@ -1720,9 +1942,6 @@ def run_pipeline(selected_country="India", category="finance"):
         # ══════════════════════════════════════════════════════
 
         # ── BRANCH A: IPO article — ALWAYS template ───────────
-        # Checked FIRST — before USE_AI_IMAGES
-        # IPO Alert template always looks better than AI generation
-        # and contains structured zone data (date, price, lot...)
         if pop_type == "priority" and article_source == "nse_ipo":
             print(f"[IMAGE] IPO article → ipo_compositor.py "
                   f"(always template, ignores USE_AI_IMAGES)")
@@ -1731,29 +1950,25 @@ def run_pipeline(selected_country="India", category="finance"):
             ipo_inner_template = _get_ipo_inner_template_path()
 
             if ipo_template:
-                # Blog outer (640×480) — ipo_alert.png + zones
-                print(f"[IMAGE] Blog outer (640×480) + IPO zone values")
+                print(f"[IMAGE] Blog outer  (640×480)   + IPO zone values")
                 final_item["blog_image"] = _compose_ipo_image(
                     ipo_template, final_item,
                     blog_jpg_path, blog_webp_path, "blog"
                 )
 
-                # Blog inner (1920×490) — ipo_inner.png (dedicated, no resize)
-                print(f"[IMAGE] Blog inner (1920×490) — dedicated template")
+                print(f"[IMAGE] Blog inner  (1920×490)  — dedicated template")
                 final_item["blog_image_inner"] = _compose_ipo_image(
                     ipo_inner_template, final_item,
                     blog_inner_jpg_path, blog_inner_webp_path, "blog_inner"
                 )
 
-                # Instagram (1080×1080) — ipo_alert.png + zones
-                print(f"[IMAGE] Instagram (1080×1080) + IPO zone values")
+                print(f"[IMAGE] Instagram   (1080×1080) + IPO zone values")
                 final_item["instagram_image"] = _compose_ipo_image(
                     ipo_template, final_item,
                     insta_jpg_path, insta_webp_path, "instagram"
                 )
-
             else:
-                # Fallback if ipo_alert.png missing
+                # Fallback: ipo_alert.png missing
                 print(f"[IMAGE] IPO fallback → smart template + text overlay")
                 ipo_text      = _extract_ipo_image_text(final_item)
                 template_pair = _select_template_pair_smart(
@@ -1777,7 +1992,6 @@ def run_pipeline(selected_country="India", category="finance"):
             final_item["image_text"] = _extract_ipo_image_text(final_item)
 
         # ── BRANCH B: non-IPO + USE_AI_IMAGES=True ───────────
-        # AI generation only for news/corporate when flag is True
         elif USE_AI_IMAGES:
             print(f"[IMAGE MODE] AI images → {OUTPUT_FILENAME}")
             images = _generate_ai_image(
@@ -1785,15 +1999,15 @@ def run_pipeline(selected_country="India", category="finance"):
                 final_item.get("Blog_Content", ""),
                 blog_outer_paths={
                     "jpg":  os.path.join(OUTPUT_IMG_JPG_DIR,  f"blog_outer_{safe_title}.jpg"),
-                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"blog_outer_{safe_title}.webp")
+                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"blog_outer_{safe_title}.webp"),
                 },
                 blog_inner_paths={
                     "jpg":  os.path.join(OUTPUT_IMG_JPG_DIR,  f"blog_inner_{safe_title}.jpg"),
-                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"blog_inner_{safe_title}.webp")
+                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"blog_inner_{safe_title}.webp"),
                 },
                 instagram_paths={
                     "jpg":  os.path.join(OUTPUT_IMG_JPG_DIR,  f"insta_{safe_title}.jpg"),
-                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"insta_{safe_title}.webp")
+                    "webp": os.path.join(OUTPUT_IMG_WEBP_DIR, f"insta_{safe_title}.webp"),
                 },
                 quality="medium"
             )
@@ -1802,7 +2016,6 @@ def run_pipeline(selected_country="India", category="finance"):
             final_item["instagram_image"]  = images["instagram"]
 
         # ── BRANCH C: non-IPO + USE_AI_IMAGES=False ──────────
-        # Template compositor for news/corporate
         else:
             print(f"[IMAGE] {pop_type.upper()} "
                   f"(source={article_source}) → compositor.py")
@@ -1821,17 +2034,17 @@ def run_pipeline(selected_country="India", category="finance"):
             outer_template = template_pair["outer"]
             inner_template = template_pair["inner"]
 
-            print(f"[IMAGE] Blog outer → {os.path.basename(outer_template)}")
+            print(f"[IMAGE] Blog outer  → {os.path.basename(outer_template)}")
             final_item["blog_image"] = _compose_image(
                 outer_template, final_item["image_text"],
                 blog_jpg_path, blog_webp_path, "blog"
             )
-            print(f"[IMAGE] Blog inner → {os.path.basename(inner_template)}")
+            print(f"[IMAGE] Blog inner  → {os.path.basename(inner_template)}")
             final_item["blog_image_inner"] = _compose_image(
                 inner_template, {},
                 blog_inner_jpg_path, blog_inner_webp_path, "blog_inner"
             )
-            print(f"[IMAGE] Instagram → {os.path.basename(outer_template)}")
+            print(f"[IMAGE] Instagram   → {os.path.basename(outer_template)}")
             final_item["instagram_image"] = _compose_image(
                 outer_template, final_item["image_text"],
                 insta_jpg_path, insta_webp_path, "instagram"
@@ -1854,8 +2067,6 @@ def run_pipeline(selected_country="India", category="finance"):
 
     print_timing_summary()
     return results
-
-
 
 
 
