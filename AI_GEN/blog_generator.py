@@ -506,6 +506,7 @@ def fix_all_fields(data: dict, source: str = "") -> dict:
                 value = fix_garbage_characters(value)
 
             if key == "Blog_Content":
+                value = value.replace('\\n', ' ').replace('\n', ' ')  # ← FIRST
                 value = fix_strip_tldr_from_content(value)      # a
                 value = fix_nested_p_tags(value)                 # b
                 value = fix_tldr_h2(value)                       # c
@@ -542,29 +543,24 @@ def fix_all_fields(data: dict, source: str = "") -> dict:
 
 def generate_blog(item: dict) -> dict:
     prompt = f"""
-You are a senior financial journalist and SEO strategist writing for Swastika Investmart — 
+You are a SEO & GEO Blog strategist writing for Swastika Investmart — 
 a SEBI-registered Indian stockbroker serving retail investors across India.
-
-You write blogs that rank on Google and get cited by AI search engines like Perplexity and 
-ChatGPT. You know that the only way to achieve both is to write something genuinely useful — 
-not something that looks useful.
-
+You are an expert at writing any high ranking blog optimized for EEAT - (Experience, Expertise, Authoritativeness, & Trustworthiness) 
+You have to write long form blog that rank on Google and get cited by AI search engines like Perplexity, 
+ChatGPT, Gemini & Claude. 
+You are an expert writer who refers the source but dont reveal it in your blog.
+Analyze the following BSE Shareholding Pattern data and generate a comprehensive, investor-friendly article.
 ---
 
 THE SOURCE MATERIAL
 
-News Title: {item['Blog_Title']}
-News Content: {item['Blog_Content']}
-
+ News URL: {item['Blog_Links']}
 ---
 
 YOUR MISSION
 
-Turn the source into a blog that a retail investor in India would actually read, share, and 
-act on. Your writing should make them feel informed, not lectured. Smart, not overwhelmed.
-
-Before you write a single word, ask yourself: what is the one thing a retail investor needs 
-to understand from this news? Build the entire blog around that answer.
+Write a GEO & SEO optimized plagirism free blog which looks alot human written. 
+Blogs must be optimized for longtail & short tail keywords and follow AI SEO optimization blog structure
 
 ---
 
@@ -572,116 +568,55 @@ BLOG TITLE
 
 Write a blog title that does three things at once:
 - Contains the primary long-tail keyword naturally
-- Creates genuine curiosity or urgency without being clickbait
-- Makes it immediately clear who this is for and what they'll learn
+- Should rank higher in GEO and SEO
 
-Weak title: "Import Dependence: Step Up Your Game India Inc"
-Strong title: "Why India's Import Problem Is Actually an Opportunity for Smart Investors"
-
-The title is the most important SEO signal in the entire blog. Treat it that way.
-
+The title is the most important SEO signal in the entire blog.
 ---
 
 OPENING
 
-The first paragraph must earn the reader's next 30 seconds. No "In today's fast-paced 
-world." No "As investors, we all know." Start with the sharpest, most interesting thing 
+Start with the sharpest hook, most interesting thing 
 about this story — a tension, a number, a consequence, a question worth answering.
 
 ---
 
 BODY STRUCTURE
 
-Let the story decide the structure. Do not use generic section names like "What This Means 
-For You" or "Key Takeaways" or "How to Act Now" — these are filler headers that signal to 
-both humans and search engines that nothing interesting follows.
+Let the story decide the structure.
 
 Instead:
 - Each H2 must be a long-tail keyword phrase a real investor would search
 - Each H2 must make a specific claim or raise a specific question
 - Each section must add something the previous one didn't
-- Each H2 must be immediately followed by at least one <p> paragraph
-  Do not write an H2 heading without content after it.
-  An H2 with no paragraph is an incomplete section — do not create it
-
-Example of weak H2: "Implications for your portfolio"
-Example of strong H2: "Which sectors gain when India cuts import dependence?"
-
-Write  substantive content. Depth is an SEO signal. Thin content 
-does not rank.
-
-Do not pad. If a section has nothing to add, cut it. Length should come from substance, 
-not repetition.
 
 ---
 
 TLDR
 
-Write exactly 4 short, punchy sentences. No bullet formatting beyond the list structure. 
-No paragraph after the TLDR. Each sentence must stand alone and deliver real information:
-
-Sentence 1: The core development in plain language
-Sentence 2: What it means for Indian investors specifically  
-Sentence 3: The one number, signal, or metric worth watching
-Sentence 4: One concrete, actionable takeaway
+Write exactly 4 short, punchy sentences. No bullet formatting beyond the list structure. Each sentence must stand alone and deliver real information.
 
 ---
 
 TABLES
 
-Add a table only when a real comparison or dataset exists in the source. A table that 
-compares vague concepts is worse than no table. If you add a table, it must have specific 
-column headers and data that couldn't be conveyed as well in prose. Never reference a 
-table in text without generating it immediately after.
-
+Add a table only whenever needed.
 ---
 
 FAQ
 
-Write 4–6 questions that a retail investor would actually type into Google or ask an AI 
-search engine. These are semantic SEO anchors — they capture long-tail queries and trigger 
-featured snippets.
-
-Bad FAQ question: "How should I think about this for stock picks?"
-Good FAQ question: "Which Indian stocks benefit from reduced import dependence?"
-
-Answers must be specific, factual, and grounded in the source article. One question must 
-address a common misconception or concern. If the source does not explain a cause or 
-mechanism, answer with the most plausible general explanation an informed investor would 
-know — clearly framed as context, not as a claim from the source. A non-answer is worse 
-than no FAQ at all.
+Write 4–6 FAQ questions and Answers that would rank in Google Search. 
+Answers must be specific, factual, and grounded in the source article.
 
 ---
 
 CONCLUSION
 
-The conclusion is not optional and it is not a summary. It is the last thing the investor
-reads — make it the most useful sentence in the article.
+The conclusion is the last thing the investor reads. Make it the most useful paragraph in the blog.
 
-Write 1–2 paragraphs under <h2>Conclusion</h2>. The heading comes first, the paragraphs
-after it. Never write the conclusion paragraph before the heading.
+Write 2 paragraphs under <h2>Conclusion</h2>:
+Summarize what this story means for the retail investor right now - not a recap of facts, but the so-what.
+Give the investor one clear next step or mental model they can apply.
 
-The conclusion must do two things:
-- Synthesize the single most important insight from the article — not list what was covered
-- End with one sentence that gives the reader a clear mental model or next step
-
-What a good conclusion sounds like:
-"The RBI's move is not just a currency story — it's a signal about where India's capital
-account is heading. Investors who understand that distinction will be better positioned to
-read the next six months of flows."
-
-What a bad conclusion sounds like:
-"In conclusion, the RBI's measures could attract $70 billion in inflows. Investors should
-monitor bond yields and the rupee. Use Swastika's Sarthi for stock-level insights."
-
-
-The conclusion must be plain prose only. Do not begin any sentence
-with labels like "Conclusion:", "Takeaway:", "Key takeaway:",
-"In summary:", or "Final recommendation:". These are heading-style
-labels that belong nowhere in a paragraph. Write sentences, not bullets
-dressed as sentences.
-
-Write it like the final paragraph of a good newspaper column — not a checklist.
 
 ---
 
@@ -691,38 +626,8 @@ Swastika offers: stocks, F&O, mutual funds, IPOs, ETFs, bonds, MCX, SLBM, pledgi
 research reports, and Sarthi — an AI stock assistant that gives institutional-level 
 research on any stock or index to retail investors.
 
-Place one Swastika reference in the blog body where it genuinely fits the article context.
-
-Two hard rules on placement:
-- It must appear inside a <p> tag only — never in an <h1>, <h2>, <h3>, or <h4>
-- It must read as a natural sentence within an existing paragraph, not as a standalone 
-  call-to-action paragraph of its own
-
-Never create a section heading (H2, H3, or H4) that contains the word
-"Swastika". There should be no heading like "Swastika's insights" or
-"How Swastika can help". Swastika appears in prose only, never as a
-section title.
-
-The reference should feel like advice from a knowledgeable friend, not a banner ad.
-
-Examples of how this should feel:
-
-For an IPO article — woven into a paragraph about applying:
-"...and investors can apply directly through Swastika's platform before the window closes."
-
-For a stock rally article — woven into a paragraph about analysis:
-"...for deeper analysis before entering, Sarthi provides institutional-grade research on 
-[stock name] including entry levels and risk parameters."
-
-For a macro/theme article — woven into a paragraph about stock selection:
-"...Swastika's research desk covers sector-level analysis for exactly this kind of 
-thematic investing."
-
-Never begin a <p> tag with "Swastika" — the reference must appear mid-sentence within 
-a paragraph that is already making a point about something else.
-
-If no Swastika offering is genuinely relevant to the article, do not mention Swastika.
-
+Place one implicit CTA in the body where it genuinely fits the article context. A natural bridge between what the investor 
+just learned and what they might do next.
 ---
 
 SEO OUTPUT REQUIREMENTS
@@ -737,39 +642,12 @@ insight they'll get from clicking. Count the characters.
 
 HTML RULES
 
-Use only these tags: <h1> <h2> <h3> <h4> <p> <ul> <li> <strong> <u> <a href=""> 
+These are allowed tags which you can use: <h1> <h2> <h3> <h4> <p> <ul> <li> <strong> <u> <a href=""> 
 <table> <tr> <th> <td>
 
 TLDR points go in <li> tags with no paragraph following them.
-FAQ questions use <h4>. Answers use <p>. No nested <p> tags inside <p> tags.
+FAQ questions use <h4>. Answers use <p>.
 Every major section needs an <h2>. Use <h3> only for genuine subsections.
-
----
-
-MANDATORY BLOG STRUCTURE
-
-Blog_Content must follow this exact section order. The blog is incomplete if any 
-section is missing.
-
-1. <h1> — blog title
-2. <h2>TLDR</h2> — followed immediately by <ul> with exactly 4 <li> items, nothing after
-3. Opening <p> — the hook paragraph
-4. Body <h2> sections — long-tail keyword headers, each adding something new.
-5. <h2>FAQ</h2> — followed by <h4>/<p> pairs, no nested <p> tags
-6. <h2>Conclusion</h2> — followed by 1–2 <p> paragraphs
-
-The <h2>Conclusion</h2> tag must appear first, then the paragraph(s) after it.
-Do not write a concluding paragraph before the tag and a placeholder after it.
-The content goes AFTER the heading, never before it.
-
-The conclusion paragraphs must be written immediately after <h2>Conclusion</h2>.
-Do not end the Blog_Content with just the heading and no paragraphs.
-An empty conclusion heading is not a conclusion.
-
-The Conclusion is not optional. It comes after FAQ, every time, no exceptions.
-It must synthesize the single most important insight from the article — not list what 
-was covered. End it with one sentence that gives the reader a clear mental model or 
-next step. Write it like the final paragraph of a good newspaper column.
 
 ---
 
@@ -789,12 +667,14 @@ Return only valid JSON. No markdown. No explanation. No code fences.
     "mainEntity": []
   }}
 }}
+
 """
     result = cached_model_call(prompt)
     data   = json.loads(result)
     source = item.get("source", "")
     data   = fix_all_fields(data, source=source)
     return data
+
 
 
 def generate_ipo_blog(item: dict) -> dict:
@@ -810,8 +690,8 @@ they need to make a decision — not just a press release rewrite.
 
 THE SOURCE MATERIAL
 
-News Title: {item['Blog_Title']}
-News Content: {item['Blog_Content']}
+News URL: {item['Blog_Links']}
+
 
 ---
 
@@ -1062,4 +942,8 @@ Return only valid JSON. No markdown. No explanation. No code fences.
 
 
 
+if __name__ == "__main__":
+    d1={}
+    print(generate_blog(d1))
 
+    

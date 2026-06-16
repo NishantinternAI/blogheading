@@ -264,7 +264,7 @@ if __name__ == "__main__":
     for i, r in enumerate(results, 1):
         print(f"\n[{i}] Title   : {r['Blog_Title']}")
         print(f"    Source  : {r['source_name']}")
-        print(f"    Link    : {r['Blog_Links'][:70]}")
+        print(f"    Link    : {r['Blog_Links']}")
         print(f"    Date    : {r['Blog_PublishDate']}")
         print(f"    ---CONTENT---")
         print(r['Blog_Content'])      # ← print directly, no indent confusion

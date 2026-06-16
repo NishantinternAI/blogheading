@@ -962,6 +962,7 @@ from RSS.google_trends import fetch_google_trends
 from RSS.google_news_business import fetch_google_news_business
 from RSS.economic_times import fetch_economic_times
 from RSS.ndtv_profit         import fetch_ndtv_profit
+from RSS.Business_Standard import fetch_business_standard
 
 # ── Image modules ─────────────────────────────────────────────
 from content_engine.image_module.text_extractor import extract_image_text
@@ -1026,7 +1027,7 @@ POSTING_PATTERN = [
 
 PRIORITY_SOURCES  = ["nse_ipo", "google_trends"]
 CORPORATE_SOURCES = ["nse_corporate"]
-NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint","google_news_business","economic_times","ndtv_profit"]
+NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint","google_news_business","economic_times","ndtv_profit","business_standard"]
 
 
 # ══════════════════════════════════════════════════════════════
@@ -1438,6 +1439,7 @@ def _fetch_all_sources(top_n: int = 6) -> list:
         (fetch_cnbc,          "cnbc"),
         (fetch_5paisa,        "5paisa"),
         (fetch_livemint,      "livemint"),
+        (fetch_business_standard, "business_standard"),
     ]
 
     for fetcher, source_name in sources:
