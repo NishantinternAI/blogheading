@@ -2,6 +2,7 @@ import logging
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
 from mergeall_engine import run_pipeline
+from mcp_agent import run_agent
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,10 +15,14 @@ scheduler = BlockingScheduler(executors=executors)
 @scheduler.scheduled_job('cron', minute='*/5')
 def pipeline_job():
     print("\n" + "━"*33)
-    print("  🚀 Pipeline job started")
+    print("  Pipeline job started")
     print("━"*33)
     results = run_pipeline()
-    print(f"  ✅ Pipeline completed — {len(results)} blogs processed")
+    print(f"  Pipeline completed — {len(results)} blogs processed")
+
+    if results:
+        # Hand control to the AI agent with the single generated entry
+        run_agent(entry=results[0])
 
 
 if __name__ == "__main__":
