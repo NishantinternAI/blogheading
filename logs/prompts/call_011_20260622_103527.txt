@@ -1,0 +1,38 @@
+======================================================================
+  CALL #11  |  2026-06-22 10:35:27
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 97
+  prompt_chars: 687
+
+PROMPT:
+----------------------------------------------------------------------
+
+    Extract overlay text for a social media image.
+    Return ONLY valid JSON with no extra text.
+    Blog title: sensex share price
+    Category: FINANCE
+    Content excerpt: Indian benchmark indices Sensex and Nifty are likely to open modestly higher on Monday, supported by positive signals from GIFT Nifty and gains across Asian markets. However, uncertainty surrounding US-Iran peace negotiations and movements in crude oil prices are expected to keep investors cautious.
+    Return exactly:
+    {
+     "headline": "max 6 words, punchy, no punctuation",
+     "subtext": "max 10 words, supporting context",
+     "tag": "ONE WORD, all caps e.g. FINANCE / BREAKING / GUIDE"
+    }
+    
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 174
+Output Tokens : 4858
+Cost          : $0.073392
+----------------------------------------------------------------------
+{
+  "headline": "Sensex higher at market open",
+  "subtext": "Modest rise led by GIFT Nifty and Asian gains",
+  "tag": "FINANCE"
+}
+======================================================================

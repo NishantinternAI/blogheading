@@ -1,0 +1,38 @@
+======================================================================
+  CALL #4  |  2026-06-21 18:40:00
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 121
+  prompt_chars: 772
+
+PROMPT:
+----------------------------------------------------------------------
+
+    Extract overlay text for a social media image.
+    Return ONLY valid JSON with no extra text.
+    Blog title: Will Sensex, Nifty bounce back on Monday? Iran peace deal risks among 5 factors to drive D-St this week
+    Category: FINANCE
+    Content excerpt: The Sensex dropped 607 points to settle at 76,802.90, while the Nifty50 fell 155 points to close at 24,013.10. The decline came after both indices had surged as much as 5% over the previous five trading sessions. Here are five key factors that could shape market sentiment in the days ahead. Although
+    Return exactly:
+    {
+     "headline": "max 6 words, punchy, no punctuation",
+     "subtext": "max 10 words, supporting context",
+     "tag": "ONE WORD, all caps e.g. FINANCE / BREAKING / GUIDE"
+    }
+    
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 214
+Output Tokens : 3708
+Cost          : $0.056262
+----------------------------------------------------------------------
+{
+  "headline": "Sensex Nifty bounce back Monday",
+  "subtext": "Markets slip but cues point to a rebound",
+  "tag": "FINANCE"
+}
+======================================================================

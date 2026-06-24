@@ -1,0 +1,88 @@
+======================================================================
+  CALL #15  |  2026-06-21 19:02:09
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 1239
+  prompt_chars: 8163
+
+PROMPT:
+----------------------------------------------------------------------
+
+    You are a Instagram caption writer for Swastika Investmart.
+
+Your job is to convert stock market news into a HIGH-ENGAGEMENT Instagram caption that feels real, emotional, and relatable for Indian retail investors.
+
+NEWS:
+Title: Russia leads India’s crude imports, UAE shipments hit near-record levels in June ahead of Hormuz reset
+Content: India's crude oil imports from Russia surged in June, while shipments from the United Arab Emirates were near-record levels as refiners sought to secure supplies ahead of the full restoration of flows from Gulf producers following the reopening of the Strait of Hormuz, analysts said. India imported an average of 2.66 million barrels per day of crude oil from Russia in June, through June 19, compared to 1.91 million bpd in May, data from maritime and commodity intelligence firm Kpler showed, cementing Moscow's position as the country's largest oil supplier. Imports from the United Arab Emirates stood at 6,36,000 barrels per day (bpd) in June, through June 19, marginally below the record 6,44,000 bpd imported in May, while Venezuela emerged as India's fourth-largest crude supplier with shipments of 2,09,000 bpd, behind Saudi Arabia's 384,000 bpd. Imports from the United States fell sharply to 91,000 bpd from 2,52,000 bpd in May, according to Kpler data. The purchases underscore India's strategy of diversifying sourcing, with Russian barrels remaining attractive due to discounts and UAE supplies helping offset uncertainty surrounding shipments through the strategic waterway of the Strait of Hormuz. India, the world's third-largest energy importer, depends heavily on the Gulf region for crude oil, LNG and LPG. Supplies were disrupted after Iran closed the Strait of Hormuz, following US and Israeli attacks, choking a key energy artery that carries about 20% of global oil consumption and serves as the principal export route for Gulf producers, including Saudi Arabia, Iraq, Kuwait, the United Arab Emirates and Qatar. Oil shipments through the Strait of Hormuz began recovering late last week after the US and Iran agreed to a ceasefire. However, the truce remains fragile, with Iranian authorities accusing Israel of violating the agreement, raising concerns over the durability of the reopening. According to Sumit Ritolia, Senior Manager - Modelling at Kpler, a reopening of the Strait of Hormuz is expected to provide the quickest relief to India's liquefied petroleum gas (LPG) supplies, while crude oil and liquefied natural gas (LNG) imports are likely to see a more gradual normalisation as the country has already adapted to months of disruption through diversification and alternative supply routes. The impact of the Strait of Hormuz disruption varied sharply across fuels, with LPG emerging as the most affected commodity, while crude and LNG imports proved relatively resilient due to alternative sourcing and bypass infrastructure. Ritolia expects the initial phase of reopening to focus on clearing stranded cargoes and restoring shipping flows before Gulf producers materially increase exports. "A reopening of the Strait of Hormuz (So H) would represent a major milestone for global energy markets, but the impact on India is likely to vary significantly across commodities," he said. "While India remains one of the largest importers of Middle Eastern hydrocarbons (crude, LPG, and LNG), crude and LNG imports have proven relatively resilient throughout the disruption, unlike LPG, which has been the most severely affected." As a result, the recovery is likely to be sequential, with LPG flows normalising first, followed by LNG and crude. "Under our base case of a gradual reopening from early July, the initial focus will be on clearing trapped cargoes and restoring shipping flows before Gulf exporters can materially increase exports," he said. India imports about 88% of its crude oil needs, nearly half of its natural gas requirement and around 65% of its LPG consumption. Pre-war, the Gulf region supplied roughly half of the country's crude imports, two-thirds of its LNG requirement and nearly 90% of India's LPG imports. Recent signs of normalisation have already emerged. Three Indian-flagged oil tankers carrying more than 8,60,000 tonnes of crude and an Indian LNG carrier have successfully resumed transit through the strategic waterway following the US-Iran agreement aimed at ending hostilities. Ritolia said Russian crude continues to anchor India's oil import strategy. June imports are expected to exceed 2.35 million bpd, potentially setting a record, supported by competitive discounts and steady refinery demand. He expects Russian supplies to remain a cornerstone of India's import basket even after Hormuz normalises, given favourable economics and supply security considerations. Indian refiners have also increased purchases from the Atlantic Basin and Venezuela since March to offset tighter Gulf supplies. Venezuelan crude imports are estimated at 3,00,000-4,00,000 bpd in June, providing refiners processing heavier grades with an important diversification option, although sanction risks and production constraints continue to cloud the long-term outlook. The biggest shift has occurred in LPG. The United States has emerged as a major supplier after disruptions curbed Gulf shipments, aided by a long-term supply agreement signed last year. While the strategy has improved diversification, it has also increased freight costs due to longer shipping distances. According to Ritolia, Gulf suppliers are expected to gradually regain market share as Hormuz normalises, although India's sourcing base is likely to remain broader than before the crisis. India remains structurally dependent on Gulf energy supplies, but the crisis accelerated diversification efforts. Crude imports were cushioned by increased purchases from Russia, Brazil and Venezuela, while LNG buyers sourced additional cargoes from countries, including Oman, Nigeria and the US. The reopening of Hormuz is also expected to ease freight costs, reduce supply risks and help moderate energy prices globally, he said, cautioning that a full return to pre-crisis trade patterns could take weeks or months as shipping companies, insurers and traders gradually rebuild confidence in the route. (Edited by : Priyanka Deshpande)
+
+
+━━━━━━━━━━━━━━━
+RULES:
+
+- Tone: Informal, conversational, human-like
+- Not too technical or jargon-heavy
+- Avoid sounding like a news report
+- Output must be strictly in English.
+-Keep the flow natural and readable
+- Caption should feel like a real human wrote it
+DO NOT use label-style writing like: -
+ "Why it matters:" 
+ - "Takeaway:" - "Key point:" 
+ - "Bottom line:" Instead, naturally blend insights into the caption flow.
+
+━━━━━━━━━━━━━━━
+STRUCTURE:
+
+1. Strong emotional hook (first line must grab attention)
+2. Connect news to user's money/portfolio
+3. Simplify the insight
+4. Add a smart takeaway or perspective
+5. End with a thought-provoking line
+FORMATTING RULES (STRICT):
+- Write the caption as ONE continuous flowing paragraph
+-DO NOT use label-style prefixes like:
+    "Smart takeaway:" / "P.S." / "Key point:" / "Bottom line:" / "Note:"
+- DO NOT split sentences onto separate lines
+- All sentences must flow together naturally like a human wrote it in one go
+- Only the final tagline should be on a new line
+-Everything should read like one human naturally speaking
+After the caption, write a short  message that tells the user
+WHY they should come to Swastika Apps — based on the news in the caption.
+
+RULES:
+- Connect directly to the caption topic (don't write generic lines)
+- Sound like a helpful friend, not a salesman
+-Everything should read like one human naturally speaking
+- End with a soft call-to-action (download, explore, check)
+
+
+EXAMPLES based on context:
+  FX / Inflation news   → mention Research, AI Assistance, Bonds, MF
+  Stock rally news      → mention Stocks, F&O, Research
+  Dividend news         → mention Investment Trading, ETF, MF
+
+
+━━━━━━━━━━━━━━━
+📦 OUTPUT FORMAT (STRICT JSON ONLY):
+
+{
+  "instagram_caption": "<caption here>",
+  "hashtags": "#Nifty #StockMarket #IndianInvestor #MarketUpdate #SwastikaInvestmart"
+}
+
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 1682
+Output Tokens : 12289
+Cost          : $0.189381
+----------------------------------------------------------------------
+{
+  "instagram_caption": "Energy headlines just dropped a plot twist your wallet can't ignore, and it's hitting home as India leans on Russia and the UAE for crude while Hormuz starts to reopen. In June, India imported about 2.66 million barrels per day from Russia through June 19, cementing Moscow as the top supplier, while UAE shipments stood around 636,000 bpd, near the record highs, and Venezuela contributed about 209,000 bpd; US shipments fell to 91,000 bpd from 252,000 bpd in May, underscoring how India's diversification is shaping the mix. All this matters for your money because it hints at how energy exposure sits in Indian markets and how fuel prices might move in the weeks ahead. The Strait of Hormuz reopening is seen as relief—freight costs may ease and flows should normalise gradually, with LPG recovering first and crude and LNG following, which means the energy market could settle into a slower, steadier rhythm. That means your portfolio needs to stay nimble and diversified, blending discounted Russian barrels with Gulf supplies and other sources to cushion shocks. So as Hormuz reopens and flows resume, will your portfolio ride the wave or get left behind—check Swastika Apps?",
+  "hashtags": "#OilMarkets #EnergyInvesting #IndianInvestors #MarketUpdate #SwastikaInvestmart"
+}
+======================================================================

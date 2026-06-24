@@ -1,7 +1,11 @@
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__))) # ← adds AI_GEN/ to path
 import json
 import re
 from bs4 import BeautifulSoup
 from add_cached import cached_model_call
+from utils.mcp_tools import fetch_and_clean
+from add_cached import cached_model_call, fetch_via_websearch
 
 
 # ══════════════════════════════════════════════════════════════
@@ -130,13 +134,13 @@ def fix_table_na(html: str) -> str:
     return html
 
 
-def fix_remove_non_ipo_table(html: str, source: str) -> str:
-    """Remove tables from non-IPO articles only."""
-    if source == "nse_ipo":
-        return html
-    html = re.sub(r'<table.*?</table>', '', html,
-                  flags=re.IGNORECASE | re.DOTALL)
-    return html
+# def fix_remove_non_ipo_table(html: str, source: str) -> str:
+#     """Remove tables from non-IPO articles only."""
+#     if source == "nse_ipo":
+#         return html
+#     html = re.sub(r'<table.*?</table>', '', html,
+#                   flags=re.IGNORECASE | re.DOTALL)
+#     return html
 
 
 def fix_garbage_characters(text: str) -> str:
@@ -462,6 +466,71 @@ def fix_ensure_conclusion(html: str) -> str:
     return str(soup).strip()
 
 
+
+
+
+
+def fix_html_tags(content: str) -> str:
+    """
+    Fixes common HTML formatting issues that LLMs produce.
+ 
+    Fixes:
+      1. Double <li> tags      : <li><li>text</li></li> → <li>text</li>
+      2. Double <p> tags       : <p><p>text</p></p>     → <p>text</p>
+      3. Conclusion label      : "Conclusion – Paragraph 1:" → removed
+      4. Empty tags            : <p></p>, <li></li>     → removed
+      5. Nested same tags      : <h2><h2>text</h2></h2> → <h2>text</h2>
+    """
+    if not content:
+        return content
+ 
+    # 1. Fix double <li> tags — <li><li>text</li></li> → <li>text</li>
+    content = re.sub(r'<li>\s*<li>', '<li>', content)
+    content = re.sub(r'</li>\s*</li>', '</li>', content)
+ 
+    # 2. Fix double <p> tags — <p><p>text</p></p> → <p>text</p>
+    content = re.sub(r'<p>\s*<p>', '<p>', content)
+    content = re.sub(r'</p>\s*</p>', '</p>', content)
+ 
+    # 3. Fix nested same heading tags — <h2><h2>text</h2></h2>
+    for tag in ['h1', 'h2', 'h3', 'h4']:
+        content = re.sub(
+            rf'<{tag}>\s*<{tag}>', f'<{tag}>', content
+        )
+        content = re.sub(
+            rf'</{tag}>\s*</{tag}>', f'</{tag}>', content
+        )
+ 
+    # 4. Remove conclusion paragraph labels
+    # "Conclusion – Paragraph 1:" / "Conclusion - Paragraph 2:"
+    content = re.sub(
+        r'Conclusion\s*[–\-]\s*Paragraph\s*\d+\s*:?\s*',
+        '',
+        content,
+        flags=re.IGNORECASE
+    )
+ 
+    # 5. Remove empty tags
+    content = re.sub(r'<(p|li|h[1-4])>\s*</(p|li|h[1-4])>', '', content)
+ 
+    # 6. Fix missing space between closing and opening tags
+    content = re.sub(r'</(\w+)><(\w+)', r'</\1> <\2', content)
+ 
+    # 7. Remove H2/H3 headings that have no paragraph content after them
+    # Pattern: <h2>title</h2> immediately followed by another <h2> or end of string
+    content = re.sub(
+        r'<h2>[^<]+</h2>\s*(?=<h2>|<h3>|$)',
+        '',
+        content
+    )
+    content = re.sub(
+        r'<h3>[^<]+</h3>\s*(?=<h2>|<h3>|$)',
+        '',
+        content
+    )
+ 
+    return content.strip()
+
 # ══════════════════════════════════════════════════════════════
 #  fix_all_fields — main pipeline entry point
 # ══════════════════════════════════════════════════════════════
@@ -484,7 +553,6 @@ def fix_all_fields(data: dict, source: str = "") -> dict:
             g. Duplicate Swastika fix        (now matches all Swastika refs)
             h. Swastika paragraph-start fix
             i. Table N/A cleanup
-            j. Non-IPO table removal
             k. FAQ before Conclusion swap    (new — corrects reversed order)
             l. Ensure conclusion             (tag + real content)
     """
@@ -509,6 +577,7 @@ def fix_all_fields(data: dict, source: str = "") -> dict:
                 value = value.replace('\\n', ' ').replace('\n', ' ')  # ← FIRST
                 value = fix_strip_tldr_from_content(value)      # a
                 value = fix_nested_p_tags(value)                 # b
+                value = fix_html_tags(value)
                 value = fix_tldr_h2(value)                       # c
                 value = fix_faq_tags(value)                      # d
                 value = fix_faq_h2_keyword(value, blog_title)    # e
@@ -517,7 +586,7 @@ def fix_all_fields(data: dict, source: str = "") -> dict:
                 value = fix_swastika_heading(value)            # g
                 value = fix_swastika_paragraph_start(value)      # h
                 value = fix_table_na(value)                      # i
-                value = fix_remove_non_ipo_table(value, source)  # j
+                # value = fix_remove_non_ipo_table(value, source)  # j
                 value = fix_faq_before_conclusion(value)         # k
                 value = fix_ensure_conclusion(value)  
                 value = fix_conclusion_labels(value)           # l
@@ -541,7 +610,22 @@ def fix_all_fields(data: dict, source: str = "") -> dict:
 #  BLOG GENERATORS
 # ══════════════════════════════════════════════════════════════
 
+
+
+
 def generate_blog(item: dict) -> dict:
+    url =item["Blog_Links"]
+    article_content = fetch_via_websearch(url)
+    print(article_content)
+    # scraped = fetch_and_clean(
+    #     url=item["Blog_Links"],
+    #     title=item.get("Blog_Title", ""),
+    #     fallback_text=item.get("Blog_Content", "")
+    # )
+    # print(f"   [SCRAPE] {scraped['quality']} ({scraped['word_count']} words) via {scraped['method']}")
+    # item["Blog_Content"] = scraped["content"]
+    
+    
     prompt = f"""
 You are a SEO & GEO Blog strategist writing for Swastika Investmart — 
 a SEBI-registered Indian stockbroker serving retail investors across India.
@@ -550,17 +634,26 @@ You have to write long form blog that rank on Google and get cited by AI search 
 ChatGPT, Gemini & Claude. 
 ---
 
-THE SOURCE MATERIAL
 
- News URL: {item['Blog_Links']}
+THE SOURCE MATERIAL.
+
+{article_content}
+
+
 ---
 
 YOUR MISSION
 
-Write a GEO & SEO optimized plagirism free blog which looks alot human written. 
+Write a GEO & SEO optimized blog of 1,200 to 2,000 words.The blog must be plagirism free blog which looks alot human written. 
 Blogs must be optimized for longtail & short tail keywords and follow AI SEO optimization blog structure
 
 ---
+Use every statistic from the source. 
+Never mention the news outlet that reported it. 
+Attribute figures to their primary source 
+(SEBI, RBI, NSE, BSE, company filings) or state 
+price data as plain market facts.
+------
 
 BLOG TITLE
 
@@ -569,6 +662,11 @@ Write a blog title that does three things at once:
 - Should rank higher in GEO and SEO
 
 The title is the most important SEO signal in the entire blog.
+
+---
+
+Integrate every dynamic primary keyword contextually across the blog and FAQs without keyword stuffing.
+
 ---
 
 OPENING
@@ -612,6 +710,8 @@ CONCLUSION
 The conclusion is the last thing the investor reads. Make it the most useful paragraph in the blog.
 
 Write 2 paragraphs under <h2>Conclusion</h2>:
+Do NOT write "Conclusion - Paragraph 1:" or any label.
+Start directly with the content sentence.
 Summarize what this story means for the retail investor right now - not a recap of facts, but the so-what.
 Give the investor one clear next step or mental model they can apply.
 
@@ -688,7 +788,9 @@ they need to make a decision — not just a press release rewrite.
 
 THE SOURCE MATERIAL
 
-News URL: {item['Blog_Links']}
+News Title: {item['Blog_Title']}
+News Content: {item['Blog_Content']}
+
 
 
 ---
@@ -943,5 +1045,7 @@ Return only valid JSON. No markdown. No explanation. No code fences.
 if __name__ == "__main__":
     d1={}
     print(generate_blog(d1))
+    
+    
 
     

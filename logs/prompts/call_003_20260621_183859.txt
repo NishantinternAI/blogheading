@@ -1,0 +1,88 @@
+======================================================================
+  CALL #3  |  2026-06-21 18:38:59
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 1221
+  prompt_chars: 7856
+
+PROMPT:
+----------------------------------------------------------------------
+
+    You are a Instagram caption writer for Swastika Investmart.
+
+Your job is to convert stock market news into a HIGH-ENGAGEMENT Instagram caption that feels real, emotional, and relatable for Indian retail investors.
+
+NEWS:
+Title: Will Sensex, Nifty bounce back on Monday? Iran peace deal risks among 5 factors to drive D-St this week
+Content: The Sensex dropped 607 points to settle at 76,802.90, while the Nifty50 fell 155 points to close at 24,013.10. The decline came after both indices had surged as much as 5% over the previous five trading sessions. Here are five key factors that could shape market sentiment in the days ahead. Although the United States and Iran had agreed to a 60-day ceasefire to facilitate negotiations, tensions remained high after Iran's Islamic Revolutionary Guard Corps (IRGC) announced on Saturday that the Strait of Hormuz had been closed. The U.S. military, however, said commercial shipping traffic through the strategic waterway remained uninterrupted. The developments threaten to complicate efforts to secure an interim peace agreement brokered by Pakistan and signed on Wednesday by U.S. President Donald Trump and Iranian President Masoud Pezeshkian, aimed at ending nearly four months of conflict. Negotiators from both countries were scheduled to begin talks in Switzerland on Sunday, even as U.S. officials rejected Tehran's claims that the Strait of Hormuz had been shut. Brent crude prices advanced on Friday after scheduled talks between the United States and Iran in Switzerland were abruptly cancelled, highlighting ongoing uncertainty around efforts to convert a temporary agreement into a lasting peace arrangement. Brent crude futures gained 0.9% to close at $80.57 a barrel. West Texas Intermediate futures were trading 1.23% higher at $77.54 earlier in the day. Oil prices had briefly moved lower after Israel and Iran-backed Hezbollah agreed to a ceasefire. Switzerland's foreign ministry said the US-Iran talks planned at Bürgenstock on Friday would no longer take place. IT stocks bore the brunt of Friday's selloff, with Infosys, TCS, Tech Mahindra and HCL Tech tumbling as much as 7%. The weakness followed an 11% slide in Accenture's shares on Wall Street after the consulting giant revised its FY26 revenue growth forecast to 3-4% from its earlier guidance of 3-5%. The company also projected fourth-quarter revenue of $17.75 billion-$18.4 billion, below analysts' expectations of $18.47 billion, according to LSEG data. The index continues to trade below its key short- and long-term moving averages, while the RSI has slipped below 40, indicating bearish momentum. Additionally, DI- has crossed above DI+ on the ADX indicator, reflecting growing seller dominance. The 27,050–27,000 zone remains a crucial support zone. Any sustainable move below this zone can lead Index extending its weakness further on the downside. The resistance is placed in the 28,250–28,300 zone. The rupee ended almost unchanged against the US dollar on Friday after a volatile session. Gains from the unwinding of long dollar positions were offset by weakness in regional currencies and outflows linked to index rebalancing. The currency closed at 94.32 per dollar, little changed from the previous session. Even so, the rupee registered its strongest weekly performance in 11 weeks, aided by debt inflows. It also recorded its fourth weekly gain in the last five weeks. The currency touched an intraday high of 94.21 as traders cut long dollar positions, but later gave up those gains as the dollar strengthened globally and index-related outflows weighed on sentiment. "The recent RBI measures together with favourable oil prices following the easing of Middle East tensions helped the rupee remain in positive territory despite significant dollar strength today," Dhaval Shah, Founder and Managing Director of De-Risk Forex Consultancy, told Reuters. According to Shah, recent price action suggests that sentiment towards the rupee has improved. "The bias for the rupee has changed and we continue to maintain our forecast of 93.50," he said. The rupee has been trending higher since the Reserve Bank of India unveiled measures aimed at attracting dollar inflows two weeks ago. 5. ) FII turn net buyers Foreign institutional investors turned net buyers during the week, bringing in cumulative inflows of around Rs 3,400 crore despite fluctuations in daily flows. The shift signals an improvement in overseas investor sentiment after a prolonged period of selling and provides support to domestic equities at a time when global risk appetite has improved and geopolitical tensions have eased, says Ponmudi R, CEO of Enrich Money. Domestic institutional investors continued to provide strong support to the market, purchasing shares worth around Rs 7,100 crore during the week. Their steady buying helped cushion periods of volatility and underpinned the recent market recovery. Combined with the return of positive foreign flows, sustained institutional participation is likely to remain supportive for sentiment in the near term. Technical set up According to Sudeep Shah of SBI Securities, the broader trend in the Nifty remains positive as the index continues to trade above its 20-day and 50-day exponential moving averages. The daily RSI is at 58 and remains above its nine-day moving average, indicating that underlying momentum is still favourable despite recent consolidation. On the downside, the 23,850-23,800 zone is expected to act as immediate support since it coincides with both the 50-day EMA and the 50% Fibonacci retracement level of the recent rally. A decisive break below 23,800 could increase selling pressure and push the index towards the next support level at 23,500. On the upside, the 24,150-24,200 zone, which aligns with the 100-day EMA, is likely to act as an immediate resistance area. A sustained move above 24,200 could improve bullish sentiment and pave the way for a rally towards the 24,500 mark in the near term.
+
+
+━━━━━━━━━━━━━━━
+RULES:
+
+- Tone: Informal, conversational, human-like
+- Not too technical or jargon-heavy
+- Avoid sounding like a news report
+- Output must be strictly in English.
+-Keep the flow natural and readable
+- Caption should feel like a real human wrote it
+DO NOT use label-style writing like: -
+ "Why it matters:" 
+ - "Takeaway:" - "Key point:" 
+ - "Bottom line:" Instead, naturally blend insights into the caption flow.
+
+━━━━━━━━━━━━━━━
+STRUCTURE:
+
+1. Strong emotional hook (first line must grab attention)
+2. Connect news to user's money/portfolio
+3. Simplify the insight
+4. Add a smart takeaway or perspective
+5. End with a thought-provoking line
+FORMATTING RULES (STRICT):
+- Write the caption as ONE continuous flowing paragraph
+-DO NOT use label-style prefixes like:
+    "Smart takeaway:" / "P.S." / "Key point:" / "Bottom line:" / "Note:"
+- DO NOT split sentences onto separate lines
+- All sentences must flow together naturally like a human wrote it in one go
+- Only the final tagline should be on a new line
+-Everything should read like one human naturally speaking
+After the caption, write a short  message that tells the user
+WHY they should come to Swastika Apps — based on the news in the caption.
+
+RULES:
+- Connect directly to the caption topic (don't write generic lines)
+- Sound like a helpful friend, not a salesman
+-Everything should read like one human naturally speaking
+- End with a soft call-to-action (download, explore, check)
+
+
+EXAMPLES based on context:
+  FX / Inflation news   → mention Research, AI Assistance, Bonds, MF
+  Stock rally news      → mention Stocks, F&O, Research
+  Dividend news         → mention Investment Trading, ETF, MF
+
+
+━━━━━━━━━━━━━━━
+📦 OUTPUT FORMAT (STRICT JSON ONLY):
+
+{
+  "instagram_caption": "<caption here>",
+  "hashtags": "#Nifty #StockMarket #IndianInvestor #MarketUpdate #SwastikaInvestmart"
+}
+
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 1696
+Output Tokens : 10732
+Cost          : $0.166068
+----------------------------------------------------------------------
+{
+  "instagram_caption": "That red day hits hard — Sensex fell 607 points to 76,802.90 and Nifty50 dropped 155 points to 24,013.10 after a rally of up to 5% in the past five sessions, a reminder that volatility is the name of the game. Five factors could shape D-St this week: Iran-U.S. peace talks and the Strait of Hormuz keeping crude near $80; IT names like Infosys, TCS, Tech Mahindra and HCL Tech down up to 7%; Accenture’s weaker revenue forecast weighing on tech sentiment; the rupee around 94.32 helped by RBI measures and ongoing inflows; and FIIs turning net buyers around Rs 3,400 crore with DIIs around Rs 7,100 crore, giving domestic equities a steadier footing. The chart shows Nifty still above the 20- and 50-day EMAs with RSI near 58, but crucial support sits at 23,800 and immediate resistance around 24,200–24,250; a break below 23,800 could open more downside, while clearing 24,200 could spark a bounce toward 24,500. For the Sensex, 27,000–27,050 is a cushion and 28,250–28,300 a hurdle, with macro moves like oil shocks and flows likely to tip the scales. Are you ready to turn this volatility into an opportunity with a plan? Download Swastika Apps to stay ahead.",
+  "hashtags": "#Nifty #StockMarket #IndianInvestor #MarketUpdate #SwastikaInvestmart"
+}
+======================================================================

@@ -1,0 +1,38 @@
+======================================================================
+  CALL #11  |  2026-06-21 18:55:50
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 111
+  prompt_chars: 744
+
+PROMPT:
+----------------------------------------------------------------------
+
+    Extract overlay text for a social media image.
+    Return ONLY valid JSON with no extra text.
+    Blog title: OMC stocks may stay under pressure despite falling crude prices: Here's why
+    Category: FINANCE
+    Content excerpt: Dalal Street Week Ahead: US-Iran talks, Crude prices among 10 key factors to watch JD Vance says Strait of Hormuz reopening and end of Iran's nuclear programme already achieved Seven dead after ammonia gas leak at seafood processing unit in Tamil Nadu's Thiruvallur, probe ordered Trends in global ma
+    Return exactly:
+    {
+     "headline": "max 6 words, punchy, no punctuation",
+     "subtext": "max 10 words, supporting context",
+     "tag": "ONE WORD, all caps e.g. FINANCE / BREAKING / GUIDE"
+    }
+    
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 195
+Output Tokens : 3923
+Cost          : $0.059430
+----------------------------------------------------------------------
+{
+  "headline": "OMC stocks stay under pressure",
+  "subtext": "Oil price moves weigh on OMC stocks",
+  "tag": "FINANCE"
+}
+======================================================================

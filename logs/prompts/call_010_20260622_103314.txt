@@ -1,0 +1,88 @@
+======================================================================
+  CALL #10  |  2026-06-22 10:33:14
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 937
+  prompt_chars: 6065
+
+PROMPT:
+----------------------------------------------------------------------
+
+    You are a Instagram caption writer for Swastika Investmart.
+
+Your job is to convert stock market news into a HIGH-ENGAGEMENT Instagram caption that feels real, emotional, and relatable for Indian retail investors.
+
+NEWS:
+Title: sensex share price
+Content: Indian benchmark indices Sensex and Nifty are likely to open modestly higher on Monday, supported by positive signals from GIFT Nifty and gains across Asian markets. However, uncertainty surrounding US-Iran peace negotiations and movements in crude oil prices are expected to keep investors cautious. GIFT Nifty was trading around 24,125 at 8 am, up 35 points or 0.15 percent from Nifty futures' previous close, indicating a mildly positive start for domestic equities. The indication comes after Indian markets snapped a five-session winning streak on Friday, weighed down by a sharp sell-off in information technology stocks following Accenture's guidance cut. The Sensex fell 607.08 points, or 0.78 percent, to close at 76,802.90 on June 19, while the Nifty declined 154.90 points, or 0.64 percent, to 24,013.10. The Nifty IT index plunged 3.7 percent to a three-year low and emerged as the biggest drag on benchmark indices. Share Markets Live Updates | Sensex, Nifty, GIFT Nifty Today Asian markets traded firmly higher on Monday after reports suggested progress in talks between the United States and Iran. Officials from Qatar and Pakistan said negotiators had made progress on a roadmap towards a final agreement within 60 days, helping calm fears that the peace process was breaking down. Japan's Nikkei rose 1.9 percent after gaining nearly 8 percent last week, while South Korea's Kospi climbed another 2.6 percent, extending its recent rally driven by semiconductor stocks. MSCI's broadest index of Asia-Pacific shares outside Japan gained 1 percent. The improving geopolitical sentiment also helped cap gains in crude oil prices. Brent crude eased 0.4 percent to around $80 per barrel after initially rising on concerns that Iran had once again restricted shipping through the Strait of Hormuz. US crude traded near $77.5 per barrel. Oil remains a key variable for Indian markets. While prices have rebounded from recent lows, they remain significantly below the levels seen during the height of the conflict. The Indian rupee also enters the week on a stronger footing after posting its best weekly gain in 11 weeks, supported by lower crude prices and improved external sentiment. According to Ponmudi R, CEO of Enrich Money, markets are likely to remain sensitive to developments surrounding the US-Iran negotiations. "Indian equity markets are likely to open on a cautious note as optimism surrounding a potential US-Iran peace agreement has been tempered by reports of a rocky start to the negotiations," he said. Ponmudi added investors are likely to closely track both crude oil prices and developments in the negotiations. Institutional flows provided a positive surprise in the previous session. Foreign institutional investors (FIIs) emerged as net buyers on June 19, purchasing equities worth Rs 4,859 crore. Domestic institutional investors (DIIs) turned net sellers after 23 consecutive sessions of buying and offloaded shares worth Rs 1,159 crore. From a technical perspective, Ponmudi said the Nifty continues to maintain a constructive structure. The 24,100-24,200 zone remains the immediate resistance area, and a sustained move above this band could open the way for a rally towards 24,400. On the downside, 23,900 remains a key support level. A break below that zone could trigger fresh profit booking and drag the index towards 23,800. Disclaimer:The views and investment tips expressed by experts on Moneycontrol are their own and not those of the website or its management. Moneycontrol advises users to check with certified experts before taking any investment decisions. Discover the latest Business News,Sensex, and Niftyupdates. Obtain Personal Financeinsights, tax queries, and expert opinions on Moneycontrolor download the Moneycontrol Appto stay updated! Find the best of Al News in one place, specially curated for you every weekend. Stay on top of the latest tech trends and biggest startup news.
+
+
+━━━━━━━━━━━━━━━
+RULES:
+
+- Tone: Informal, conversational, human-like
+- Not too technical or jargon-heavy
+- Avoid sounding like a news report
+- Output must be strictly in English.
+-Keep the flow natural and readable
+- Caption should feel like a real human wrote it
+DO NOT use label-style writing like: -
+ "Why it matters:" 
+ - "Takeaway:" - "Key point:" 
+ - "Bottom line:" Instead, naturally blend insights into the caption flow.
+
+━━━━━━━━━━━━━━━
+STRUCTURE:
+
+1. Strong emotional hook (first line must grab attention)
+2. Connect news to user's money/portfolio
+3. Simplify the insight
+4. Add a smart takeaway or perspective
+5. End with a thought-provoking line
+FORMATTING RULES (STRICT):
+- Write the caption as ONE continuous flowing paragraph
+-DO NOT use label-style prefixes like:
+    "Smart takeaway:" / "P.S." / "Key point:" / "Bottom line:" / "Note:"
+- DO NOT split sentences onto separate lines
+- All sentences must flow together naturally like a human wrote it in one go
+- Only the final tagline should be on a new line
+-Everything should read like one human naturally speaking
+After the caption, write a short  message that tells the user
+WHY they should come to Swastika Apps — based on the news in the caption.
+
+RULES:
+- Connect directly to the caption topic (don't write generic lines)
+- Sound like a helpful friend, not a salesman
+-Everything should read like one human naturally speaking
+- End with a soft call-to-action (download, explore, check)
+
+
+EXAMPLES based on context:
+  FX / Inflation news   → mention Research, AI Assistance, Bonds, MF
+  Stock rally news      → mention Stocks, F&O, Research
+  Dividend news         → mention Investment Trading, ETF, MF
+
+
+━━━━━━━━━━━━━━━
+📦 OUTPUT FORMAT (STRICT JSON ONLY):
+
+{
+  "instagram_caption": "<caption here>",
+  "hashtags": "#Nifty #StockMarket #IndianInvestor #MarketUpdate #SwastikaInvestmart"
+}
+
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 1329
+Output Tokens : 10213
+Cost          : $0.157182
+----------------------------------------------------------------------
+{
+  "instagram_caption": "Friday's red still stings, but Monday's setup hints at a cautious bounce as Sensex and Nifty look set to open modestly higher on the back of positive signals from GIFT Nifty and gains across Asian markets, though uncertainty around US-Iran peace talks and crude price moves keeps us on our toes. At 8 am, GIFT Nifty hovered around 24,125, up 35 points or 0.15% from the previous close, signaling a mildly positive start for domestic equities. Friday's session saw the Sensex slide 607.08 points to 76,802.90 and the Nifty 154.90 points to 24,013.10, snapping a five-session win streak, with the Nifty IT index plunging 3.7% to a three-year low. FII flows showed buyers of Rs 4,859 crore on June 19 while DIIs sold Rs 1,159 crore. From a technical view, the Nifty remains constructive; 24,100-24,200 is the immediate resistance; a sustained move above could open to 24,400, while 23,900 remains a key support; a break below could drag the index toward 23,800. Oil and geopolitics keep the mood choppy: Brent around $80, US crude near $77.5, and the rupee posting its best weekly gain in 11 weeks. With that, if you want crisp real-time updates and level-based alerts to navigate this tape, Swastika Apps can help—check it out. So the big question: are you ready to ride the next move with a plan, or will the market's noise steer your decisions?",
+  "hashtags": "#Nifty #StockMarket #IndianInvestor #MarketUpdate #SwastikaInvestmart"
+}
+======================================================================

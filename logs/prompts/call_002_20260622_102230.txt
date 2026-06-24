@@ -1,0 +1,236 @@
+======================================================================
+  CALL #2  |  2026-06-22 10:22:30
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 2115
+  prompt_chars: 13660
+
+PROMPT:
+----------------------------------------------------------------------
+You are a strict news filter for a financial blog platform.
+
+COUNTRY  : "India"
+CATEGORY : "finance"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRICT RULE — BOTH must match:
+  Article MUST be about India AND finance
+  If only country matches but NOT finance → REJECT
+  If only finance matches but not India → REJECT
+  When in doubt → REJECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FINANCE signals — include if title OR content has:
+  stock, share, IPO, market, nifty, sensex, bse, nse,
+  rbi, sebi, epfo, pf, provident fund, upi withdrawal,
+  dividend, bonus, split, mutual fund, etf, sip,
+  gold price, crude oil, rupee, interest rate, inflation,
+  gdp, budget, tax, revenue, profit, earnings, quarterly,
+  tcs, infosys, reliance, hdfc, icici, sbi, bank results,
+  ipo gmp, listing, trading, invest, portfolio, economy,
+  tariff, trade, export, import, fiscal, monetary policy,
+  pension, gratuity, salary, income tax, itr, tds, gst
+
+NOT FINANCE — reject these even if India-related:
+  politics, election, party, minister, yojana, scheme,
+  cricket, football, sports, match, tournament,
+  bollywood, movie, actor, celebrity,
+  weather, rain, flood, disaster,
+  crime, arrest, court, murder,
+  horoscope, astrology, religion,
+  lifestyle, food, travel, fashion,
+  lottery, result, exam, education
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOW TO USE CONTENT:
+  Title alone may be vague — use content to confirm.
+  Example:
+    Title: "dl55"  → unclear
+    Content: "Kerala Lottery result Rs 1 crore winner" → REJECT (lottery)
+
+    Title: "epfo 3.0 new features" → finance signal
+    Content: "EPFO UPI access PF withdrawal funds" → ACCEPT ✅
+
+    Title: "trump tariffs" → unclear
+    Content: "India IT exports impacted by US trade tariffs" → ACCEPT ✅
+    Content: "Canada Mexico EU forced labour tariffs" → REJECT (not India)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Blog Articles (0-indexed):
+0. Title  : GIFT Nifty up, signals positive start for Sensex, Nifty as Asian markets rise; all eyes on US-Iran talks,...
+   Content: Source         : Google News Business India Primary Source : Moneycontrol.com Published      : Mon, 22 Jun 2026 02:40:39 GMT Source Website : https://www.moneycontrol.com  Related Coverage (from multi
+
+1. Title  : The Jio IPO Explained
+   Content: Source         : Google News Business India Primary Source : Finshots Published      : Mon, 22 Jun 2026 01:30:57 GMT Source Website : https://finshots.in  Related Coverage (from multiple sources): The
+
+2. Title  : Stocks to watch, June 22: Tata Motors, Voltas, oil-linked stocks, RIL, Dalmia Bharat, Sun Pharma
+   Content: Source         : Google News Business India Primary Source : Upstox Published      : Mon, 22 Jun 2026 02:35:38 GMT Source Website : https://upstox.com  Related Coverage (from multiple sources): Stocks
+
+3. Title  : Oil turns lower after Iran touts progress in Switzerland talks
+   Content: Source         : Google News Business India Primary Source : Investing.com Published      : Mon, 22 Jun 2026 01:42:49 GMT Source Website : https://www.investing.com  Related Coverage (from multiple so
+
+4. Title  : Kirloskar Oil Engines shares surge 18% to record high after cracking Cummins-dominated data centre market
+   Content: The order, for 96 units of KOEL's 2,500kVA Optiprime Dual Core Systems, is the largest and most strategically significant order the Pune-based company has won in the fast-growing data centre segment.
+
+5. Title  : Gold rebounds after two-day fall; silver jumps Rs 4,000/kg on progress in US-Iran peace talks. Should you buy?
+   Content: In the domestic market, MCX silver futures for July 2026 delivery were down Rs 3,921 (1.6%) to Rs 2,37,106 per kg. Gold futures for August 2026 delivery rose by Rs 784 to Rs 1,47,987 per 10 grams. In
+
+6. Title  : Sensex jumps over 400 pts, Nifty above 24,100; IT stocks lead gains
+   Content: At 9:23, the Sensex jumped above 400 points to trade at the 77,200 mark, while the Nifty 50 gained around 100 points to trade at the 24,100 level on Monday. This came even as the India VIX, which meas
+
+7. Title  : Bharat Dynamics among 4 stocks flashing bullish signals, indicating possible uptrend
+   Content: On June 19, four Nifty500 stocks, Cemindia Projects, Bharat Dynamics, Bharti Hexacom and Oracle Financial Services Software, featured on StockEdge’s White Marubozu scanner, signalling strong buying in
+
+8. Title  : Rs 35,000 crore Jio IPO may not be a jackpot for Reliance investors. Here's why
+   Content: At its annual general meeting (AGM) on Friday, billionaire Mukesh Ambani announced that Jio Platforms' board had approved the draft red herring prospectus (DRHP), formally setting in motion one of Ind
+
+9. Title  : Voltas shares soar 5% as firm’s AC sales cross 1 million mark in record time in Q1 FY27
+   Content: Voltas said that the milestone further strengthens its dominant leadership position in the Indian room air conditioner market. “The achievement reflects strong consumer demand, the trust of millions o
+
+10. Title  : Who Is Abelardo De La Espriella? Trump Ally Wins Initial Count In Colombian Presidential Vote
+   Content: Colombia elected conservative lawyer Abelardo de la Espriella president on Sunday, heralding a swing back to business-friendly and pro-US policies after four years of leftist rule. The candidate's nar
+
+11. Title  : Can Amber Challenge Dixon? Brokerages Raise Targets After Oppo Deal Lifts Outlook
+   Content: Amber Enterprises' entry into smartphone manufacturing through a partnership with Oppo has prompted brokerages to raise earnings estimates and highlight a new long-term growth opportunity beyond its c
+
+12. Title  : Qatar Rushes To Bring Back Empty LNG Ships As It Lifts Exports
+   Content: Qatar is seeking to bring more empty liquefied natural gas tankers back home, as the nation aims to return about a fifth of global supply. Three LNG tankers owned by Qatar's state-owned shipping arm a
+
+13. Title  : Thinking Of Buying Water Purifier? Here's Why Brands Want You To Stop And Check First
+   Content: For years, the pursuit of healthier ageing was associated with gyms, vitamin supplements and annual health check-ups. Increasingly, it is showing up in everyday household decisions. Indian consumers a
+
+14. Title  : Stocks To Buy: Check Kush Bohra's Top Picks Of The Day | June 22, 2026
+   Content: Technical analyst Kush Bohra has outlined his latest high-conviction trading ideas for the upcoming session. His picks primarily span across auto and manufacturing sectors, highlighting stocks of ZFCV
+
+15. Title  : Bank Holidays This Week: SBI, HDFC, ICICI And Other Banks To Remain Closed For Three Days Between June 22 And June 28
+   Content: As June enters its second-last week, bank customers may want to take note of the upcoming holidays before planning a visit to their local branch. Those planning to carry out banking-related work at ma
+
+16. Title  : Hyderabad firm Blue Cloud Softech explores AI opportunities with SpaceX
+   Content: Hyderabad-based Blue Cloud Softech Solutions (BCSSL) is exploring business opportunities in the field of Artificial Intelligence with SpaceX International. It is evaluating preliminary, non-binding bu
+
+17. Title  : Global Market: Japan's benchmark bond yields extend gains as inflation, fiscal concerns weigh
+   Content: The benchmark 10-year JGB yield climbed 3 basis points to 2.675%, extending its recent upward move. Bond yields move inversely to prices, meaning higher yields reflect selling pressure in government d
+
+18. Title  : Kirloskar Oil Engines shares surge 18% to record high after cracking Cummins-dominated data centre market
+   Content: The order, for 96 units of KOEL's 2,500kVA Optiprime Dual Core Systems, is the largest and most strategically significant order the Pune-based company has won in the fast-growing data centre segment.
+
+19. Title  : US Stock Market: Micron earnings to test strength of AI-fuelled Wall Street rally
+   Content: According to Reuters, Wall Street's major indices continue to hover near record highs despite recent bouts of volatility, supported by resilient corporate earnings, robust investment in AI infrastruct
+
+20. Title  : Gold rebounds after two-day fall; silver jumps Rs 4,000/kg on progress in US-Iran peace talks. Should you buy?
+   Content: In the domestic market, MCX silver futures for July 2026 delivery were down Rs 3,921 (1.6%) to Rs 2,37,106 per kg. Gold futures for August 2026 delivery rose by Rs 784 to Rs 1,47,987 per 10 grams. In
+
+21. Title  : Sensex jumps over 400 pts, Nifty above 24,100; IT stocks lead gains
+   Content: At 9:23, the Sensex jumped above 400 points to trade at the 77,200 mark, while the Nifty 50 gained around 100 points to trade at the 24,100 level on Monday. This came even as the India VIX, which meas
+
+22. Title  : World Bank approves ₹4,000 crore loan for Haryana water conservation project
+   Content: Haryana Chief Minister Nayab Singh Saini on Saturday (June 20) said the World Bank has approved a loan of ₹4,000 crore for the state’s ambitious 'Jal Sanrakshit Haryana’ project aimed at making Haryan
+
+23. Title  : Petrol, Diesel Prices Unchanged as Brent Crude Tops $82
+   Content: Fuel rates remained unchanged on June 22 even as Brent crude climbed above $82 a barrel following renewed tensions around the Strait of Hormuz and uncertainty over U.S.-Iran negotiations. Brent crude
+
+24. Title  : Stocks to Watch Today: RIL, Bharat Forge, CPCL in Focus
+   Content: Shares of Reliance Industries, Bharat Forge, Chennai Petroleum Corporation and several other companies are expected to remain in focus on June 22 following key developments announced after Friday’s ma
+
+25. Title  : GIFT Nifty Signals Strong Start for Indian Markets Today
+   Content: The GIFT Nifty index was up nearly 100 points ahead of Nifty futures, signaling a strong opening for Indian equities on Monday amid conflicting global cues and rising crude oil prices. On Friday, Indi
+
+26. Title  : LPG prices today, 22 June: Domestic and commercial cylinder rates in Delhi, Mumbai, Bengaluru, Kolkata, and other cities
+   Content: LPG cylinder cost: Prices of domestic and commercial Liquefied Petroleum Gas (LPG) cylinders remained steady on Monday, 22 June after rates were hiked last week on 7 June (Saturday). India hiked domes
+
+27. Title  : ₹40,000 feels richer than  ₹1.2 lakh: Social media post compares living in Mumbai with going back to hometown
+   Content: A post by X user Shubh Jain has struck a chord online. It compares the financial realities of Tier 1 and Tier 3 city living in India. Jain earned ₹1.2 lakh per month while working in Mumbai. On paper,
+
+28. Title  : Ram Mandir SIT Probe: All you need to know about donation row and who said what
+   Content: Samajwadi Party president Akhilesh Yadav has alleged that the Bharatiya Janata Party (BJP) was deliberately delaying the SIT probe into the alleged embezzlement of funds at the Ram temple in Ayodhya t
+
+29. Title  : US, Iran agree on 60-day roadmap to final deal; communication line to be set up to avoid Hormuz incidents: Mediators
+   Content: The opening round of negotiations between senior US and Iranian representatives in Switzerland concluded on Monday, mediators said. The talks began amid heightened tensions after Tehran announced the
+
+30. Title  : Qatar explosion news: 54 injured, 18 missing at factory in Ras Laffan; Interior ministry calls it ‘technical accident’
+   Content: A powerful explosion struck Qatar’s main natural gas export terminal on Sunday night as workers were attempting to restart operations following Iranian attacks during the war. The incident triggered a
+
+31. Title  : US Trade Representative Jamieson Greer to visit India this week for key trade talks with Piyush Goyal
+   Content: The United States announced on Monday that their Trade Representative, Ambassador Jamieson Greer, would be visiting India this week to meet with Commerce Minister Piyush Goyal and other senior Indian
+
+32. Title  : INR seen under pressure as DXY stays upbeat ahead of US data
+   Content: The Indian rupee came under pressure in opening trades on Monday as dollar index remains firmly above 100 mark assessing geo-political situation in Middle East. As per media reports, US President Dona
+
+33. Title  : Zaggle Prepaid rises after signing 5-year agreement with PNB
+   Content: Zaggle Prepaid Ocean Services (Zaggle) gained 2.73% to Rs 218.35 after the company announced that it has entered into a five-year agreement with Punjab National Bank (PNB) to launch a co-branded retai
+
+34. Title  : Gold and silver futures rise on MCX, prices soften in global market
+   Content: Gold recovers after a weak start on domestic exchange; Comex futures trade lower
+
+35. Title  : Yen nears 40-year low, intervention risks return
+   Content: Powered by Capital Market - Live News
+
+36. Title  : Market opens on firm note; breadth strong
+   Content: At 09:30 IST, the barometer index, the S&P BSE Sensex, jumped 422.80 points or 0.56% to 77,227.89. The Nifty 50 index rose 124.30 points or 0.52% to 24,135.95.
+
+37. Title  : Aurobindo Pharma USA receives US FTC approval for acquisition of Lannett
+   Content: Aurobindo Pharma USA, Inc. (Aurobindo USA), a wholly owned subsidiary of the Company, today announced that it has received approval from the U.S. Federal Trade Commission (FTC) to proceed with the acq
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Return ONLY this JSON — no text before or after:
+{
+    "matched": [0, 2, 5],
+    "source": "user"
+}
+
+source values:
+  "user" → matched both India + finance strictly
+  "none" → nothing matched
+
+IMPORTANT: If no articles match, return empty list.
+Do NOT return politics, sports, lottery, astrology articles.
+{
+    "matched": [],
+    "source": "none"
+}
+
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 3298
+Output Tokens : 8663
+Cost          : $0.139839
+----------------------------------------------------------------------
+{
+  "matched": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    11,
+    14,
+    15,
+    18,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    31,
+    32,
+    33,
+    34,
+    36,
+    37
+  ],
+  "source": "user"
+}
+======================================================================

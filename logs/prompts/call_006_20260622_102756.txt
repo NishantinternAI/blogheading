@@ -1,0 +1,38 @@
+======================================================================
+  CALL #6  |  2026-06-22 10:27:56
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 100
+  prompt_chars: 688
+
+PROMPT:
+----------------------------------------------------------------------
+
+    Extract overlay text for a social media image.
+    Return ONLY valid JSON with no extra text.
+    Blog title: new india assurance
+    Category: FINANCE
+    Content excerpt: New India Assurance Company Ltd (NIACL) shares climbed 11 percent on Friday, extending gains after the National Stock Exchange (NSE) on June 17 filed its draft red herring prospectus (DRHP) with market regulator Sebi for its proposed initial public offering (IPO). According to the DRHP,NIACL, one of
+    Return exactly:
+    {
+     "headline": "max 6 words, punchy, no punctuation",
+     "subtext": "max 10 words, supporting context",
+     "tag": "ONE WORD, all caps e.g. FINANCE / BREAKING / GUIDE"
+    }
+    
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 188
+Output Tokens : 2076
+Cost          : $0.031704
+----------------------------------------------------------------------
+{
+  "headline": "New India Assurance leads IPO buzz",
+  "subtext": "NSE DRHP fuels NIACL IPO optimism",
+  "tag": "FINANCE"
+}
+======================================================================

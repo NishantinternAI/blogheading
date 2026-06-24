@@ -1,0 +1,115 @@
+======================================================================
+  CALL #6  |  2026-06-21 18:50:58
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 581
+  prompt_chars: 3941
+
+PROMPT:
+----------------------------------------------------------------------
+You are a strict news filter for a financial blog platform.
+
+COUNTRY  : "India"
+CATEGORY : "finance"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRICT RULE — BOTH must match:
+  Article MUST be about India AND finance
+  If only country matches but NOT finance → REJECT
+  If only finance matches but not India → REJECT
+  When in doubt → REJECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FINANCE signals — include if title OR content has:
+  stock, share, IPO, market, nifty, sensex, bse, nse,
+  rbi, sebi, epfo, pf, provident fund, upi withdrawal,
+  dividend, bonus, split, mutual fund, etf, sip,
+  gold price, crude oil, rupee, interest rate, inflation,
+  gdp, budget, tax, revenue, profit, earnings, quarterly,
+  tcs, infosys, reliance, hdfc, icici, sbi, bank results,
+  ipo gmp, listing, trading, invest, portfolio, economy,
+  tariff, trade, export, import, fiscal, monetary policy,
+  pension, gratuity, salary, income tax, itr, tds, gst
+
+NOT FINANCE — reject these even if India-related:
+  politics, election, party, minister, yojana, scheme,
+  cricket, football, sports, match, tournament,
+  bollywood, movie, actor, celebrity,
+  weather, rain, flood, disaster,
+  crime, arrest, court, murder,
+  horoscope, astrology, religion,
+  lifestyle, food, travel, fashion,
+  lottery, result, exam, education
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOW TO USE CONTENT:
+  Title alone may be vague — use content to confirm.
+  Example:
+    Title: "dl55"  → unclear
+    Content: "Kerala Lottery result Rs 1 crore winner" → REJECT (lottery)
+
+    Title: "epfo 3.0 new features" → finance signal
+    Content: "EPFO UPI access PF withdrawal funds" → ACCEPT ✅
+
+    Title: "trump tariffs" → unclear
+    Content: "India IT exports impacted by US trade tariffs" → ACCEPT ✅
+    Content: "Canada Mexico EU forced labour tariffs" → REJECT (not India)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Blog Articles (0-indexed):
+0. Title  : sa-w vs indw
+   Content: Trending in India: sa-w vs indw Search Volume  : 10000+ searches today Published      : Sun, 21 Jun 2026 05:30:00 -0700  Related News Headlines: [1] IND W vs SA W, T20 World Cup 2026 : सेमीचे समीकरण स
+
+1. Title  : chennai weather
+   Content: Trending in India: chennai weather Search Volume  : 500+ searches today Published      : Sun, 21 Jun 2026 05:30:00 -0700  Related News Headlines: [1] Cloud band brings down temperatures in city; wet w
+
+2. Title  : mumbai indians
+   Content: Trending in India: mumbai indians Search Volume  : 2000+ searches today Published      : Sun, 21 Jun 2026 05:20:00 -0700  Related News Headlines: [1] Hardik Pandya To Be Part Of Mega IPL Trade Deal. M
+
+3. Title  : അമ്മ
+   Content: Trending in India: അമ്മ Search Volume  : 200+ searches today Published      : Sun, 21 Jun 2026 05:20:00 -0700  Related News Headlines: [1] ‘അമ്മ’ഭരണസമിതി രാജിവച്ചു; പ്രസിഡന്റ് ശ്വേത മേനോൻ ഉൾപ്പെടെ സ്ഥ
+
+4. Title  : emma navarro
+   Content: Trending in India: emma navarro Search Volume  : 200+ searches today Published      : Sun, 21 Jun 2026 05:10:00 -0700  Related News Headlines: [1] Nottingham Open - Navarro takes on Bouzkova in the fi
+
+5. Title  : ஜூன் 25ல் ஓடிடியில் வெளியாகும் பிளாஸ்ட்
+   Content: Trending in India: ஜூன் 25ல் ஓடிடியில் வெளியாகும் பிளாஸ்ட் Search Volume  : 200+ searches today Published      : Sun, 21 Jun 2026 05:10:00 -0700  Related News Headlines: [1] ஜூன் 25ல் ஓடிடியில் வெளியா
+
+6. Title  : motogp
+   Content: Trending in India: motogp Search Volume  : 500+ searches today Published      : Sun, 21 Jun 2026 05:00:00 -0700  Related News Headlines: [1] Bagnaia holds off Ogura and Marquez for sublime Sprint gold
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Return ONLY this JSON — no text before or after:
+{
+    "matched": [0, 2, 5],
+    "source": "user"
+}
+
+source values:
+  "user" → matched both India + finance strictly
+  "none" → nothing matched
+
+IMPORTANT: If no articles match, return empty list.
+Do NOT return politics, sports, lottery, astrology articles.
+{
+    "matched": [],
+    "source": "none"
+}
+
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 1142
+Output Tokens : 1555
+Cost          : $0.026751
+----------------------------------------------------------------------
+{
+  "matched": [],
+  "source": "none"
+}
+======================================================================

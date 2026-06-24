@@ -1,0 +1,38 @@
+======================================================================
+  CALL #16  |  2026-06-21 19:03:19
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 113
+  prompt_chars: 771
+
+PROMPT:
+----------------------------------------------------------------------
+
+    Extract overlay text for a social media image.
+    Return ONLY valid JSON with no extra text.
+    Blog title: Russia leads India’s crude imports, UAE shipments hit near-record levels in June ahead of Hormuz reset
+    Category: FINANCE
+    Content excerpt: India's crude oil imports from Russia surged in June, while shipments from the United Arab Emirates were near-record levels as refiners sought to secure supplies ahead of the full restoration of flows from Gulf producers following the reopening of the Strait of Hormuz, analysts said. India imported 
+    Return exactly:
+    {
+     "headline": "max 6 words, punchy, no punctuation",
+     "subtext": "max 10 words, supporting context",
+     "tag": "ONE WORD, all caps e.g. FINANCE / BREAKING / GUIDE"
+    }
+    
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 189
+Output Tokens : 4243
+Cost          : $0.064212
+----------------------------------------------------------------------
+{
+  "headline": "RUSSIA LEADS INDIA CRUDE OIL IMPORTS",
+  "subtext": "UAE SHIPMENTS NEAR RECORD LEVELS AHEAD OF HORMUZ REOPENING",
+  "tag": "FINANCE"
+}
+======================================================================

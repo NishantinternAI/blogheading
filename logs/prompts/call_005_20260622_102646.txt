@@ -1,0 +1,88 @@
+======================================================================
+  CALL #5  |  2026-06-22 10:26:46
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 680
+  prompt_chars: 4262
+
+PROMPT:
+----------------------------------------------------------------------
+
+    You are a Instagram caption writer for Swastika Investmart.
+
+Your job is to convert stock market news into a HIGH-ENGAGEMENT Instagram caption that feels real, emotional, and relatable for Indian retail investors.
+
+NEWS:
+Title: new india assurance
+Content: New India Assurance Company Ltd (NIACL) shares climbed 11 percent on Friday, extending gains after the National Stock Exchange (NSE) on June 17 filed its draft red herring prospectus (DRHP) with market regulator Sebi for its proposed initial public offering (IPO). According to the DRHP,NIACL, one of the selling shareholders in the IPO, will offload up to 1.05 crore equity shares of face value Re 1 each through an offer for sale. The weighted average cost of acquisition per equity share for the insurer is Rs 0.32. NIACL holds a 1.42 percent stake in the NSE. The stock has extended its rally to a sixth consecutive session and has gained more than 26 percent since June 12, whenreports first emerged that the NSE was expected to file its DRHP this week. Since the filing of the DRHP on June 17, the stock has risen 16.33 percent. Meanwhile, shares of IFCIrose nearly 7 percent to an intraday high of Rs 87.98 per share on the NSE. The stock was up 6.89 percent during the session after having declined 8.62 percent in the previous trading day amid profit booking. IFCI, a development finance institution that has transitioned into a public sector non-banking financial company (NBFC), holds a 52 percent stake in Stock Holding Corporation of India Ltd (SHCIL), which in turn owns 4.4 percent of the NSE. The IFCI stock has also seen buying interest since June 12, when reports first indicated that the NSE would file its DRHP for the IPO. Over the last six trading sessions since the news surfaced, the stock has advanced in four sessions. Disclaimer: The views and investment tips expressed by investment experts on Moneycontrol.com are their own and not those of the website or its management. Moneycontrol.com advises users to check with certified experts before taking any investment decisions. Discover the latest Business News,Sensex, and Niftyupdates. Obtain Personal Financeinsights, tax queries, and expert opinions on Moneycontrolor download the Moneycontrol Appto stay updated! Find the best of Al News in one place, specially curated for you every weekend. Stay on top of the latest tech trends and biggest startup news.
+
+
+━━━━━━━━━━━━━━━
+RULES:
+
+- Tone: Informal, conversational, human-like
+- Not too technical or jargon-heavy
+- Avoid sounding like a news report
+- Output must be strictly in English.
+-Keep the flow natural and readable
+- Caption should feel like a real human wrote it
+DO NOT use label-style writing like: -
+ "Why it matters:" 
+ - "Takeaway:" - "Key point:" 
+ - "Bottom line:" Instead, naturally blend insights into the caption flow.
+
+━━━━━━━━━━━━━━━
+STRUCTURE:
+
+1. Strong emotional hook (first line must grab attention)
+2. Connect news to user's money/portfolio
+3. Simplify the insight
+4. Add a smart takeaway or perspective
+5. End with a thought-provoking line
+FORMATTING RULES (STRICT):
+- Write the caption as ONE continuous flowing paragraph
+-DO NOT use label-style prefixes like:
+    "Smart takeaway:" / "P.S." / "Key point:" / "Bottom line:" / "Note:"
+- DO NOT split sentences onto separate lines
+- All sentences must flow together naturally like a human wrote it in one go
+- Only the final tagline should be on a new line
+-Everything should read like one human naturally speaking
+After the caption, write a short  message that tells the user
+WHY they should come to Swastika Apps — based on the news in the caption.
+
+RULES:
+- Connect directly to the caption topic (don't write generic lines)
+- Sound like a helpful friend, not a salesman
+-Everything should read like one human naturally speaking
+- End with a soft call-to-action (download, explore, check)
+
+
+EXAMPLES based on context:
+  FX / Inflation news   → mention Research, AI Assistance, Bonds, MF
+  Stock rally news      → mention Stocks, F&O, Research
+  Dividend news         → mention Investment Trading, ETF, MF
+
+
+━━━━━━━━━━━━━━━
+📦 OUTPUT FORMAT (STRICT JSON ONLY):
+
+{
+  "instagram_caption": "<caption here>",
+  "hashtags": "#Nifty #StockMarket #IndianInvestor #MarketUpdate #SwastikaInvestmart"
+}
+
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 983
+Output Tokens : 9158
+Cost          : $0.140319
+----------------------------------------------------------------------
+{
+  "instagram_caption": "That 11% jump in NIACL today feels like the market nudging you to notice the IPO wave waking up around NSE's DRHP buzz, and yeah, it's lighting up some portfolios too. This six-session rally, up more than 26% since June 12, comes as NSE files its DRHP for its IPO and NIACL, one of the selling shareholders, plans to offload up to 1.05 crore shares; the cost of acquisition for NIACL is a pocket-friendly Rs 0.32 on average, which might tempt some to chase, but remember your own cost and risk. If you are holding NIACL or other financials, the takeaway is simple: headlines move prices fast, but a steady plan beats adrenaline—stay anchored to your goals, size your risk, check your exposure, and avoid overdependence on a single news catalyst. The broader mood is lifting, with IFCI up nearly 7% and investors eyeing the NSE IPO pipeline, yet the real question remains: are you building a strategy around opportunity or chasing every headline? For more bite-sized, human-market insights like this, Swastika Apps is where you’ll find the signals that help you stay grounded—check Swastika Apps.",
+  "hashtags": "#Nifty #StockMarket #IndianInvestor #MarketUpdate #SwastikaInvestmart"
+}
+======================================================================

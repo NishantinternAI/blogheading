@@ -1,0 +1,129 @@
+======================================================================
+  CALL #1  |  2026-06-22 10:21:50
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 700
+  prompt_chars: 4730
+
+PROMPT:
+----------------------------------------------------------------------
+You are a strict news filter for a financial blog platform.
+
+COUNTRY  : "India"
+CATEGORY : "finance"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRICT RULE — BOTH must match:
+  Article MUST be about India AND finance
+  If only country matches but NOT finance → REJECT
+  If only finance matches but not India → REJECT
+  When in doubt → REJECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FINANCE signals — include if title OR content has:
+  stock, share, IPO, market, nifty, sensex, bse, nse,
+  rbi, sebi, epfo, pf, provident fund, upi withdrawal,
+  dividend, bonus, split, mutual fund, etf, sip,
+  gold price, crude oil, rupee, interest rate, inflation,
+  gdp, budget, tax, revenue, profit, earnings, quarterly,
+  tcs, infosys, reliance, hdfc, icici, sbi, bank results,
+  ipo gmp, listing, trading, invest, portfolio, economy,
+  tariff, trade, export, import, fiscal, monetary policy,
+  pension, gratuity, salary, income tax, itr, tds, gst
+
+NOT FINANCE — reject these even if India-related:
+  politics, election, party, minister, yojana, scheme,
+  cricket, football, sports, match, tournament,
+  bollywood, movie, actor, celebrity,
+  weather, rain, flood, disaster,
+  crime, arrest, court, murder,
+  horoscope, astrology, religion,
+  lifestyle, food, travel, fashion,
+  lottery, result, exam, education
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOW TO USE CONTENT:
+  Title alone may be vague — use content to confirm.
+  Example:
+    Title: "dl55"  → unclear
+    Content: "Kerala Lottery result Rs 1 crore winner" → REJECT (lottery)
+
+    Title: "epfo 3.0 new features" → finance signal
+    Content: "EPFO UPI access PF withdrawal funds" → ACCEPT ✅
+
+    Title: "trump tariffs" → unclear
+    Content: "India IT exports impacted by US trade tariffs" → ACCEPT ✅
+    Content: "Canada Mexico EU forced labour tariffs" → REJECT (not India)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Blog Articles (0-indexed):
+0. Title  : dainik jagran
+   Content: Trending in India: dainik jagran Search Volume  : 500+ searches today Published      : Sun, 21 Jun 2026 21:30:00 -0700  Related News Headlines: [1] बहराइच की दरगाह के चढ़ावे में हेराफेरी का दावा, ज्वे
+
+1. Title  : fabrizio romano
+   Content: Trending in India: fabrizio romano Search Volume  : 200+ searches today Published      : Sun, 21 Jun 2026 21:30:00 -0700  Related News Headlines: [1] Bayern Munich fans will be thrilled with Morocco&a
+
+2. Title  : manoramaonline
+   Content: Trending in India: manoramaonline Search Volume  : 200+ searches today Published      : Sun, 21 Jun 2026 21:30:00 -0700  Related News Headlines: [1] ഖത്തറിലെ പ്രകൃതിവാതക പ്ലാന്റിൽ വൻ സ്ഫോടനം; 54 പേർക്
+
+3. Title  : kerala lottery results
+   Content: Trending in India: kerala lottery results Search Volume  : 20000+ searches today Published      : Sun, 21 Jun 2026 21:20:00 -0700  Related News Headlines: [1] Kerala Lottery Samrudhi SM-60 result out
+
+4. Title  : sensex share price
+   Content: Trending in India: sensex share price Search Volume  : 2000+ searches today Published      : Sun, 21 Jun 2026 21:20:00 -0700  Related News Headlines: [1] GIFT Nifty up, signals positive start for Sens
+
+5. Title  : high court of kerala
+   Content: Trending in India: high court of kerala Search Volume  : 200+ searches today Published      : Sun, 21 Jun 2026 21:20:00 -0700  Related News Headlines: [1] Kerala HC grants police protection to Kumbh M
+
+6. Title  : wabag share price
+   Content: Trending in India: wabag share price Search Volume  : 200+ searches today Published      : Sun, 21 Jun 2026 21:20:00 -0700  Related News Headlines: [1] VA Tech Wabag wins large desalination project in
+
+7. Title  : kirloskar oil engines share price
+   Content: Trending in India: kirloskar oil engines share price Search Volume  : 200+ searches today Published      : Sun, 21 Jun 2026 21:20:00 -0700  Related News Headlines: [1] Kirloskar Oil Engines shares sur
+
+8. Title  : new india assurance
+   Content: Trending in India: new india assurance Search Volume  : 200+ searches today Published      : Sun, 21 Jun 2026 21:20:00 -0700  Related News Headlines: [1] NSE files IPO DRHP: NIACL rises 26% in 6 sessi
+
+9. Title  : maa inti bangaram movie review in telugu
+   Content: Trending in India: maa inti bangaram movie review in telugu Search Volume  : 200+ searches today Published      : Sun, 21 Jun 2026 21:20:00 -0700  Related News Headlines: [1] సమంత రచ్చ.. రెండు రోజుల్ల
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Return ONLY this JSON — no text before or after:
+{
+    "matched": [0, 2, 5],
+    "source": "user"
+}
+
+source values:
+  "user" → matched both India + finance strictly
+  "none" → nothing matched
+
+IMPORTANT: If no articles match, return empty list.
+Do NOT return politics, sports, lottery, astrology articles.
+{
+    "matched": [],
+    "source": "none"
+}
+
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 1338
+Output Tokens : 4401
+Cost          : $0.070029
+----------------------------------------------------------------------
+{
+  "matched": [
+    4,
+    6,
+    7,
+    8
+  ],
+  "source": "user"
+}
+======================================================================

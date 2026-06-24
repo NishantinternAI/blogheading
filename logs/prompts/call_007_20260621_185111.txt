@@ -1,0 +1,188 @@
+======================================================================
+  CALL #7  |  2026-06-21 18:51:11
+======================================================================
+
+METADATA:
+  model: gpt-5-nano
+  prompt_words: 1644
+  prompt_chars: 10826
+
+PROMPT:
+----------------------------------------------------------------------
+You are a strict news filter for a financial blog platform.
+
+COUNTRY  : "India"
+CATEGORY : "finance"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRICT RULE — BOTH must match:
+  Article MUST be about India AND finance
+  If only country matches but NOT finance → REJECT
+  If only finance matches but not India → REJECT
+  When in doubt → REJECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FINANCE signals — include if title OR content has:
+  stock, share, IPO, market, nifty, sensex, bse, nse,
+  rbi, sebi, epfo, pf, provident fund, upi withdrawal,
+  dividend, bonus, split, mutual fund, etf, sip,
+  gold price, crude oil, rupee, interest rate, inflation,
+  gdp, budget, tax, revenue, profit, earnings, quarterly,
+  tcs, infosys, reliance, hdfc, icici, sbi, bank results,
+  ipo gmp, listing, trading, invest, portfolio, economy,
+  tariff, trade, export, import, fiscal, monetary policy,
+  pension, gratuity, salary, income tax, itr, tds, gst
+
+NOT FINANCE — reject these even if India-related:
+  politics, election, party, minister, yojana, scheme,
+  cricket, football, sports, match, tournament,
+  bollywood, movie, actor, celebrity,
+  weather, rain, flood, disaster,
+  crime, arrest, court, murder,
+  horoscope, astrology, religion,
+  lifestyle, food, travel, fashion,
+  lottery, result, exam, education
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOW TO USE CONTENT:
+  Title alone may be vague — use content to confirm.
+  Example:
+    Title: "dl55"  → unclear
+    Content: "Kerala Lottery result Rs 1 crore winner" → REJECT (lottery)
+
+    Title: "epfo 3.0 new features" → finance signal
+    Content: "EPFO UPI access PF withdrawal funds" → ACCEPT ✅
+
+    Title: "trump tariffs" → unclear
+    Content: "India IT exports impacted by US trade tariffs" → ACCEPT ✅
+    Content: "Canada Mexico EU forced labour tariffs" → REJECT (not India)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Blog Articles (0-indexed):
+0. Title  : India boosts Russian, UAE oil purchases in June ahead of full Hormuz recovery
+   Content: Source         : Google News Business India Primary Source : The Hindu Published      : Sun, 21 Jun 2026 07:08:10 GMT Source Website : https://www.thehindu.com  Related Coverage (from multiple sources
+
+1. Title  : Air India Express to start direct flights from Navi Mumbai to Abu Dhabi in July
+   Content: Source         : Google News Business India Primary Source : Khaleej Times Published      : Sun, 21 Jun 2026 06:45:24 GMT Source Website : https://www.khaleejtimes.com  Related Coverage (from multiple
+
+2. Title  : OMC stocks may stay under pressure despite falling crude prices: Here's why
+   Content: Source         : Google News Business India Primary Source : Moneycontrol.com Published      : Sun, 21 Jun 2026 04:10:00 GMT Source Website : https://www.moneycontrol.com  Related Coverage (from multi
+
+3. Title  : Ahead of Market: 10 things that will decide stock market action on Monday
+   Content: Here's how analysts read the market pulse The equity market witnessed profit booking following the recent relief rally, as investor sentiment was dampened by the unexpected cancellation of peace talks
+
+4. Title  : M-cap of nine of top 10 most valued firms jumps Rs 2.15 lakh cr; Airtel biggest winner
+   Content: Last week, the BSE benchmark Sensex jumped 1,274.95 points, or 1.68 per cent. "Indian equity markets extended their recovery during the week, supported by easing geopolitical concerns, softer crude oi
+
+5. Title  : 9 Sensex stocks with up to 40% upside potential. Are these in your portfolio?
+   Content: Analyst target prices suggest several Sensex heavyweights could offer strong upside over the next 12 months. Based on Trendlyne consensus estimates, stocks including TCS, Infosys, HIL, Eternal and Rel
+
+6. Title  : Bringing back open-market buybacks through stock exchanges is the right decision
+   Content: The debate around share buybacks has always been intense in India. While critics often view buybacks with suspicion, they remain one of the most widely accepted and effective mechanisms of capital man
+
+7. Title  : Father’s Day: The financial legacy children truly inherit
+   Content: This shift has been driven by the way investing itself has evolved. What was once seen as a milestone decision is now becoming an everyday behaviour. Earlier, investing was something one did after acc
+
+8. Title  : Earnings of OMCs seen weak as Q1FY27 under-recoveries bite: Report
+   Content: The firm said that the near-term sentiment has improved after Brent crude dropped below USD80/bbl on the US-Iran ceasefire, but persistent volatility in prices and inventory rebuilding are expected to
+
+9. Title  : India, US To Hold Ministerial-Level Trade Pact Talks This Week
+   Content: US Trade Representative Jamieson Greer and Commerce and Industry Minister Piyush Goyal will hold two-day talks this week on the first phase of the bilateral trade agreement. "For the US trade deal tal
+
+10. Title  : Tata Motors Secures Over 3,400 Orders For Electric Commercial Vehicles Across Segments
+   Content: Tata Motors Ltd. announced on Sunday that it has secured more than 3,400 orders for electric commercial vehicles (eCVs) across freight, logistics and passenger mobility segments, underscoring growing
+
+11. Title  : Gold Outlook: US-Iran Talks, Crude Oil Prices, Macro Data To Dictate Bullion This Week
+   Content: Developments surrounding US-Iran negotiations, movement in crude oil prices and key global economic data are expected to steer gold and silver prices next week, analysts said. The focus will squarely
+
+12. Title  : Bidadi Township Row Heats Up As Shivakumar, Kumaraswamy Clash Over Land Acquisition
+   Content: Karnataka Chief Minister DK Shivakumar and Union Minister HD Kumaraswamy traded sharp accusations over the proposed Bidadi Township project, reigniting a long-running debate over land acquisition, far
+
+13. Title  : Starmer Ally Says UK PM Mulling Realities' as Pressure Builds
+   Content: UK Business Secretary Peter Kyle said Keir Starmer is reflecting on "political realities" as reports swirled that the UK prime minister may soon set a timetable for his departure ahead of leadership r
+
+14. Title  : US-Iran War News Live Updates: Iran Says Israeli Presence In Lebanon Would Nullify US Deal; JD Vance Heads For Key Talks With Iran
+   Content: IRGC has announced closure of the Strait of Hormuz, but the US military says the waterway is open to all vessels.
+
+15. Title  : Russia leads India’s crude imports, UAE shipments hit near-record levels in June ahead of Hormuz reset
+   Content: India's crude oil imports from Russia surged in June, while shipments from the United Arab Emirates were near-record levels as refiners sought to secure supplies ahead of the full restoration of flows
+
+16. Title  : Burqa row unfolds on NEET re-test day: ‘Exam doesn’t matter, my identity does,’ says candidate; NTA clarifies
+   Content: The NEET-UG re-examination is being held on Sunday at centres across India and abroad under strict security arrangements to ensure a smooth conduct of the test. The National Testing Agency (NTA) is co
+
+17. Title  : Tamil Nadu ammonia gas leak: Seven dead at Tiruvallur seafood factory, CM constitutes committee to probe incident
+   Content: Seven women died during treatment on Sunday after being affected in a major ammonia gas leak at a private seafood processing unit in Manjangaranai near Periyapalayam, police said. A total of 67 affect
+
+18. Title  : High fever, severe lung infection? Mumbai hospitals see spike in Covid-19, swine flu cases, viral infections: Report
+   Content: Mumbai is witnessing an uptick in cases of viral infections. Reports claimed that laboratories at major facilities like Breach Candy Hospital are detecting over seven positive cases of Covid-19 or H1N
+
+19. Title  : Vance, Sharif arrive in Switzerland to launch talks with Iranian officials on Tehran’s nuclear program | 5 points
+   Content: U.S. Vice President JD Vance and senior Iranian representatives arrived in Switzerland on Sunday to officially begin negotiations aimed at addressing Tehran’s nuclear program and advancing the fragile
+
+20. Title  : Vaibhav Sooryavanshi smashes fastest List A 50 record off 11 balls; internet reacts: ‘Sri Lanka messed with the wrong….'
+   Content: Vaibhav Sooryavanshi's power packed performance on Sunday, 22 June, was a showstopper. The young batsman scored fastest List A fifty during the Tri-Nation Series final against Sri Lanka A, breaking th
+
+21. Title  : Another NEET aspirant ends his life in Tamil Nadu, cites ‘exam fear’: 'Haven't slept properly for the past month'
+   Content: Another NEET aspirant, identified as 20-year-old C. Vetriyanantham, died by suicide in Tamil Nadu's Hosur on Saturday ahead of the re-examination scheduled for Sunday, according to The Times of India.
+
+22. Title  : US-Iran talks, oil movement to drive bullion trend next week: Analysts
+   Content: Developments surrounding US-Iran negotiations, movement in crude oil prices and key global economic data are expected to steer gold and silver prices next week, analysts said. The focus will squarely
+
+23. Title  : US-Iran talks, crude prices likely to steer stock markets this week
+   Content: Movement in the stock market will hinge on the outcome of talks between the US and Iran, crude oil prices and trading activity of foreign investors in the holiday-shortened week ahead, analysts said.
+
+24. Title  : Easing West Asia tensions boost IPO activity, 3 issues to open next week
+   Content: The primary market is showing signs of revival as improving geopolitical conditions in West Asia have boosted investor sentiment, prompting three mainboard IPO launches next week and paving the way fo
+
+25. Title  : Market expects RBI weekly update on FCNR(B) inflows under swap scheme
+   Content: Market participants expect the RBI to disclose FCNR(B) inflow data regularly after asking banks to submit daily figures under the special concessional scheme
+
+26. Title  : Mcap of 9 most valued firms jumps ₹2.15 trn, Airtel biggest winner
+   Content: The combined market valuation of nine of the top-10 most valued firms jumped by Rs 2.15 lakh crore last week, with Bharti Airtel emerging as the biggest winner, in line with improving global risk sent
+
+27. Title  : Private equity firms tap hot loan market to pay themselves via debt deals
+   Content: Over the last four weeks alone, ten borrowers have launched more than $3.5 billion of leveraged loans and junk bonds to fund distributions for their owners
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Return ONLY this JSON — no text before or after:
+{
+    "matched": [0, 2, 5],
+    "source": "user"
+}
+
+source values:
+  "user" → matched both India + finance strictly
+  "none" → nothing matched
+
+IMPORTANT: If no articles match, return empty list.
+Do NOT return politics, sports, lottery, astrology articles.
+{
+    "matched": [],
+    "source": "none"
+}
+
+======================================================================
+
+RESPONSE:
+----------------------------------------------------------------------
+Input Tokens  : 2501
+Output Tokens : 8605
+Cost          : $0.136578
+----------------------------------------------------------------------
+{
+  "matched": [
+    2,
+    4,
+    5,
+    6,
+    8,
+    9,
+    15,
+    25,
+    26
+  ],
+  "source": "user"
+}
+======================================================================
