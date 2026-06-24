@@ -1026,7 +1026,7 @@ POSTING_PATTERN = [
 # ══════════════════════════════════════════════════════════════
 
 PRIORITY_SOURCES  = ["nse_ipo", "google_trends"]
-CORPORATE_SOURCES = ["nse_corporate"]
+CORPORATE_SOURCES = []
 NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint","google_news_business","economic_times","ndtv_profit","business_standard"]
 
 
@@ -1430,7 +1430,6 @@ def _fetch_all_sources(top_n: int = 6) -> list:
 
     sources = [
         (fetch_nse_ipo,       "nse_ipo"),
-        (fetch_nse_corporate, "nse_corporate"),
         (fetch_google_trends,  "google_trends"),
         (fetch_google_news_business, "google_news_business"),
         (fetch_economic_times,       "economic_times"),
