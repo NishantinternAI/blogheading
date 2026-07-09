@@ -949,7 +949,7 @@ from datetime import datetime
 from datetime import datetime
 
 # To this
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta       # ← ADD
 
 # ── RSS Fetchers ──────────────────────────────────────────────
 from RSS.zerodha             import fetch_zerodha
@@ -1801,11 +1801,21 @@ def run_pipeline(selected_country="India", category="finance"):
 
             # Fallback always uses standard blog generator (zerodha = news)
             print(f"[BLOG] FALLBACK news article → generate_blog")
-            final_item["blog"]             = clean_newlines(generate_blog(final_item))
+            print(f"[KEYWORDS] Fetching keyword data from Google...")
+            blog_result          = clean_newlines(generate_blog(final_item))
+            if not blog_result:
+                print(f"[PIPELINE] ⚠️  Blog generation returned empty — "
+                  f"skipping article: '{final_item.get('Blog_Title','')[:60]}'")
+                return []
+            final_item["blog"] = blog_result
             final_item["notify"]           = clean_newlines(generate_notification(final_item))
             final_item["instagram_notify"] = clean_newlines(generate_instagram_caption(final_item))
             final_item["Run_Timestamp"]    = get_run_timestamp()
             final_item["blog"]             = _parse_blog_output(final_item["blog"])
+            blog_dict = final_item.get("blog", {})
+            if isinstance(blog_dict, dict):
+                final_item["primary_keyword"]    = blog_dict.pop("primary_keyword", {})
+                final_item["secondary_keywords"] = blog_dict.pop("secondary_keywords", [])
 
             safe_title = clean_filename(final_item["Blog_Title"])
             image_text = extract_image_text(
@@ -1902,17 +1912,31 @@ def run_pipeline(selected_country="India", category="finance"):
 
         if pop_type == "priority" and article_source == "nse_ipo":
             print(f"[BLOG] IPO article (priority + nse_ipo) → generate_ipo_blog")
-            final_item["blog"] = clean_newlines(_generate_ipo_blog(final_item))
+            print(f"[KEYWORDS] Fetching keyword data from Google...")
+            blog_result = clean_newlines(_generate_ipo_blog(final_item))
         else:
             print(f"[BLOG] {pop_type.upper()} article "
                   f"(source={article_source}) → generate_blog")
-            final_item["blog"] = clean_newlines(_generate_blog(final_item))
+            print(f"[KEYWORDS] Fetching keyword data from Google...")
+            blog_result= clean_newlines(_generate_blog(final_item))
+        
+        if not blog_result:
+            print(f"[PIPELINE] ⚠️  Blog generation returned empty — "
+                  f"skipping article: '{final_item.get('Blog_Title','')[:60]}'")
+            return []
+        
+        final_item["blog"] = blog_result
 
         final_item["notify"]           = clean_newlines(_generate_notification(final_item))
         final_item["instagram_notify"] = clean_newlines(_generate_instagram(final_item))
         final_item["Run_Timestamp"]    = get_run_timestamp()
         final_item["source_type"]      = pop_type
         final_item["blog"]             = _parse_blog_output(final_item["blog"])
+
+        blog_dict = final_item.get("blog", {})
+        if isinstance(blog_dict, dict):
+            final_item["primary_keyword"]    = blog_dict.pop("primary_keyword", {})
+            final_item["secondary_keywords"] = blog_dict.pop("secondary_keywords", [])
 
         safe_title = clean_filename(final_item["Blog_Title"])
 

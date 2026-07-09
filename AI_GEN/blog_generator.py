@@ -6,6 +6,9 @@ from bs4 import BeautifulSoup
 from add_cached import cached_model_call
 from utils.mcp_tools import fetch_and_clean
 from add_cached import cached_model_call, fetch_via_websearch
+from priAndsec_keywords import extract_keywords
+from keyword_researcher import get_keyword_volumes 
+from json_repair import repair_json
 
 
 # ══════════════════════════════════════════════════════════════
@@ -224,9 +227,10 @@ def fix_conclusion_labels(html: str) -> str:
     </h2> already exists).
     """
     LABEL_PATTERN = re.compile(
-        r'^\s*(?:conclusion|takeaway|key takeaway|in summary|summary'
-        r'|final thought|final recommendation|bottom line)\s*:\s*',
-        re.IGNORECASE
+    r'^\s*(?:conclusion|takeaway|key takeaway|in summary|summary'
+    r'|final thought|final recommendation|bottom line)'
+    r'(?:\s+paragraph\s*\d+|\s*\d+)?\s*:\s*',
+    re.IGNORECASE
     )
 
     soup = BeautifulSoup(html, "html.parser")
@@ -467,7 +471,37 @@ def fix_ensure_conclusion(html: str) -> str:
 
 
 
+def fix_tldr_list(data: dict) -> dict:
+    """
+    Strips any HTML tags the LLM accidentally wrote inside TLDR list items.
 
+    The TLDR field is a JSON array of plain strings — e.g.:
+        ["238 companies plan ₹4.72 trillion...", "174 SEBI-approved..."]
+
+    But the LLM sometimes wraps them in <li> tags:
+        ["<li>238 companies plan ₹4.72 trillion...</li>", ...]
+
+    This causes double <li><li>...</li></li> when _build_tldr_html()
+    wraps each item in another <li> tag.
+    """
+    import re as _re
+
+    tldr = data.get("TLDR", [])
+    if not tldr or not isinstance(tldr, list):
+        return data
+
+    cleaned = []
+    for item in tldr:
+        if isinstance(item, str):
+            # Strip any HTML tags from inside TLDR strings
+            clean = _re.sub(r"<[^>]+>", "", item).strip()
+            if clean:
+                cleaned.append(clean)
+        else:
+            cleaned.append(item)
+
+    data["TLDR"] = cleaned
+    return data
 
 
 def fix_html_tags(content: str) -> str:
@@ -564,6 +598,8 @@ def fix_all_fields(data: dict, source: str = "") -> dict:
     # ── 2. FAQ schema answer cleanup ─────────────────────────
     data = fix_faq_schema_answers(data)
 
+    data = fix_tldr_list(data)
+
     # ── 3. String-level fixes ─────────────────────────────────
     for key, value in list(data.items()):
 
@@ -617,27 +653,86 @@ def generate_blog(item: dict) -> dict:
     url =item["Blog_Links"]
     article_content = fetch_via_websearch(url)
     print(article_content)
-    # scraped = fetch_and_clean(
-    #     url=item["Blog_Links"],
-    #     title=item.get("Blog_Title", ""),
-    #     fallback_text=item.get("Blog_Content", "")
-    # )
-    # print(f"   [SCRAPE] {scraped['quality']} ({scraped['word_count']} words) via {scraped['method']}")
-    # item["Blog_Content"] = scraped["content"]
-    
-    
+    keyword_data = extract_keywords(article_content)
+    print("Keywords:", keyword_data)
+    volume_data = get_keyword_volumes(
+        primary   = keyword_data.get("primary_keyword", ""),
+        secondary = keyword_data.get("secondary_keywords", [])
+    )
+    print("Volumes:", volume_data)
+    pk  = volume_data.get("primary_keyword", {})
+    sks = volume_data.get("secondary_keywords", [])
+    # Only include secondary keywords that have real volume
+    valid_secondary = [s for s in sks if s.get("volume", 0) > 0]
+    primary_volume = pk.get("volume", 0)
+    has_any_volume = primary_volume > 0 or len(valid_secondary) > 0
+    if not has_any_volume:
+        print(
+            f"[BLOG] ⚠️  Skipping — all keywords have 0 search volume.\n"
+            f"[BLOG]    Primary  : '{pk.get('original', '')}' → {primary_volume}/mo\n"
+            f"[BLOG]    Secondary: all 0 volume — no SEO value in generating this blog."
+        )
+        return {}
+
+    secondary_lines = "\n".join([
+        f'  {i+1}. replace "{s["original"]}" → "{s["google_keyword"]}"  ({s["volume"]:,}/mo)'
+        for i, s in enumerate(valid_secondary)
+    ])
+    keyword_block = f"""
+
+Keyword Usage Rules
+
+Use the provided Google keywords only when they fit naturally and preserve the original meaning.
+
+* Do NOT force keyword replacements.
+* If a replacement changes the meaning or makes the sentence unnatural, keep the original wording.
+* Do NOT create new sentences solely to insert keywords.
+* Avoid repeating the same keyword in consecutive sentences.
+
+Primary Keyword (Mandatory)
+
+Original: "{pk.get('original', '')}"
+Preferred: "{pk.get('google_keyword', '')}"
+Volume: {pk.get('volume', 0):,}/month
+- Must appear in:
+  - Blog Title
+  - Meta Title
+  - First 100 words
+  - One H2 heading
+- Use naturally 2-3 times throughout the article.
+
+Secondary Keywords:
+
+- Try to use each keyword at least once.
+- Place them naturally across:
+  - H2/H3/H4 headings
+  - Paragraphs
+  - Tables
+  - FAQs
+- Do not force insertion.
+- Skip any keyword that does not fit the context.
+
+Keyword distribution should feel natural and improve readability.
+
+{secondary_lines if secondary_lines else "No secondary keywords available."}
+"""
+
     prompt = f"""
 You are a SEO & GEO Blog strategist writing for Swastika Investmart — 
 a SEBI-registered Indian stockbroker serving retail investors across India.
 You are an expert at writing any high ranking blog optimized for EEAT - (Experience, Expertise, Authoritativeness, & Trustworthiness) 
 You have to write long form blog that rank on Google and get cited by AI search engines like Perplexity, 
-ChatGPT, Gemini & Claude. 
+ChatGPT, Gemini & Claude.
 ---
 
-
-THE SOURCE MATERIAL.
-
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SOURCE MATERIAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 {article_content}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{keyword_block}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
 ---
@@ -651,17 +746,24 @@ Blogs must be optimized for longtail & short tail keywords and follow AI SEO opt
 Use every statistic from the source. 
 Never mention the news outlet that reported it. 
 Attribute figures to their primary source 
-(SEBI, RBI, NSE, BSE, company filings) or state 
+or state 
 price data as plain market facts.
-------
+
+-------
 
 BLOG TITLE
 
-Write a blog title that does three things at once:
-- Contains the primary long-tail keyword naturally
-- Should rank higher in GEO and SEO
+Write a blog title that does these things at once:
 
-The title is the most important SEO signal in the entire blog.
+-The title is the most important SEO signal in the entire blog.
+
+-The blog title must use Title Case — capitalize every major word 
+(e.g. "Ola Electric Share Price Momentum Signals Across Four Nifty500 Stocks" 
+not "Ola Electric Share Price Momentum: ola electric share price Signals...").
+Never begin any word in the title with a lowercase letter, even if it is a keyword.
+
+- Contains the primary long-tail keyword naturally
+
 
 ---
 
@@ -684,6 +786,13 @@ Instead:
 - Each H2 must be a long-tail keyword phrase a real investor would search
 - Each H2 must make a specific claim or raise a specific question
 - Each section must add something the previous one didn't
+Every <h2> heading must use Title Case — capitalize every major word including keywords.
+Never write a lowercase word anywhere in an <h2> heading.
+Wrong: "Ola electric share price RSI Uptrend Across Four Nifty500 Stocks"
+Right: "Ola Electric Share Price RSI Uptrend Across Four Nifty500 Stocks"
+This rule applies even when the heading starts with or contains a keyword phrase like "ola electric share price" or "pfc share price" — keywords must be capitalized too.
+-Every <h2> must be followed by at least one <p> paragraph.
+-Never write an <h2> without body content <p> below it.
 
 ---
 
@@ -698,19 +807,52 @@ TABLES
 Add a table only whenever needed.
 ---
 
+
+
+ 
+EXPERT OPINION CALLOUT
+ 
+If the source material contains a direct quote from a named analyst,
+expert, or industry figure (with their name and title/firm stated),
+format that quote as a callout using this exact structure:
+ 
+<blockquote><p><strong><em>According to [Name] of [Firm]</em></strong>,
+[the quote, keeping all numbers and claims exact].</p></blockquote>
+ 
+Place it naturally within the body, near the section it's most relevant to.
+ 
+Rules:
+- Only use this if the source has a REAL named person with a real quote.
+- Never invent an expert or a quote — skip this section entirely if none exists.
+- Do not use this for vague phrases like "analysts say" — named individuals only.
+
+
+
+---
+
+
+
+
 FAQ
 
 Write 4–6 FAQ questions and Answers that would rank in Google Search. 
 Answers must be specific, factual, and grounded in the source article.
+Do NOT include the FAQ questions or answers inside Blog_Content.
+FAQ must appear ONLY inside the FAQ_Schema JSON field.
+- Do NOT write any <h4> tags anywhere inside Blog_Content.
+- Do NOT write any Q&A pairs inside Blog_Content.
 
 ---
 
 CONCLUSION
 
+CONCLUSION appears EXACTLY ONCE — at the very end, after ALL body H2 sections.
+Never write Conclusion before body sections. Never write it twice.
+
 The conclusion is the last thing the investor reads. Make it the most useful paragraph in the blog.
 
-Write 2 paragraphs under <h2>Conclusion</h2>:
-Do NOT write "Conclusion - Paragraph 1:" or any label.
+<h2>Conclusion</h2> — followed immediately by 2 real <p> paragraphs
+Never output placeholders
 Start directly with the content sentence.
 Summarize what this story means for the retail investor right now - not a recap of facts, but the so-what.
 Give the investor one clear next step or mental model they can apply.
@@ -724,8 +866,15 @@ Swastika offers: stocks, F&O, mutual funds, IPOs, ETFs, bonds, MCX, SLBM, pledgi
 research reports, and Sarthi — an AI stock assistant that gives institutional-level 
 research on any stock or index to retail investors.
 
-Place one implicit CTA in the body where it genuinely fits the article context. A natural bridge between what the investor 
-just learned and what they might do next.
+Place implicit CTA in the body where it genuinely fits the article context. 
+A natural bridge between what the investor just learned and what they might do next.
+
+Always format the Sarthi mention as a clickable hyperlink using exactly this format:
+<a href="https://www.swastika.co.in/sarthi" rel="noopener" target="_blank">Swastika's Sarthi AI stock assistant</a>
+
+Never mention Sarthi as plain text — it must always be a hyperlink.
+Never write the URL as visible text anywhere — URL goes inside href only.
+
 ---
 
 SEO OUTPUT REQUIREMENTS
@@ -740,8 +889,8 @@ insight they'll get from clicking. Count the characters.
 
 HTML RULES
 
-These are allowed tags which you can use: <h1> <h2> <h3> <h4> <p> <ul> <li> <strong> <u> <a href=""> 
-<table> <tr> <th> <td>
+These are allowed tags which you can use: <h1> <h2> <h3> <h4> <p> <ul> <li> <strong> <em> <u> <a href=""> 
+<table> <tr> <th> <td> <blockquote>
 
 TLDR points go in <li> tags with no paragraph following them.
 FAQ questions use <h4>. Answers use <p>.
@@ -768,9 +917,50 @@ Return only valid JSON. No markdown. No explanation. No code fences.
 
 """
     result = cached_model_call(prompt)
-    data   = json.loads(result)
+    try:
+        data = json.loads(result)
+
+    
+    except json.JSONDecodeError as e:
+        print(f"[BLOG] ⚠️ JSON parse failed: {e}")
+        print("[BLOG] Attempting automatic repair...")
+        start = max(0, e.pos - 300)
+        end = min(len(result), e.pos + 300)
+        print(result[start:end])
+        print("[BLOG] Attempting automatic repair...")
+
+        try:
+            repaired_json = repair_json(result)
+            with open("repaired_blog_response.json", "w", encoding="utf-8") as f:
+                f.write(repaired_json)
+            data = json.loads(repaired_json)
+            print("[BLOG] ✅ JSON repaired successfully")
+
+
+
+    
+
+    
+        
+
+        
+
+        except Exception as repair_error:
+            print(f"[BLOG] ❌ JSON repair failed: {repair_error}")
+            with open("failed_blog_response.json", "w", encoding="utf-8") as f:
+                f.write(result)
+            return {}
+
+
+        
+
+        
+
+        
     source = item.get("source", "")
     data   = fix_all_fields(data, source=source)
+    data["primary_keyword"]    = pk
+    data["secondary_keywords"] = valid_secondary
     return data
 
 
@@ -790,10 +980,10 @@ THE SOURCE MATERIAL
 
 News Title: {item['Blog_Title']}
 News Content: {item['Blog_Content']}
-
-
-
+ 
 ---
+
+
 
 YOUR MISSION
 
@@ -931,35 +1121,17 @@ Write it like the final paragraph of a good stock research note — not a checkl
 
 SWASTIKA CONTEXT
 
-Swastika offers IPO applications directly through its platform, along with Sarthi — an AI 
-stock assistant that provides institutional-grade research on any stock or index.
+Swastika offers: stocks, F&O, mutual funds, IPOs, ETFs, bonds, MCX, SLBM, pledging, 
+research reports, and Sarthi — an AI stock assistant that gives institutional-level 
+research on any stock or index to retail investors.
 
-Place one Swastika IPO reference naturally in the body. It must:
-- Appear inside a <p> tag only — never in any heading tag
-- Read as a mid-sentence continuation, not a standalone CTA paragraph
-- Never begin a <p> tag — it must appear mid-sentence in an existing paragraph
-- Feel like a knowledgeable friend mentioning a useful next step
+Place one implicit CTA in the body where it genuinely fits the article context. 
+A natural bridge between what the investor just learned and what they might do next.
 
-Never create a section heading (H2, H3, or H4) that contains the word
-"Swastika". There should be no heading like "Swastika's insights" or
-"How Swastika can help". Swastika appears in prose only, never as a
-section title.
+Always format the Sarthi mention as a clickable hyperlink using exactly this format:
+<a href="https://www.swastika.co.in/sarthi" rel="noopener" target="_blank">Swastika's Sarthi AI stock assistant</a>
 
-The right moment is when you're telling the investor how to act — applying, checking 
-allotment, or researching the stock post-listing.
-
-Examples:
-
-In an application paragraph:
-"...retail investors can apply through platforms like Swastika before the issue closes 
-on [date]."
-
-In a post-listing research paragraph:
-"...for entry levels and risk parameters after listing, Sarthi provides institutional-grade 
-research on [company name] including upside and downside scenarios."
-
-Do not mention Swastika more than once. Do not list other Swastika products unless 
-directly relevant.
+Never mention Sarthi as plain text — it must always be a hyperlink.
 
 ---
 
@@ -1030,7 +1202,18 @@ Return only valid JSON. No markdown. No explanation. No code fences.
 }}
 """
     result = cached_model_call(prompt)
-    data   = json.loads(result)
+    try:
+
+        data = json.loads(result)
+    except json.JSONDecodeError as e:
+           print(f"[BLOG] ⚠️  JSON parse failed: {e} — attempting fix...")
+           sanitized = result.replace('\r\n', '\\n').replace('\r', '\\n').replace('\n', '\\n')
+           try:
+            data = json.loads(sanitized)
+            print(f"[BLOG] ✅ JSON recovered — blog content preserved")
+           except json.JSONDecodeError as e2:
+                print(f"[BLOG] ❌ JSON unrecoverable: {e2} — skipping article")
+                return {}
     source = item.get("source", "")
     data   = fix_all_fields(data, source=source)
     return data

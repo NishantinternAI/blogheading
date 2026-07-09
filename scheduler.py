@@ -12,7 +12,7 @@ executors = {
 
 scheduler = BlockingScheduler(executors=executors)
 
-@scheduler.scheduled_job('cron', minute='*/5')
+@scheduler.scheduled_job('cron', minute='*/8')
 def pipeline_job():
     print("\n" + "━"*33)
     print("  Pipeline job started")
@@ -28,7 +28,7 @@ def pipeline_job():
 if __name__ == "__main__":
     print("━"*33)
     print("  🚀 Scheduler started")
-    print("  ⏱  Pipeline runs every 5 minutes")
+    print("  ⏱  Pipeline runs every 8 minutes")
     print("━"*33)
 
     # ✅ Turant pehli baar chalao
