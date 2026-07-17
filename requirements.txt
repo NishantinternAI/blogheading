@@ -8,3 +8,14 @@ numpy
 python-dotenv
 apscheduler
 openai
+mcp
+pydantic
+json-repair
+curl_cffi
+trafilatura
+newspaper3k
+thefuzz
+selenium
+webdriver-manager
+google-ads
+google-auth-oauthlib

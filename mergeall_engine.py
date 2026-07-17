@@ -1808,8 +1808,8 @@ def run_pipeline(selected_country="India", category="finance"):
                   f"skipping article: '{final_item.get('Blog_Title','')[:60]}'")
                 return []
             final_item["blog"] = blog_result
-            final_item["notify"]           = clean_newlines(generate_notification(final_item))
-            final_item["instagram_notify"] = clean_newlines(generate_instagram_caption(final_item))
+            # final_item["notify"]           = clean_newlines(generate_notification(final_item))
+            # final_item["instagram_notify"] = clean_newlines(generate_instagram_caption(final_item))
             final_item["Run_Timestamp"]    = get_run_timestamp()
             final_item["blog"]             = _parse_blog_output(final_item["blog"])
             blog_dict = final_item.get("blog", {})
@@ -1845,12 +1845,12 @@ def run_pipeline(selected_country="India", category="finance"):
                 os.path.join(OUTPUT_IMG_WEBP_DIR, f"blog_inner_{safe_title}.webp"),
                 image_type="blog_inner"
             )
-            final_item["instagram_image"] = compose_image(
-                outer_template, image_text,
-                os.path.join(OUTPUT_IMG_JPG_DIR,  f"insta_{safe_title}.jpg"),
-                os.path.join(OUTPUT_IMG_WEBP_DIR, f"insta_{safe_title}.webp"),
-                image_type="instagram"
-            )
+            # final_item["instagram_image"] = compose_image(
+            #     outer_template, image_text,
+            #     os.path.join(OUTPUT_IMG_JPG_DIR,  f"insta_{safe_title}.jpg"),
+            #     os.path.join(OUTPUT_IMG_WEBP_DIR, f"insta_{safe_title}.webp"),
+            #     image_type="instagram"
+            # )
             save_output(final_item, filename=OUTPUT_FILENAME)
             return [final_item]
 
@@ -1927,8 +1927,8 @@ def run_pipeline(selected_country="India", category="finance"):
         
         final_item["blog"] = blog_result
 
-        final_item["notify"]           = clean_newlines(_generate_notification(final_item))
-        final_item["instagram_notify"] = clean_newlines(_generate_instagram(final_item))
+        # final_item["notify"]           = clean_newlines(_generate_notification(final_item))
+        # final_item["instagram_notify"] = clean_newlines(_generate_instagram(final_item))
         final_item["Run_Timestamp"]    = get_run_timestamp()
         final_item["source_type"]      = pop_type
         final_item["blog"]             = _parse_blog_output(final_item["blog"])
@@ -1984,11 +1984,11 @@ def run_pipeline(selected_country="India", category="finance"):
                     blog_inner_jpg_path, blog_inner_webp_path, "blog_inner"
                 )
 
-                print(f"[IMAGE] Instagram   (1080×1080) + IPO zone values")
-                final_item["instagram_image"] = _compose_ipo_image(
-                    ipo_template, final_item,
-                    insta_jpg_path, insta_webp_path, "instagram"
-                )
+                # print(f"[IMAGE] Instagram   (1080×1080) + IPO zone values")
+                # final_item["instagram_image"] = _compose_ipo_image(
+                #     ipo_template, final_item,
+                #     insta_jpg_path, insta_webp_path, "instagram"
+                # )
             else:
                 # Fallback: ipo_alert.png missing
                 print(f"[IMAGE] IPO fallback → smart template + text overlay")
@@ -2006,10 +2006,10 @@ def run_pipeline(selected_country="India", category="finance"):
                     template_pair["inner"], {},
                     blog_inner_jpg_path, blog_inner_webp_path, "blog_inner"
                 )
-                final_item["instagram_image"] = _compose_image(
-                    template_pair["outer"], ipo_text,
-                    insta_jpg_path, insta_webp_path, "instagram"
-                )
+                # final_item["instagram_image"] = _compose_image(
+                #     template_pair["outer"], ipo_text,
+                #     insta_jpg_path, insta_webp_path, "instagram"
+                # )
 
             final_item["image_text"] = _extract_ipo_image_text(final_item)
 
@@ -2066,11 +2066,11 @@ def run_pipeline(selected_country="India", category="finance"):
                 inner_template, {},
                 blog_inner_jpg_path, blog_inner_webp_path, "blog_inner"
             )
-            print(f"[IMAGE] Instagram   → {os.path.basename(outer_template)}")
-            final_item["instagram_image"] = _compose_image(
-                outer_template, final_item["image_text"],
-                insta_jpg_path, insta_webp_path, "instagram"
-            )
+            # print(f"[IMAGE] Instagram   → {os.path.basename(outer_template)}")
+            # final_item["instagram_image"] = _compose_image(
+            #     outer_template, final_item["image_text"],
+            #     insta_jpg_path, insta_webp_path, "instagram"
+            # )
 
         # ══════════════════════════════════════════════════════
         # STEP 8 — Save to output file
