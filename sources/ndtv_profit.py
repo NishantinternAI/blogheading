@@ -1,4 +1,4 @@
-# # RSS/ndtv_profit.py
+# # sources/ndtv_profit.py
 
 # import re
 # import feedparser
@@ -112,8 +112,8 @@
 
 
 
-# RSS/ndtv_profit.py
-# RSS/ndtv_profit.py
+# sources/ndtv_profit.py
+# sources/ndtv_profit.py
 
 import sys
 import os
@@ -132,7 +132,7 @@ except ImportError:
     CURL_CFFI_AVAILABLE = False
 
 from utils.mcp_tools import fetch_and_clean
-from RSS.common import assess_quality
+from sources.common import assess_quality
 
 
 # ─────────────────────────────────────────────────────────────

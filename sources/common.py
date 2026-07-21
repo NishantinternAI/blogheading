@@ -1,5 +1,5 @@
 """
-RSS/common.py -- shared helpers used across multiple RSS fetcher modules.
+sources/common.py -- shared helpers used across multiple RSS fetcher modules.
 
 assess_quality() was copy-pasted byte-identically into 7 fetchers
 (zerodha, cnbc, paisa, livemint, economic_times, ndtv_profit,

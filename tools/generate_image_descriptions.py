@@ -146,9 +146,12 @@
 # Run ONCE to generate descriptions for all templates
 
 import os
+import sys
 import json
 import base64
 from functools import lru_cache
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root, for config
 from config import client, MODEL
 
 TEMPLATES_BASE = "content_engine/templates"

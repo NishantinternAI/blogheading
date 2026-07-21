@@ -4,7 +4,7 @@ import time
 import re
 from bs4 import BeautifulSoup
 
-from RSS.common import assess_quality
+from sources.common import assess_quality
 
 try:
     import trafilatura

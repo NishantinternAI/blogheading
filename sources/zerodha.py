@@ -1,4 +1,4 @@
-# RSS/zerodha.py
+# sources/zerodha.py
 
 import feedparser
 import requests
@@ -7,7 +7,7 @@ import re
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 
-from RSS.common import assess_quality
+from sources.common import assess_quality
 
 try:
     import trafilatura

@@ -13,8 +13,12 @@ In mergeall_engine.py:
     final_item["blog"] = optimize_keywords(final_item["blog"], final_item)
 """
 
+import os
+import sys
 import json
 import logging
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root, for add_cached
 from add_cached import cached_model_call
 
 log = logging.getLogger(__name__)

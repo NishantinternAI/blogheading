@@ -1,5 +1,5 @@
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__))) # ← adds AI_GEN/ to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__))) # ← adds generators/ to path
 import json
 import re
 from bs4 import BeautifulSoup

@@ -1,4 +1,4 @@
-# AI_GEN/prompts/priority_prompt.py
+# generators/prompts/priority_prompt.py
 
 SYSTEM_PROMPT = """
 You are an expert IPO analyst and financial journalist

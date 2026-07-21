@@ -1,4 +1,4 @@
-# RSS/google_news_business.py
+# sources/google_news_business.py
 
 import re
 import feedparser
