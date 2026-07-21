@@ -2,6 +2,8 @@ import re
 import feedparser
 import requests
 
+from RSS.common import assess_quality
+
 try:
     from curl_cffi import requests as cf_requests
     CURL_CFFI_AVAILABLE = True
@@ -102,17 +104,6 @@ def fetch_feed_text(feed_url: str) -> str:
     return ""
 
 
-def assess_quality(content: str) -> dict:
-    words = len(content.split()) if content else 0
-    return {
-        "word_count": words,
-        "quality": (
-            "rich"  if words >= 300 else
-            "thin"  if words >= 150 else
-            "bare"  if words >= 50  else
-            "empty"
-        ),
-    }
 
 
 # ══════════════════════════════════════════════════════════════

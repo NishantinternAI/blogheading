@@ -132,6 +132,7 @@ except ImportError:
     CURL_CFFI_AVAILABLE = False
 
 from utils.mcp_tools import fetch_and_clean
+from RSS.common import assess_quality
 
 
 # ─────────────────────────────────────────────────────────────
@@ -225,17 +226,6 @@ def _clean_ndtv_content(text: str) -> str:
     return "\n".join(lines).strip()
 
 
-def assess_quality(content: str) -> dict:
-    words = len(content.split()) if content else 0
-    return {
-        "word_count": words,
-        "quality": (
-            "rich"  if words >= 300 else
-            "thin"  if words >= 150 else
-            "bare"  if words >= 50  else
-            "empty"
-        ),
-    }
 
 
 def scrape_article(url: str, rss_summary: str = "",

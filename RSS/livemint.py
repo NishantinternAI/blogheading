@@ -7,6 +7,8 @@ import re
 from bs4 import BeautifulSoup
 from datetime import datetime
 
+from RSS.common import assess_quality
+
 try:
     import trafilatura
     TRAFILATURA_AVAILABLE = True
@@ -403,17 +405,6 @@ def scrape_article(url: str, rss_summary: str = "",
 # QUALITY GATE
 # ─────────────────────────────────────────────────────────────
 
-def assess_quality(content: str) -> dict:
-    words = len(content.split()) if content else 0
-    return {
-        "word_count": words,
-        "quality": (
-            "rich"  if words >= 300 else
-            "thin"  if words >= 150 else
-            "bare"  if words >= 50  else
-            "empty"
-        ),
-    }
 
 
 # ─────────────────────────────────────────────────────────────
