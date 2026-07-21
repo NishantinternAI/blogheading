@@ -804,7 +804,26 @@ Write exactly 4 short, punchy sentences. No bullet formatting beyond the list st
 
 TABLES
 
-Add a table only whenever needed.
+If the source material contains 3 or more timestamped price points, or any
+series of numeric data meant to be compared side by side (intraday price
+ticks, SMA/EMA levels, daily/weekly/monthly returns, volume figures,
+valuation ratios), you MUST present that data as an HTML <table> —
+never as a prose paragraph listing timestamps and figures one after another.
+
+Example — intraday price ticks become:
+<table><tr><th>Time (IST)</th><th>Price (Rs)</th><th>Change</th></tr>
+<tr><td>03:35 PM</td><td>186.46</td><td>+0.31%</td></tr>
+<tr><td>03:30 PM</td><td>186.35</td><td>+0.25%</td></tr></table>
+
+Example — moving averages / returns become:
+<table><tr><th>Metric</th><th>Value</th></tr>
+<tr><td>5-Day SMA</td><td>Rs 186.40</td></tr>
+<tr><td>7-Day SMA</td><td>Rs 187.30</td></tr>
+<tr><td>1-Year Return</td><td>15.11%</td></tr></table>
+
+For any other content, add a table only when it genuinely helps the reader
+compare structured data — do not force one into narrative-only sections.
+
 ---
 
 

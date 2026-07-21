@@ -290,3 +290,97 @@ also creates the content-freshness signal Google rewards.
 | Avg sentence length | 30 words | ≤22 words |
 | Post-publication refreshes per IPO | 0 | 2–3 |
 | GSC clicks within IPO window | baseline | track per release |
+
+---
+
+## 11. Addendum (2026-07-21) — GSC Data Resolves the Open Caveat, Mapped to Webflow's AEO Framework
+
+### 11.1 The "not a controlled A/B test" caveat is resolved
+
+Section 1 flagged that raw pageviews couldn't separate a **ranking** problem from a
+**distribution** problem, and asked for Google Search Console data before drawing final
+conclusions. That data is now in:
+
+| | Blog A (Pipeline) | Blog B (User) | Ratio |
+|---|---|---|---|
+| Window pulled | Last 90 days | Last 28 days | Blog A's window is 3x longer |
+| GSC Impressions | 650 | 91,500 | **~140x** |
+| GSC Clicks | 21 | 896 | ~43x |
+| CTR | 3.2% | 1% | Blog A's CTR is *higher* |
+| Avg. position | 5.7 | 7.1 | Blog A ranks *better* on average |
+| GA sessions (landing page) | 30 (90-day window) | 1,090 (28-day window) | ~36x |
+
+**Reading this correctly:** Blog A is not being suppressed by a spam/manual-action penalty —
+it actually has a *better* average position and *higher* CTR than Blog B. The gap is almost
+entirely **impressions volume**: Google simply has far fewer query-matches to show Blog A
+for. This points squarely at **query coverage**, i.e. how many distinct real-world questions
+the page's content actually answers — which is a direct read on Section 6.2 (heading
+structure as query coverage: Blog B's 18 H2s map to 18 discrete search intents; Blog A's 10
+H2s largely restate the same "Alpine Texworld IPO" phrase). More headings answering more
+distinct questions → more query strings Google can match the page against → more
+impressions. Word count and data depth (Section 4) are the raw material that makes that
+many genuinely distinct headings possible — a 1,800-word, single-source article cannot
+sustain 18 non-redundant H2s without padding.
+
+This reframes the fix priority slightly: **P0 is still data enrichment** (Section 9), because
+without more source data there's nothing to write the additional distinct sections *about*.
+But the mechanism by which that data converts to traffic is impressions via query coverage,
+not just "better writing."
+
+### 11.2 Mapping to Webflow's AEO Maturity Model
+
+The user supplied Webflow's "AEO Playbook" (four categories: Content, Technical, Authority,
+Measurement; five maturity levels each). Scoring the pipeline's current output against it:
+
+| Category | Pipeline's current level | Why |
+|---|---|---|
+| **Content** | Level 1 ("Write for keywords") | One-off generation from a single source, no update cycle, thin per-question coverage — the guide's own description of Level 1 ("rarely updated... FAQs missing or stale... traffic mostly branded") matches Blog A almost exactly. |
+| **Technical** | Level 1–2 | FAQ schema present (a Level-1/2 win) but no `datePublished`/`dateModified`, no canonical tag, one malformed JSON-LD block, `og:type=website` not `article` — all called out in the guide's Level 1–2 checklist as basics. |
+| **Authority** | Level 1 | Zero external citations (Section 6.4), no author byline, no E-E-A-T signals — the guide's Level 1 description ("limited third-party mentions... backlinks the primary signal") is the ceiling here. |
+| **Measurement** | Level 0 (pre-Level-1) | No tracking of AI-referral traffic, LLM citations, or brand mentions in AI answers at all — this AB test itself *is* the pipeline's first measurement effort, done manually, once. |
+
+Two data points from the guide sharpen the priority order already in Section 9:
+
+- **"95% of ChatGPT citations point to pages updated in the last 10 months."** The pipeline
+  has *zero* refresh mechanism (Section 7.5) — a single-shot article ages out of AI-citation
+  eligibility on a clock the pipeline currently ignores entirely, independent of content
+  quality.
+- **Webflow's own case study: "simply increasing the pace of content refreshes drove 42% more
+  traffic... in under two months."** This is an existing playbook result for the exact fix
+  already prioritized as P1 in Section 9 ("Add a refresh cycle") — refreshing is not a
+  nice-to-have, it's demonstrated to move traffic on its own, separate from the data-depth fix.
+
+### 11.3 Additions to Section 9's recommendations (do not replace — these are additive)
+
+**P0/P1 (pulls forward from Section 9, now with an AEO citation attached):**
+- Ship the refresh cycle (already P1 in Section 9) — the guide's freshness stat makes this
+  higher-leverage than it looked in isolation; treat as co-equal with the data-enrichment P0.
+- Fix `datePublished`/`dateModified`/`article:published_time`/canonical/`og:type` (already P2
+  in Section 9) — bump to P1. These are free, mechanical, site-wide fixes with no dependency
+  on the data-enrichment work, and the guide frames them as Level-1 fundamentals every page
+  should already have.
+
+**New, not previously in Section 9:**
+- **Author byline + short bio** on every post (e.g. "Reviewed by Swastika Investmart Research
+  Desk"). Zero-cost E-E-A-T signal the guide's Authority Level-1 explicitly calls for
+  ("add author bios to key content"); the pipeline currently publishes with no author field
+  at all.
+- **"In summary" / TLDR-first structure** — the pipeline already has a TLDR block (Section 8
+  lists this as a kept strength); the guide confirms this is directly aligned with AEO Level-1
+  ("bullet points, in-summary statements... so LLMs can interpret your content"). No change
+  needed, just don't regress it.
+- **Start tracking AI-referral traffic and brand mentions in LLM answers** (Measurement
+  Level 1 in the guide) — the pipeline has no equivalent of this at all today. Minimum viable
+  version: filter GA referral traffic for `chatgpt.com`, `perplexity.ai`, `gemini.google.com`
+  sources, and periodically ask ChatGPT/Perplexity/Gemini "{company} IPO review" for the
+  covered companies to see if Swastika is cited. This is the only way to know if the "get
+  cited by AI search engines" line in the blog-generation prompt (Section 7.1) is doing
+  anything.
+
+### 11.4 What this doesn't change
+
+The AEO guide is Webflow's own B2B SaaS marketing content, not finance-vertical-specific —
+its stats (ChatGPT citation freshness, 42% refresh lift) are directional evidence, not a
+guarantee those exact percentages transfer to a SEBI-regulated Indian retail-finance blog.
+Treat Section 11.3 as reinforcing and re-prioritizing Section 9's existing plan, not as a
+separate workstream.

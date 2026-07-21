@@ -282,6 +282,7 @@
 
 
 import os
+import re
 import json
 from datetime import datetime
 from functools import lru_cache
@@ -411,6 +412,117 @@ INCLUDE_LIST = [
     "web_search_call.action.sources",
 ]
 
+# Page-furniture patterns that live-blog/ticker pages surface alongside real
+# data (update counters, comment-section markers, nav labels) but that are
+# NOT facts about the story — must never reach the writing prompt or a
+# published blog.
+_PAGE_FURNITURE_PATTERNS = [
+    r"\b\d+\s+New\s+Updates?\b",
+    r"\bComments?\s+section\b",
+    r"\b(?:Live\s+)?Blog\s+(?:continues|updated)\b",
+    r"\bFollow\s+us\s+on\b.*",
+    r"\bShare\s+this\s+article\b.*",
+    r"\bClick\s+here\s+to\b.*",
+    r"\bRead\s+More\b\s*$",
+]
+
+
+def _strip_page_furniture(text: str) -> str:
+    """Removes scraped webpage UI furniture (update counters, comment-section
+    markers, nav prompts) that isn't part of the article's actual content."""
+    if not text:
+        return text
+    cleaned = text
+    for pattern in _PAGE_FURNITURE_PATTERNS:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+    return cleaned
+
+
+_GMP_LINE_RE = re.compile(r'^GMP:\s*₹\s*(-?[\d,]+(?:\.\d+)?)\s*\(([\d.]+)%\)', re.IGNORECASE)
+_SUB_LINE_RE = re.compile(r'^(RETAIL|NII|QIB|OVERALL):\s*([\d.]+)x', re.IGNORECASE)
+
+
+def fetch_ipo_live_data_via_ai(company_name: str) -> dict:
+    """
+    Fetches GMP + live subscription status for an IPO via OpenAI's web_search
+    tool instead of raw scraping — this data lives on JS-rendered pages
+    (InvestorGain's subscription tables, live GMP widgets) that plain
+    requests+BeautifulSoup can't see, but the model's own search/browse tool
+    can. Every field is strictly format-validated before being trusted; any
+    line that doesn't match the required format is dropped rather than
+    passed through as free text, so a confused/hallucinated answer can never
+    reach the blog as a fabricated number.
+
+    Returns a dict with only the keys it was confident about, e.g.
+    {"gmp": "₹15 (4.76%)", "retail_sub": "0.08x", "nii_sub": "0.15x",
+     "qib_sub": "0.00x", "overall_sub": "0.10x"} — missing/unparseable
+    fields are simply absent, never guessed.
+    """
+    global api_call_count
+    api_call_count += 1
+    ws_call_num = api_call_count
+
+    request_text = (
+        f"Search for the current Grey Market Premium (GMP) and live Day-1/Day-2 "
+        f"subscription status for the {company_name} IPO in India — check sources "
+        f"like InvestorGain, Chittorgarh, or IPO Watch. "
+        f"Reply with ONLY these lines, in exactly this format, nothing else — "
+        f"no explanation, no markdown, no extra text:\n"
+        f"GMP: ₹<amount> (<percent>%)\n"
+        f"RETAIL: <number>x\n"
+        f"NII: <number>x\n"
+        f"QIB: <number>x\n"
+        f"OVERALL: <number>x\n"
+        f"If a value is not currently available, write NOT AVAILABLE on that "
+        f"line instead (e.g. \"GMP: NOT AVAILABLE\"). Never estimate or guess "
+        f"a number — only report it if a source states it directly."
+    )
+
+    try:
+        response = client.responses.create(
+            model=MODEL,
+            input=[{"role": "user", "content": request_text}],
+            tools   = [WEB_SEARCH_TOOL],
+            include = INCLUDE_LIST,
+            store   = False,
+        )
+        content = response.output_text or ""
+    except Exception as e:
+        print(f"   [IPO LIVE DATA] Failed for {company_name}: {e}")
+        return {}
+
+    usage = getattr(response, "usage", None)
+    _log_prompt(
+        call_num = ws_call_num,
+        prompt   = request_text,
+        metadata = {"type": "IPO_LIVE_DATA", "company": company_name},
+    )
+    _log_response(
+        call_num      = ws_call_num,
+        response_text = content,
+        input_tokens  = getattr(usage, "input_tokens", 0) if usage else 0,
+        output_tokens = getattr(usage, "output_tokens", 0) if usage else 0,
+        cost          = 0.0,
+    )
+
+    result = {}
+    for line in content.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        m = _GMP_LINE_RE.match(line)
+        if m:
+            result["gmp"] = f"₹{m.group(1)} ({m.group(2)}%)"
+            continue
+        m = _SUB_LINE_RE.match(line)
+        if m:
+            field = {"RETAIL": "retail_sub", "NII": "nii_sub",
+                      "QIB": "qib_sub", "OVERALL": "overall_sub"}[m.group(1).upper()]
+            result[field] = f"{m.group(2)}x"
+
+    print(f"   [IPO LIVE DATA] {company_name} → parsed fields: {list(result.keys())}")
+    return result
+
 
 def fetch_via_websearch(url: str) -> str:
     """
@@ -430,6 +542,14 @@ def fetch_via_websearch(url: str) -> str:
         f"Do NOT include inline citation links or markdown links like ([source](url)) "
         f"after each bullet point — return plain text bullet points only, no hyperlinks. "
         f"Keep all rupee figures, percentages, and named sources exactly as stated. "
+        f"Do NOT extract page furniture or site UI text — this includes update "
+        f"counters (e.g. '1 New Update'), comment-section markers, 'follow us' / "
+        f"'share this' / 'click here' prompts, navigation labels, or anything "
+        f"describing the webpage itself rather than the story. Only extract facts "
+        f"that are actually about the news story. "
+        f"If the source contains a timestamped price series (e.g. intraday stock "
+        f"ticks), extract each timestamp with its paired price/value as one bullet "
+        f"per data point, not prose. "
         f"Do NOT ask follow-up questions. "
         f"Do NOT offer further options. "
         f"Just return the extracted data and stop.\n\n"
@@ -450,7 +570,7 @@ def fetch_via_websearch(url: str) -> str:
             store   = False,
         )
 
-        content    = response.output_text or ""
+        content    = _strip_page_furniture(response.output_text or "")
         word_count = len(content.split())
         domain     = urlparse(url).netloc
         print(f"   [WEB_SEARCH] {domain} → {word_count} words fetched")
