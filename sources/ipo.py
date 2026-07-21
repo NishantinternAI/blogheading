@@ -1,5 +1,5 @@
 """
-RSS/ipo.py — NSE IPO feed + multi-source detail enrichment.
+sources/ipo.py — NSE IPO feed + multi-source detail enrichment.
 
 Fetches the list of currently open IPOs from NSE (API first, Selenium
 fallback for SME issues the API misses), then enriches each one with
@@ -14,7 +14,7 @@ run_pipeline() as the "nse_ipo" source. Returns a list of article dicts
 (Blog_Title/Blog_Content/company/source=...) ready for generate_ipo_blog().
 
 TEST_MODE (see bottom of file, __main__ block) lets this module be run
-standalone via `python RSS/ipo.py` to inspect scraped output without
+standalone via `python sources/ipo.py` to inspect scraped output without
 running the full pipeline.
 """
 

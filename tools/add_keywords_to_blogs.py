@@ -133,8 +133,11 @@ Saves ONLY processed blogs into another JSON file.
 """
 
 import json
+import os
+import sys
 from datetime import datetime
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root, for add_cached
 from add_cached import cached_model_call
 
 INPUT_FILE = r"D:\Blogheading\output\output.json"

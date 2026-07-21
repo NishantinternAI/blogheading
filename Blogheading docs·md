@@ -97,7 +97,7 @@ Blogheading/
 ├── mergeall_engine.py                   ← Main pipeline (run_pipeline)
 ├── app.py                               ← Streamlit dashboard
 │
-├── RSS/
+├── sources/
 │   ├── ipo.py                           ← NSE IPO + Chittorgarh scraper
 │   │                                       + InvestorGain + Moneycontrol fallback
 │   ├── zerodha.py                       ← Zerodha Pulse RSS
@@ -117,7 +117,7 @@ Blogheading/
 │       ├── ipo_alert.png                ← IPO Alert template (1080×1350)
 │       └── ipo_inner.png                ← IPO Inner template (1920×490)
 │
-├── AI_GEN/
+├── generators/
 │   ├── blog_generator.py                ← AI blog writer + SEO post-processors
 │   ├── notify_generator.py              ← AI notification writer
 │   └── generate_instagram_caption.py    ← AI Instagram caption
@@ -452,7 +452,7 @@ leaving the priority stack permanently empty.
 
 ## 11. Blog Generator — SEO Engine
 
-`AI_GEN/blog_generator.py` — major SEO improvements added.
+`generators/blog_generator.py` — major SEO improvements added.
 
 ### 11.1 Article Type Detection
 
@@ -587,7 +587,7 @@ Before output, the AI verifies:
 Post-processors run in Python **after** the AI generates the blog.
 They fix issues regardless of whether the AI follows prompt rules.
 
-All processors are in `AI_GEN/blog_generator.py` and called via `fix_all_fields()`.
+All processors are in `generators/blog_generator.py` and called via `fix_all_fields()`.
 
 | Function | What It Fixes |
 |---|---|
@@ -746,7 +746,7 @@ CORPORATE_SOURCES = ["nse_corporate"]
 NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint"]
 ```
 
-### `RSS/ipo.py`
+### `sources/ipo.py`
 
 ```python
 TEST_MODE       = True              # False = real NSE feed
@@ -901,7 +901,7 @@ if results:
 ### Test IPO Scraper Only
 
 ```bash
-python RSS/ipo.py
+python sources/ipo.py
 ```
 
 ### Test IPO Compositor Only
@@ -914,7 +914,7 @@ python content_engine/image_module/ipo_compositor.py
 
 ```bash
 python -c "
-from AI_GEN.blog_generator import fix_all_fields
+from generators.blog_generator import fix_all_fields
 sample = {
     'Blog_Title': 'Test IPO at Rs 70 – Should You Apply?',
     'Blog_Content': '<h2>TLDR</h2><ul><li>test</li></ul><h2>FAQ</h2><h3>Q1?</h3><p>A1</p>'
@@ -960,7 +960,7 @@ Then check: `docker logs -f blogheading-scheduler-1`
 ### Files to update before production push
 
 ```
-RSS/ipo.py              TEST_MODE = False
+sources/ipo.py              TEST_MODE = False
 mergeall_engine.py      USE_AI_IMAGES = True/False (your choice)
 app.py                  USE_AI_IMAGES = True/False (must match above)
 ```

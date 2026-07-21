@@ -23,15 +23,15 @@ article is processed.
 
 ### 2. Import-time network calls in 5 of 6 RSS fetchers  **[NEW — earlier pass caught only 1]**
 Module-level statements that execute on `import`:
-- `RSS/zerodha.py:37` → `print(len(fetch_zerodha()))`
-- `RSS/cnbc.py:22` → `print(len(fetch_cnbc()))`
-- `RSS/paisa.py:23` → `print(len(fetch_5paisa()))`
-- `RSS/livemint.py:34` → `print(len(fetch_livemint()))`
-- `RSS/fetch_nse_corporate.py:41-42` → `result = fetch_nse_corporate()` + print
+- `sources/zerodha.py:37` → `print(len(fetch_zerodha()))`
+- `sources/cnbc.py:22` → `print(len(fetch_cnbc()))`
+- `sources/paisa.py:23` → `print(len(fetch_5paisa()))`
+- `sources/livemint.py:34` → `print(len(fetch_livemint()))`
+- `sources/fetch_nse_corporate.py:41-42` → `result = fetch_nse_corporate()` + print
 
 `mergeall_engine.py` imports all of these at the top, so **every scheduler
 start fires 5 unnecessary HTTP requests** (plus the startup log noise:
-`25 / 200 / 10 / 35 / NSE COUNT`). `RSS/ipo.py` is the only one that correctly
+`25 / 200 / 10 / 35 / NSE COUNT`). `sources/ipo.py` is the only one that correctly
 guards its test code with `if __name__ == "__main__":`.
 **Fix:** wrap each stray call in `if __name__ == "__main__":`.
 
@@ -88,7 +88,7 @@ Also note `extract_faq_keyword`'s `STOP` set (`app.py:52`) ends with a literal
 `...` (Python `Ellipsis`) — placeholder code that was never finished.
 **This is a half-reverted feature — see "Decisions for the owner" below.**
 
-### 6. `fix_garbage_characters` is never applied to `Blog_Content`  (`AI_GEN/blog_generator.py:210-228`)  **[NEW]**
+### 6. `fix_garbage_characters` is never applied to `Blog_Content`  (`generators/blog_generator.py:210-228`)  **[NEW]**
 In `fix_all_fields`, the garbage/foreign-char filter runs only for
 `Blog_Title, Meta_Title, Meta_Description, Conclusion`. For `Blog_Content` only
 the HTML-specific fixers run — `fix_garbage_characters` is **not** called.
@@ -125,7 +125,7 @@ lost + dedup resets**. Write to a temp file then `os.replace()` (atomic on
 same filesystem). Also relative path `output/{filename}` — works only because
 Docker `WORKDIR=/app`; use `BASE_DIR`.
 
-### 9. Chittorgarh IPO URL map never expires  (`RSS/ipo.py:108-164`)  **[NEW]**
+### 9. Chittorgarh IPO URL map never expires  (`sources/ipo.py:108-164`)  **[NEW]**
 `_build_ipo_map()` caches `_ipo_df_cache` as a module global with **no TTL**.
 The per-company data cache `_ipo_data_cache` has a 6h TTL, but the *map of which
 IPOs exist* is built once on the first fetch and reused for the entire container
@@ -135,7 +135,7 @@ falls to InvestorGain/Moneycontrol or gets skipped). README §7.3 calls it
 "Cached per session," but a long-lived container = one infinite session.
 **Fix:** give `_ipo_df_cache` the same 6h TTL as the data cache.
 
-### 10. `requests.get` without timeout  (`RSS/fetch_nse_corporate.py:13`)
+### 10. `requests.get` without timeout  (`sources/fetch_nse_corporate.py:13`)
 No `timeout=`. NSE is frequently slow/blocking; a hung socket blocks the single
 scheduler thread indefinitely (`ThreadPoolExecutor(1)`), stalling the whole
 pipeline. **Fix:** add `timeout=15`.
@@ -160,12 +160,12 @@ env var read by both.
 ### 13. Dead code — large
 - `mergeall_engine.py`: active code is **941–1856** (~915 lines). Lines **1–940**
   and **1858–5415** are two full commented-out prior versions (~4,500 lines).
-- `AI_GEN/blog_generator.py`: active **1–803**; **805–2142** commented (~1,340).
+- `generators/blog_generator.py`: active **1–803**; **805–2142** commented (~1,340).
 - `content_engine/image_module/ipo_compositor.py`: active from **420**; ~400
   commented above.
 - `scheduler.py`: ~140 commented lines.
 - Dead files (only referenced by each other, not the live pipeline):
-  `mergeall.py`, `utils/stack_manager.py`, `AI_GEN/filter_by_category_model.py`,
+  `mergeall.py`, `utils/stack_manager.py`, `generators/filter_by_category_model.py`,
   `Filter_news/finance_filter.py`.
 
 ---
@@ -177,7 +177,7 @@ env var read by both.
 | 14 | §1 Overview | "every 15 minutes" | `scheduler.py:14` cron `*/5` = **5 min** | Fix README |
 | 15 | §11.5 + §12 + Changelog | Mandatory **internal links** (3, before FAQ); `fix_duplicate_links`/`fix_links_before_faq` active | Both post-processors are **commented out** (`blog_generator.py:116-151,222-223`); prompt now says "**NO internal links anywhere**" (line 728) | **Owner decision** (see below) |
 | 16 | §13.4/§13.5 + Changelog | keyword-rich `<h2>Key Takeaways – …>` / `<h2>FAQ – … For Investors>` | `app.py` emits bare h2 (finding #5) | **Owner decision** |
-| 17 | §7.7/§14 | `TEST_MODE = True`, `TEST_COMPANY = "Aureate Tradde"` | `RSS/ipo.py:677-678` `TEST_MODE = False`, `"Q-Line Biotech Limited"` | Fix README (code correct for prod) |
+| 17 | §7.7/§14 | `TEST_MODE = True`, `TEST_COMPANY = "Aureate Tradde"` | `sources/ipo.py:677-678` `TEST_MODE = False`, `"Q-Line Biotech Limited"` | Fix README (code correct for prod) |
 | 18 | §16 Deployment | `version: 3.8`, `env_file: .env` compose | `Dockerfile` is `python:3.10`; README §1 says Python 3.11; no compose file in repo | Fix README / add compose |
 | 19 | §16 Deployment | no mention of `config.py` | `config.py` is **required** (`add_cached.py:2` `from config import client, MODEL`), gitignored — must exist on server before first run | Document it |
 
@@ -205,7 +205,7 @@ stale README would *introduce* a regression. Choose per item:
 - Field name drift: `cnbc/paisa/livemint` emit `Blog_Links` (plural);
   `zerodha/nse_corporate` emit `Blog_Link` (singular). Handled defensively in
   `app.py` but fragile.
-- `RSS/ipo.py:391` `_scrape_moneycontrol` → `name_clean.split()[0]` raises
+- `sources/ipo.py:391` `_scrape_moneycontrol` → `name_clean.split()[0]` raises
   `IndexError` if the normalized name is empty (e.g. "India Ltd"); currently
   masked by the waterfall `try/except`.
 - No `.dockerignore` — `COPY . .` ships `.git/`, `output/`, `__pycache__/`.

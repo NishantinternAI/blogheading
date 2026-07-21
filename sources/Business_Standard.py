@@ -2,7 +2,7 @@ import re
 import feedparser
 import requests
 
-from RSS.common import assess_quality
+from sources.common import assess_quality
 
 try:
     from curl_cffi import requests as cf_requests

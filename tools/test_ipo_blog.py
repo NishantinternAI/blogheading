@@ -1,15 +1,19 @@
 # test_ipo_blog.py
-# Run: python test_ipo_blog.py
+# Run: python tools/test_ipo_blog.py
 # Tests IPO scraping + blog generation for one company
 
+import os
+import sys
 import json
-from RSS.ipo import (
-    _scrape_ipo_details,
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root
+from sources.ipo import (
+    _scraper,
     _build_blog_title,
     _build_blog_content,
     _validate_ipo_article,
 )
-from AI_GEN.blog_generator import generate_ipo_blog
+from generators.blog_generator import generate_ipo_blog
 
 # ── Change this to any currently active IPO ──────────────────
 TEST_COMPANY = "Hexagon Nutrition IPO Details"   # ← swap to a live IPO name
@@ -20,7 +24,7 @@ print("=" * 60)
 
 # Step 1: Scrape IPO details
 print(f"\n[1] Scraping IPO details...")
-extra = _scrape_ipo_details(TEST_COMPANY)
+extra = _scraper.get_details(TEST_COMPANY)
 
 if not extra:
     print("❌ No data scraped. Check company name or source availability.")

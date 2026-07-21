@@ -339,7 +339,10 @@ Usage:
 
 import json
 import argparse
+import os
+import sys
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root, for related_links
 from related_links import _normalize_keyword_field, _find_group_key, load_graph, save_graph
 
 
