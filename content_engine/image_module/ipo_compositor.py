@@ -19,14 +19,13 @@ import os
 import re
 from PIL import Image, ImageDraw, ImageFont
 
+from content_engine.image_module.base_compositor import BaseImageCompositor
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-FONTS = {
-    'extrabold': os.path.join(BASE_DIR, '../fonts/ExtraBold.ttf'),
-    'bold':      os.path.join(BASE_DIR, '../fonts/GoogleSans_17pt-Bold.ttf'),
-    'regular':   os.path.join(BASE_DIR, '../fonts/Regular.ttf'),
-}
+# FONTS / _get_font moved to base_compositor.BaseImageCompositor (shared
+# with compositor.py, which had a byte-identical copy of both).
+FONTS = BaseImageCompositor.FONTS
 
 VALUE_COLOR = (255, 210, 50)    # yellow — matches template labels
 
@@ -84,34 +83,10 @@ COMPANY_FONT_MAX = {"blog": 24, "instagram": 43}
 COMPANY_FONT_MIN = {"blog": 14, "instagram": 20}
 
 
-def _get_font(style: str = 'bold', size: int = 28) -> ImageFont.FreeTypeFont:
-    """
-    Load a TrueType font at the given point size.
-
-    Args:
-        style: key into FONTS ('extrabold', 'bold', 'regular').
-        size: point size to render at.
-
-    Returns:
-        An ImageFont.FreeTypeFont, or ImageFont.load_default() if none
-        of the paths (including the DejaVu/Liberation fallbacks) exist.
-
-    Gotcha: FONTS maps 'extrabold' -> 'ExtraBold.ttf' and 'regular' ->
-        'Regular.ttf', but the actual files in content_engine/fonts/
-        are lowercase (extrabold.ttf, regular.ttf). This works on
-        case-insensitive filesystems (Windows) but silently falls back
-        to the DejaVu/Liberation fonts (or the PIL bitmap default) on
-        case-sensitive filesystems (Linux containers) instead of
-        raising an error.
-    """
-    path = FONTS.get(style)
-    if path and os.path.exists(path):
-        return ImageFont.truetype(path, size)
-    for f in ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-              "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"]:
-        if os.path.exists(f):
-            return ImageFont.truetype(f, size)
-    return ImageFont.load_default()
+# All call sites in this file pass style/size explicitly, so the shared
+# base's different defaults (style='regular', size=24 vs this file's old
+# style='bold', size=28) never actually matter.
+_get_font = BaseImageCompositor.get_font
 
 
 def _fit_company_name(
