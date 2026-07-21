@@ -44,7 +44,7 @@ IMAGE_WEBP_DIR = os.environ.get(
 
 OUTPUT_JSON_PATH = os.environ.get(
     "OUTPUT_JSON_PATH",
-    r"D:\Blogheading\output\output.json",
+    "/app/output/output.json",
 )
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "www.swastika.co.in")
 
