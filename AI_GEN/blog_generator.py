@@ -16,6 +16,7 @@ from json_repair import repair_json
 # ══════════════════════════════════════════════════════════════
 
 def fix_em_dash(text: str) -> str:
+    """Replace em-dashes (raw char, &mdash;, &#8212;) with en-dashes. Returns the fixed string."""
     text = text.replace('\u2014', '\u2013')
     text = text.replace('&mdash;', '\u2013')
     text = text.replace('&#8212;', '\u2013')
@@ -23,11 +24,13 @@ def fix_em_dash(text: str) -> str:
 
 
 def fix_tldr_h2(html: str) -> str:
+    """Remove a stray bare '<h2>TLDR</h2>' heading from Blog_Content (the TLDR list itself is kept)."""
     html = re.sub(r'<h2[^>]*>\s*TLDR\s*</h2>', '', html, flags=re.IGNORECASE)
     return html
 
 
 def fix_faq_tags(html: str) -> str:
+    """Downgrade <h3> question tags to <h4> everywhere after the FAQ/'Frequently Asked Questions' <h2>, since FAQ questions must be <h4>."""
     faq_pattern = re.compile(
         r'(<h2[^>]*>.*?(?:frequently asked questions|faq).*?</h2>)',
         re.IGNORECASE | re.DOTALL
@@ -43,6 +46,12 @@ def fix_faq_tags(html: str) -> str:
 
 
 def fix_faq_h2_keyword(html: str, blog_title: str) -> str:
+    """
+    Rewrite a bare '<h2>FAQ</h2>' / '<h2>Frequently Asked Questions</h2>' heading into
+    'Frequently Asked Questions – <keyword> For Investors', deriving the keyword from the
+    first few non-stopword tokens of blog_title. Leaves the heading untouched if it already
+    has extra text (not a bare match) or blog_title yields no usable words (falls back to "Finance").
+    """
     STOP = {
         'should','you','buy','sell','now','is','are','was','were',
         'the','a','an','in','on','for','your','this','that','these',
@@ -73,6 +82,13 @@ def fix_faq_h2_keyword(html: str, blog_title: str) -> str:
 
 
 def fix_placeholder_h3(html: str) -> str:
+    """
+    Remove known generic/template <h3> subheadings (e.g. "What this means for your
+    portfolio") that the model sometimes leaves in verbatim instead of a real subheading.
+    If the placeholder is followed by a <ul>, the heading is dropped entirely; if followed
+    by a <p>, the heading is replaced with a short (<=65 char) heading derived from that
+    paragraph's first ~10 words; otherwise the heading is just removed.
+    """
     PLACEHOLDER_PATTERNS = [
         r'<h3[^>]*>\s*How this affects sector allocations in your portfolio\s*</h3>',
         r'<h3[^>]*>\s*Which sectors could be affected the most\s*</h3>',
@@ -129,6 +145,7 @@ def fix_duplicate_swastika(html: str) -> str:
 
 
 def fix_table_na(html: str) -> str:
+    """Replace empty/placeholder table cells (N/A, NA, None, -, --, or blank) with 'To be announced'."""
     html = re.sub(
         r'<td>\s*(?:N/A|n/a|NA|na|None|-|--)\s*</td>',
         '<td>To be announced</td>', html
@@ -147,6 +164,7 @@ def fix_table_na(html: str) -> str:
 
 
 def fix_garbage_characters(text: str) -> str:
+    """Strip non-ASCII characters the model sometimes emits (mojibake, stray symbols) down to spaces, keeping only ASCII plus a small allowlist (rupee sign, dashes, degree, curly quotes, ellipsis); also collapses resulting double spaces."""
     cleaned = ''
     for char in text:
         code = ord(char)
@@ -650,6 +668,25 @@ def fix_all_fields(data: dict, source: str = "") -> dict:
 
 
 def generate_blog(item: dict) -> dict:
+    """
+    Generate a full SEO/GEO-optimised blog for a general news item.
+
+    Fetches the source article via fetch_via_websearch(), extracts primary/secondary
+    keywords, and looks up their Google search volumes. If every keyword has 0 search
+    volume, generation is skipped entirely and {} is returned (no LLM call made).
+    Otherwise builds a large prompt (source content + keyword usage rules + structure/SEO
+    instructions) and calls cached_model_call(). The raw JSON response is parsed, with a
+    json_repair fallback if parsing fails (writing repaired_blog_response.json or, on
+    total failure, failed_blog_response.json for debugging); {} is returned if recovery
+    fails. On success the dict is passed through fix_all_fields() and annotated with
+    primary_keyword / secondary_keywords before being returned.
+
+    Args:
+        item: dict expected to contain "Blog_Links" (source URL) and "source".
+
+    Returns:
+        Post-processed blog dict, or {} if skipped/unrecoverable.
+    """
     url =item["Blog_Links"]
     article_content = fetch_via_websearch(url)
     print(article_content)
@@ -985,6 +1022,23 @@ Return only valid JSON. No markdown. No explanation. No code fences.
 
 
 def generate_ipo_blog(item: dict) -> dict:
+    """
+    Generate an SEO/GEO-optimised blog for an IPO news item.
+
+    Builds a large prompt directly from item["Blog_Title"] / item["Blog_Content"]
+    (no external fetch or keyword-volume lookup, unlike generate_blog) instructing the
+    model to cover IPO-specific angles (price band, GMP, subscription, valuation, risks,
+    allotment) and calls cached_model_call(). Parses the JSON response, with a
+    newline-sanitization fallback (escaping raw newlines) if the first parse fails;
+    returns {} if both attempts fail. On success the dict is passed through
+    fix_all_fields() before being returned.
+
+    Args:
+        item: dict expected to contain "Blog_Title", "Blog_Content", and "source".
+
+    Returns:
+        Post-processed blog dict, or {} if the JSON is unrecoverable.
+    """
     prompt = f"""
 You are a senior financial journalist and SEO strategist writing for Swastika Investmart — 
 a SEBI-registered Indian stockbroker serving retail investors across India.

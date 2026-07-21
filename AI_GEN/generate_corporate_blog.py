@@ -121,6 +121,7 @@ def _fetch_article(url: str) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _build_data_block(item: dict) -> str:
+    """Render the NSE structured fields of item (company, symbol/ISIN, action type, dates, amount, etc.) as a fixed-width plain-text block for the prompt, substituting "N/A" for any missing field."""
     def f(key):
         v = item.get(key)
         return str(v) if v is not None else "N/A"
@@ -142,6 +143,17 @@ DIVIDEND SUBTYPE : {f('subtype')}"""
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _build_source_section(item: dict, article: dict) -> str:
+    """
+    Build the "SOURCE MATERIAL" section of the prompt.
+
+    If article["fetched"] is True, includes the full fetched article text alongside
+    the NSE structured data block (NSE data marked as ground truth for any conflicts).
+    Otherwise falls back to a structured-data-only section instructing the model not to
+    invent values for any "N/A" field.
+
+    Returns:
+        The formatted prompt section as a string.
+    """
     data_block = _build_data_block(item)
     url        = item.get("Blog_Links", "")
 
@@ -182,6 +194,12 @@ Source URL (do not publish): {url}"""
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _action_rules(action_type: str, item: dict) -> str:
+    """
+    Return the action-type-specific writing-rules block for the prompt (dividend, bonus,
+    split, rights, buyback, agm, or general), pre-filled with item's company/ISIN/dates/
+    amount via an internal per-action-type dict. Falls back to the "general" block if
+    action_type is not one of the known keys.
+    """
     company = item.get("company_name", "[Company]")
     isin    = item.get("isin") or "ISIN"
     ex_date = item.get("ex_date") or "[ex-date]"
@@ -394,6 +412,16 @@ URGENCY FRAMING: Derive from the nature of the action.
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _build_prompt(item: dict, article: dict) -> str:
+    """
+    Assemble the full LLM prompt for a corporate-action blog: source section (from
+    _build_source_section), action-specific rules (from _action_rules), plus fixed
+    instructions for title, opening, body structure, TLDR, tables, conclusion, FAQ,
+    Swastika CTA context, SEO output limits, HTML rules, and the required JSON output
+    schema.
+
+    Returns:
+        The complete prompt string to pass to cached_model_call().
+    """
     action_type    = item.get("action_type", "general")
     source_section = _build_source_section(item, article)
     action_section = _action_rules(action_type, item)
