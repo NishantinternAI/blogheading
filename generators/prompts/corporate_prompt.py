@@ -1,4 +1,4 @@
-# AI_GEN/prompts/corporate_prompt.py
+# generators/prompts/corporate_prompt.py
 
 SYSTEM_PROMPT = """
 You are a corporate finance expert and shareholder advisor

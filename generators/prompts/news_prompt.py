@@ -1,4 +1,4 @@
-# AI_GEN/prompts/news_prompt.py
+# generators/prompts/news_prompt.py
 
 SYSTEM_PROMPT = """
 You are a senior financial journalist and market analyst

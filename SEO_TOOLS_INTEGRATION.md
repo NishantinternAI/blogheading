@@ -40,7 +40,7 @@ GPT-4 blog generation (gets: winning keyword + volume + questions)
 Webflow draft → publish
 ```
 
-**Integration point:** `AI_GEN/blog_generator.py`, after keyword extraction and **before** the GPT-4 prompt is assembled.
+**Integration point:** `generators/blog_generator.py`, after keyword extraction and **before** the GPT-4 prompt is assembled.
 
 **Apply only to the `news` stack.** IPO and corporate articles are too time-sensitive ("XYZ IPO GMP", ex-dates) for generic search-volume data to help — and enriching them wastes budget.
 
@@ -114,7 +114,7 @@ Semrush **Keyword Difficulty (KD)** is a **0–100 score for how hard it is to r
 - Base endpoint: `https://api.semrush.com/`, `database=in` (India).
 
 **Where in code:**
-- New module `AI_GEN/semrush_enrichment.py`: takes the shortlist, returns the winning keyword + its questions.
+- New module `generators/semrush_enrichment.py`: takes the shortlist, returns the winning keyword + its questions.
 - Called from `blog_generator.py`; results injected into the GPT-4 prompt (difficulty/volume → H2/H3 targeting; questions → FAQ section).
 
 ---
@@ -160,9 +160,9 @@ SEMRUSH_DATABASE=in      # India
 ```
 
 New files:
-- `AI_GEN/gkp_enrichment.py` — seed → shortlist (+ fallback ladder)
-- `AI_GEN/semrush_enrichment.py` — shortlist → winning keyword + questions, with cache
+- `generators/gkp_enrichment.py` — seed → shortlist (+ fallback ladder)
+- `generators/semrush_enrichment.py` — shortlist → winning keyword + questions, with cache
 - keyword cache (JSON in `output/` or a small DB table)
 
 Touch point:
-- `AI_GEN/blog_generator.py` — orchestrate after keyword extraction, inject into GPT-4 prompt. News stack only. Enrichment must never block publishing.
+- `generators/blog_generator.py` — orchestrate after keyword extraction, inject into GPT-4 prompt. News stack only. Enrichment must never block publishing.

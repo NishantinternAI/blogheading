@@ -79,7 +79,7 @@
 #       # Convert string → JSON
 #     data = json.loads(result)
 #     return data
-# AI_GEN/generate_instagram_caption.py
+# generators/generate_instagram_caption.py
 
 import json
 from add_cached import cached_model_call

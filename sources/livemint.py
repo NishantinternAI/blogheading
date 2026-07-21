@@ -1,4 +1,4 @@
-# RSS/livemint.py
+# sources/livemint.py
 
 import feedparser
 import requests
@@ -7,7 +7,7 @@ import re
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-from RSS.common import assess_quality
+from sources.common import assess_quality
 
 try:
     import trafilatura

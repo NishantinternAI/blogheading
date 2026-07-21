@@ -49,17 +49,17 @@ from datetime import datetime
 from datetime import datetime, timezone, timedelta       # ← ADD
 
 # ── RSS Fetchers ──────────────────────────────────────────────
-from RSS.zerodha             import fetch_zerodha
-from RSS.cnbc                import fetch_cnbc
-from RSS.paisa               import fetch_5paisa
-from RSS.livemint            import fetch_livemint
-from RSS.fetch_nse_corporate import fetch_nse_corporate
-from RSS.ipo                 import fetch_nse_ipo
-from RSS.google_trends import fetch_google_trends
-from RSS.google_news_business import fetch_google_news_business
-from RSS.economic_times import fetch_economic_times
-from RSS.ndtv_profit         import fetch_ndtv_profit
-from RSS.Business_Standard import fetch_business_standard
+from sources.zerodha             import fetch_zerodha
+from sources.cnbc                import fetch_cnbc
+from sources.paisa               import fetch_5paisa
+from sources.livemint            import fetch_livemint
+from sources.fetch_nse_corporate import fetch_nse_corporate
+from sources.ipo                 import fetch_nse_ipo
+from sources.google_trends import fetch_google_trends
+from sources.google_news_business import fetch_google_news_business
+from sources.economic_times import fetch_economic_times
+from sources.ndtv_profit         import fetch_ndtv_profit
+from sources.Business_Standard import fetch_business_standard
 
 # ── Image modules ─────────────────────────────────────────────
 from content_engine.image_module.text_extractor import extract_image_text
@@ -75,10 +75,10 @@ from content_engine.image_module.ai_image_generator import generate_ai_image
 
 # ── Utilities & AI ────────────────────────────────────────────
 from utils.combined_filter import filter_by_country_and_category
-from AI_GEN.notify_generator            import generate_notification
-from AI_GEN.generate_instagram_caption  import generate_instagram_caption
-from AI_GEN.get_system_timestamp        import get_run_timestamp
-from AI_GEN.blog_generator import generate_blog, generate_ipo_blog
+from generators.notify_generator            import generate_notification
+from generators.generate_instagram_caption  import generate_instagram_caption
+from generators.get_system_timestamp        import get_run_timestamp
+from generators.blog_generator import generate_blog, generate_ipo_blog
 from storage.save_output                import save_output
 from utils.timer import timed, Timer, print_timing_summary, reset_timings
 from utils.date_filter import filter_fresh_articles
@@ -1062,26 +1062,26 @@ def load_used_titles() -> set:
 
 @timed
 def _generate_blog(item):
-    """Timed wrapper around AI_GEN.blog_generator.generate_blog(item) — used
+    """Timed wrapper around generators.blog_generator.generate_blog(item) — used
     for non-IPO articles (news/corporate/priority-non-IPO)."""
     return generate_blog(item)
 
 @timed
 def _generate_ipo_blog(item):          # ← add this
-    """Timed wrapper around AI_GEN.blog_generator.generate_ipo_blog(item) —
+    """Timed wrapper around generators.blog_generator.generate_ipo_blog(item) —
     used only for priority-stack articles whose source is "nse_ipo"; uses a
     dedicated IPO prompt instead of the generic blog prompt."""
     return generate_ipo_blog(item)
 
 @timed
 def _generate_notification(item):
-    """Timed wrapper around AI_GEN.notify_generator.generate_notification(item).
+    """Timed wrapper around generators.notify_generator.generate_notification(item).
     Note: currently unused/commented out in run_pipeline()'s live calls."""
     return generate_notification(item)
 
 @timed
 def _generate_instagram(item):
-    """Timed wrapper around AI_GEN.generate_instagram_caption.generate_instagram_caption(item).
+    """Timed wrapper around generators.generate_instagram_caption.generate_instagram_caption(item).
     Note: currently unused/commented out in run_pipeline()'s live calls."""
     return generate_instagram_caption(item)
 

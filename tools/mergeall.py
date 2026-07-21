@@ -2,12 +2,15 @@ import random
 import re
 import unicodedata
 import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root
 from filter_blogs_country import  filter_by_country
-from RSS.zerodha import fetch_zerodha
-from RSS.cnbc import fetch_cnbc
-from RSS.paisa import fetch_5paisa
-from RSS.livemint import fetch_livemint
-from RSS.fetch_nse_corporate import fetch_nse_corporate
+from sources.zerodha import fetch_zerodha
+from sources.cnbc import fetch_cnbc
+from sources.paisa import fetch_5paisa
+from sources.livemint import fetch_livemint
+from sources.fetch_nse_corporate import fetch_nse_corporate
 
 from content_engine.image_module.text_extractor import extract_image_text
 from content_engine.image_module.tempalte_selector import select_template
@@ -18,16 +21,16 @@ from content_engine.image_module.validator import validate_template
 
 from dynamic_input_country import get_args
 
-from AI_GEN.filter_by_category_model import filter_by_category_model
-from AI_GEN.notify_generator import generate_notification
-from AI_GEN.generate_instagram_caption import generate_instagram_caption
-from AI_GEN.get_system_timestamp import get_run_timestamp
+from generators.filter_by_category_model import filter_by_category_model
+from generators.notify_generator import generate_notification
+from generators.generate_instagram_caption import generate_instagram_caption
+from generators.get_system_timestamp import get_run_timestamp
 
 
 from Filter_news.finance_filter import filter_finance_batch
 from utils.parser import parse_finance_response
 from utils.normalize_country import filter_by_country_model
-from AI_GEN.blog_generator import generate_blog
+from generators.blog_generator import generate_blog
 from storage.save_output import save_output
 
 

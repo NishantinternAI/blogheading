@@ -22,6 +22,7 @@ Usage:
 """
 
 import os
+import sys
 import json
 import time
 import shutil
@@ -29,6 +30,7 @@ import argparse
 import tempfile
 from datetime import datetime
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root, for keyword_researcher
 from keyword_researcher import get_keyword_volumes
 
 CHECKPOINT_EVERY = 10
