@@ -1030,6 +1030,49 @@ def _remove_empty_sections(html: str) -> str:
     return str(soup)
 
 
+# Competitor brokerages -- their name/domain must never appear inside the
+# HREF of a reference/external link (source citation, related links, or any
+# link the AI slips into Blog_Content). The name itself is still allowed to
+# appear in visible text -- only the link target is blocked.
+COMPETITOR_BROKERS = [
+    "sahi", "groww", "upstox", "angel one", "angelone", "zerodha",
+    "motilal oswal", "anand rathi", "5paisa", "arihant capital",
+    "aditya birla money",
+]
+
+
+def _mentions_competitor(text: str) -> bool:
+    """True if any competitor brokerage name appears in `text` (case-insensitive)."""
+    if not text:
+        return False
+    lowered = text.lower()
+    return any(name in lowered for name in COMPETITOR_BROKERS)
+
+
+def _strip_competitor_links(html: str) -> str:
+    """
+    Unwraps any <a href="...">text</a> whose HREF names a competitor
+    brokerage, keeping the visible text (the company name may still be
+    mentioned in content, just not linked to their site).
+    """
+    if not html:
+        return html
+
+    def _unwrap_if_competitor(match: "re.Match") -> str:
+        href, inner_text = match.group(1), match.group(2)
+        if _mentions_competitor(href):
+            print(f"[WEBFLOW] Stripped competitor link: {href}")
+            return inner_text
+        return match.group(0)
+
+    return re.sub(
+        r'<a\s+[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>',
+        _unwrap_if_competitor,
+        html,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+
 def _get_source_display_name(source_url: str) -> str:
     """
     Dynamically derives a human-readable source name directly from
@@ -1102,6 +1145,10 @@ def _inject_source_reference(html: str, source_url: str, source_name: str) -> st
     - Never inject if reference already present (prevents duplicates)
     """
     if not source_url:
+        return html
+
+    if _mentions_competitor(source_url) or _mentions_competitor(source_name):
+        print(f"[WEBFLOW] Source is a competitor brokerage -- skipping reference link: {source_url}")
         return html
 
     display_name = _get_source_display_name(source_url) or source_name or "Source"
@@ -1386,8 +1433,12 @@ def post_entry_as_draft(entry: dict, image_dir: str = "") -> dict:
         7.  _clean_conclusion()             -- strip misplaced FAQ from Conclusion
         8.  _inject_cta_after_conclusion()  -- add CTA link
         9.  _inject_source_reference()      -- add clickable source attribution
+                                                (skipped if source is a competitor brokerage)
         10. _enhance_blockquotes()          -- style expert opinion callouts
         11. _enhance_tables()               -- style tables with inline CSS
+        12. _strip_competitor_links()       -- unwrap any remaining link to a
+                                                competitor brokerage (name may
+                                                still appear in visible text)
 
     After successful publish:
         - save_webflow_url()   -- captures the real live URL
@@ -1445,7 +1496,8 @@ def post_entry_as_draft(entry: dict, image_dir: str = "") -> dict:
     # ---------------------------------------------------------------------------
 
     raw_content = _enhance_blockquotes(raw_content)
-    content     = _enhance_tables(raw_content)
+    raw_content = _enhance_tables(raw_content)
+    content     = _strip_competitor_links(raw_content)
     faq_script_html = _faq_script(faq_schema) if faq_schema else ""
 
     # -- Resolve WebP image paths -------------------------------------------------
