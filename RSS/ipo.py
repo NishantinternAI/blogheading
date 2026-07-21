@@ -80,10 +80,8 @@ HEADERS_MONEYCONTROL = {
 MONTHS = ["jan","feb","mar","apr","may","jun",
           "jul","aug","sep","oct","nov","dec"]
 
-CACHE_TTL_HOURS = 6
-
-_ipo_df_cache   = None
-_ipo_data_cache = {}
+# Cache TTL / cache dicts moved into IPODetailScraper (below) as instance
+# state (self.CACHE_TTL_HOURS / self._ipo_df_cache / self._ipo_data_cache).
 
 
 # ══════════════════════════════════════════════════════════════
@@ -547,7 +545,7 @@ def _parse_ipo_date(value: str) -> tuple:
 
 
 # ══════════════════════════════════════════════════════════════
-#  SCRAPER 1 — CHITTORGARH
+#  GMP FORMAT VALIDATOR
 # ══════════════════════════════════════════════════════════════
 
 def _looks_like_valid_gmp(text: str) -> bool:
@@ -561,48 +559,377 @@ def _looks_like_valid_gmp(text: str) -> bool:
     return bool(re.match(r'^₹\s*-?[\d,]+(\.\d+)?\s*(\([^)]*%\))?$', text.strip()))
 
 
-def _scrape_chittorgarh(company_name: str) -> dict:
+class IPODetailScraper:
     """
-    Scrapes a single company's Chittorgarh IPO detail page for the bulk of
-    the structured IPO fields: dates, price band, lot size, issue size,
-    quotas, registrar/lead manager, GMP, a business-description snippet,
-    and a parsed financials summary (revenue/PAT/net worth/borrowings with
-    YoY growth) built from the page's "custom-ipo-table" RHP financials
-    table. This is the richest of the three scrapers in practice — GMP and
-    financials in `_scrape_ipo_details` have historically only ever come
-    from this source.
+    Multi-source IPO detail enrichment.
 
-    Looks up the detail-page URL via `_build_ipo_map`/`_find_ipo_url`
-    first; if the company isn't in the map, returns {} immediately without
-    making a request.
+    Merges data scraped from three sites (Chittorgarh, InvestorGain,
+    Moneycontrol) that each cover a different subset of fields, plus an AI
+    web-search fallback (`fetch_ipo_live_data_via_ai`) for GMP/live
+    subscription status that only exists on JS-rendered pages plain
+    scraping can't reach. Results are cached per-company for
+    `CACHE_TTL_HOURS`.
 
-    Args:
-        company_name: Raw company name (as reported by NSE).
-
-    Returns:
-        Dict of whatever fields were found on the page (subset of:
-        ipo_url, ipo_date, open_date, close_date, listing_date,
-        price_band, lot_size, issue_size, face_value, exchange,
-        issue_type, sale_type, fresh_issue, ofs, min_investment, registrar,
-        lead_manager, qib_quota, nii_quota, retail_quota,
-        pre_issue_shares, post_issue_shares, gmp, business, financials,
-        market_cap). Returns {} if the company has no mapped URL.
+    Instantiated once at module scope (`_scraper`, below) so the cache
+    persists across pipeline runs within the same process — this class
+    holds no per-request state, only the shared caches, so a single
+    long-lived instance is intentional, not incidental.
     """
-    df      = _build_ipo_map()
-    ipo_url = _find_ipo_url(company_name, df)
 
-    if not ipo_url:
-        print(f"[IPO] Chittorgarh: {company_name} not in map")
-        return {}
+    CACHE_TTL_HOURS = 6
 
-    print(f"[IPO] Chittorgarh: {ipo_url}")
+    def __init__(self):
+        self._ipo_df_cache   = None
+        self._ipo_data_cache = {}
 
-    resp = requests.get(ipo_url, headers=HEADERS_CHITTORGARH, timeout=15)
-    soup = BeautifulSoup(resp.text, "html.parser")
-    data = {"ipo_url": ipo_url}
+    # ── SCRAPER 1 — CHITTORGARH ──────────────────────────────────
 
-    for table in soup.find_all("table"):
-        for row in table.find_all("tr"):
+    def _build_ipo_map(self) -> pd.DataFrame:
+        """
+        Scrapes Chittorgarh's mainboard + SME IPO list pages (`LIST_URLS`)
+        into a DataFrame mapping IPO name → detail-page URL, used by
+        `_find_ipo_url` to locate a given company's Chittorgarh page.
+
+        Cached for the lifetime of this instance in `self._ipo_df_cache` —
+        there is no TTL, so a company that lists after the cache was first
+        built will not be found until the process restarts (see
+        CLAUDE.md gotchas). Per-URL scrape failures are caught and
+        logged; the map is simply built from whatever URLs succeeded.
+
+        Returns:
+            DataFrame with columns `ipo_name`, `url`, `source`,
+            `ipo_name_lower`. Empty (but correctly-columned) if every list
+            page failed to scrape or yielded no matching links.
+        """
+        if self._ipo_df_cache is not None:
+            return self._ipo_df_cache
+
+        print("[IPO] Building Chittorgarh IPO map...")
+        ipo_links = []
+
+        for url in LIST_URLS:
+            print(f"[IPO] Scraping list: {url}")
+            try:
+                response = requests.get(
+                    url, headers=HEADERS_CHITTORGARH, timeout=10
+                )
+                print(f"[IPO] Status: {response.status_code}")
+                soup = BeautifulSoup(response.text, "html.parser")
+
+                for a in soup.find_all("a", href=True):
+                    href = a["href"]
+                    name = a.get_text(strip=True)
+
+                    if any(skip in href for skip in [
+                        "ipo_dashboard", "ipo_perf_tracker",
+                        "ipo_discussions", "investorgain.com",
+                    ]):
+                        continue
+
+                    if ("/ipo/" in href and "-ipo/" in href and
+                            name and len(name) > 3):
+                        full_url = href if href.startswith("http") \
+                                   else "https://www.chittorgarh.com" + href
+                        source   = url.split("/")[6] \
+                                   if len(url.split("/")) > 6 else "list"
+                        ipo_links.append({
+                            "ipo_name": name,
+                            "url":      full_url,
+                            "source":   source,
+                        })
+
+            except Exception as e:
+                print(f"[IPO] List scrape error {url}: {e}")
+
+        if ipo_links:
+            df = pd.DataFrame(ipo_links).drop_duplicates(subset=["url"])
+            df["ipo_name_lower"] = df["ipo_name"].str.lower()
+        else:
+            df = pd.DataFrame(
+                columns=["ipo_name","url","source","ipo_name_lower"]
+            )
+
+        print(f"[IPO] Map built: {len(df)} unique IPOs")
+        if not df.empty:
+            print(df[["ipo_name", "url"]].to_string(index=False))
+
+        self._ipo_df_cache = df
+        return df
+
+    def _find_ipo_url(self, company_name: str, df: pd.DataFrame) -> str:
+        """
+        Looks up `company_name`'s Chittorgarh IPO detail-page URL in the
+        map built by `_build_ipo_map`.
+
+        Two-pass fuzzy match: first tries a direct substring match
+        (normalized name is a substring of the map's lowercased IPO name,
+        or vice versa); if that fails, falls back to a word-overlap match
+        requiring at least 2 shared words longer than 3 characters. This
+        tolerates naming differences between NSE ("Foo Industries
+        Limited") and Chittorgarh ("Foo Industries IPO") but can
+        occasionally mismatch on generic word overlap for very short or
+        generic company names.
+
+        Args:
+            company_name: Raw company name (as reported by NSE).
+            df: The IPO map DataFrame from `_build_ipo_map`.
+
+        Returns:
+            The matched detail-page URL, or "" if `df` is empty or no row
+            matched either pass.
+        """
+        if df.empty:
+            return ""
+
+        name_clean = _normalize_company_key(company_name)
+
+        for _, row in df.iterrows():
+            key = row["ipo_name_lower"]
+            if name_clean in key or key in name_clean:
+                return row["url"]
+
+        words = [w for w in name_clean.split() if len(w) > 3]
+        for _, row in df.iterrows():
+            key     = row["ipo_name_lower"]
+            matches = sum(1 for w in words if w in key)
+            if matches >= 2:
+                return row["url"]
+
+        return ""
+
+    def _scrape_chittorgarh(self, company_name: str) -> dict:
+        """
+        Scrapes a single company's Chittorgarh IPO detail page for the bulk of
+        the structured IPO fields: dates, price band, lot size, issue size,
+        quotas, registrar/lead manager, GMP, a business-description snippet,
+        and a parsed financials summary (revenue/PAT/net worth/borrowings with
+        YoY growth) built from the page's "custom-ipo-table" RHP financials
+        table. This is the richest of the three scrapers in practice — GMP and
+        financials in `get_details` have historically only ever come
+        from this source.
+
+        Looks up the detail-page URL via `_build_ipo_map`/`_find_ipo_url`
+        first; if the company isn't in the map, returns {} immediately without
+        making a request.
+
+        Args:
+            company_name: Raw company name (as reported by NSE).
+
+        Returns:
+            Dict of whatever fields were found on the page (subset of:
+            ipo_url, ipo_date, open_date, close_date, listing_date,
+            price_band, lot_size, issue_size, face_value, exchange,
+            issue_type, sale_type, fresh_issue, ofs, min_investment, registrar,
+            lead_manager, qib_quota, nii_quota, retail_quota,
+            pre_issue_shares, post_issue_shares, gmp, business, financials,
+            market_cap). Returns {} if the company has no mapped URL.
+        """
+        df      = self._build_ipo_map()
+        ipo_url = self._find_ipo_url(company_name, df)
+
+        if not ipo_url:
+            print(f"[IPO] Chittorgarh: {company_name} not in map")
+            return {}
+    
+        print(f"[IPO] Chittorgarh: {ipo_url}")
+    
+        resp = requests.get(ipo_url, headers=HEADERS_CHITTORGARH, timeout=15)
+        soup = BeautifulSoup(resp.text, "html.parser")
+        data = {"ipo_url": ipo_url}
+    
+        for table in soup.find_all("table"):
+            for row in table.find_all("tr"):
+                cols = row.find_all(["td","th"])
+                if len(cols) < 2:
+                    continue
+                key   = cols[0].get_text(strip=True).lower()
+                value = cols[1].get_text(strip=True)
+                if not key or not value:
+                    continue
+    
+                if "ipo date" in key:
+                    data["ipo_date"] = value
+                    open_d, close_d  = _parse_ipo_date(value)
+                    data["open_date"]  = open_d
+                    data["close_date"] = close_d
+    
+                if "listing date"       in key: data["listing_date"]     = value.rstrip("T").strip()
+                if "price band"         in key: data["price_band"]       = value
+                if "lot size"           in key: data["lot_size"]          = value
+                if "market lot"         in key: data["lot_size"]          = value
+                if "total issue size"   in key: data["issue_size"]       = value
+                if "issue size"         in key: data["issue_size"]       = value
+                if "face value"         in key: data["face_value"]       = value
+                if "listing at"         in key: data["exchange"]         = value
+                if "issue type"         in key: data["issue_type"]       = value
+                if "sale type"          in key: data["sale_type"]        = value
+                if "fresh issue"        in key: data["fresh_issue"]      = value
+                if "offer for sale"     in key: data["ofs"]              = value
+                if "min investment"     in key: data["min_investment"]   = value
+                if "registrar"          in key: data["registrar"]        = value
+                if "lead manager"       in key: data["lead_manager"]     = value
+                # Only the top-level "X Shares Offered" rows carry the real quota —
+                # sub-rows like "− QIB (Ex. Anchor)..." / "bNII > ₹10L" / "sNII < ₹10L"
+                # and "Retail (Min)"/"Retail (Max)" (lot-count rows, not quotas) also
+                # match a loose "qib"/"nii"/"retail" substring check and were
+                # clobbering the real value with whichever matched last.
+                if "shares offered" in key and not key.startswith(("−", "-")):
+                    if key.startswith("qib"):    data["qib_quota"]    = value
+                    elif key.startswith("nii"):  data["nii_quota"]    = value
+                    elif key.startswith("retail"): data["retail_quota"] = value
+                if "share holding pre"  in key: data["pre_issue_shares"] = value
+                if "share holding post" in key: data["post_issue_shares"]= value
+    
+        for tag in soup.find_all(["td","span"]):
+            text = tag.get_text(strip=True)
+            if (len(text) < 30 and "₹" in text and
+                    ("grey market" in text.lower() or "gmp" in text.lower()) and
+                    _looks_like_valid_gmp(text)):
+                data["gmp"] = text
+                break
+    
+        company_lower = _normalize_company_key(company_name)
+        company_words = [w for w in company_lower.split() if len(w) > 3]
+        for div in soup.find_all("div", class_="accordion-body"):
+            text = div.get_text(strip=True)
+            if (len(text) > 80 and "ipo" in text.lower() and
+                    any(w in text.lower() for w in company_words)):
+                data["business"] = text[:500]
+                break
+    
+        for div in soup.find_all("div", class_=True):
+            classes = " ".join(div.get("class", []))
+            if "custom-ipo-table" not in classes:
+                continue
+            fin_table = div.find("table")
+            if not fin_table:
+                continue
+            row_data = {}
+            for row in fin_table.find_all("tr"):
+                cells = [c.get_text(strip=True) for c in row.find_all(["td", "th"])]
+                if len(cells) < 2:
+                    continue
+                row_data[cells[0]] = cells[1:]
+            if "Period Ended" not in row_data or not any(
+                k in row_data for k in ("Total Income", "Profit After Tax", "Assets")
+            ):
+                continue
+    
+            periods   = row_data.get("Period Ended", [])
+            income    = row_data.get("Total Income", [])
+            pat       = row_data.get("Profit After Tax", [])
+            networth  = row_data.get("NET Worth", [])
+            borrowing = row_data.get("Total Borrowing", [])
+    
+            def _growth(cur, prev):
+                try:
+                    cur_f  = float(cur.replace(",", ""))
+                    prev_f = float(prev.replace(",", ""))
+                    if prev_f == 0:
+                        return None
+                    return f"{((cur_f - prev_f) / prev_f) * 100:+.1f}%"
+                except (ValueError, IndexError):
+                    return None
+    
+            lines = ["Financials (₹ Crore, from RHP):"]
+            for i, period in enumerate(periods[:2]):
+                parts = [f"Period: {period}"]
+                if i < len(income):
+                    parts.append(f"Revenue: ₹{income[i]} Cr")
+                if i < len(pat):
+                    parts.append(f"PAT: ₹{pat[i]} Cr")
+                if i < len(networth):
+                    parts.append(f"Net Worth: ₹{networth[i]} Cr")
+                if i < len(borrowing):
+                    parts.append(f"Borrowings: ₹{borrowing[i]} Cr")
+                lines.append("  " + ", ".join(parts))
+            if len(income) >= 2:
+                g = _growth(income[0], income[1])
+                if g:
+                    lines.append(f"  Revenue YoY growth: {g}")
+            if len(pat) >= 2:
+                g = _growth(pat[0], pat[1])
+                if g:
+                    lines.append(f"  PAT YoY growth: {g}")
+    
+            data["financials"] = "\n".join(lines)
+            break
+    
+        match = re.search(r"Market Cap.*?₹([\d,.]+\s*Cr)", soup.get_text())
+        if match:
+            data["market_cap"] = "₹" + match.group(1)
+    
+        print(f"[IPO] Chittorgarh fields: {list(data.keys())}")
+        return data
+
+
+# ══════════════════════════════════════════════════════════════
+#  SCRAPER 2 — INVESTORGAIN
+# ══════════════════════════════════════════════════════════════
+
+    def _scrape_investorgain(self, company_name: str) -> dict:
+        """
+        Searches InvestorGain's live-subscription and upcoming-IPO listing
+        pages for `company_name`, then scrapes its detail page for date/price/
+        lot/issue-size style fields.
+    
+        GOTCHA: confirmed by live testing this session, this scraper is
+        effectively non-functional in practice. InvestorGain's real data
+        table (subscription figures, GMP) is rendered client-side by
+        JavaScript; plain `requests` + BeautifulSoup only ever sees the
+        pre-render HTML shell, so the fields this function is nominally meant
+        to contribute typically come back empty even when a matching IPO page
+        is found. It is kept in `get_details`'s scraper waterfall mainly as
+        a low-cost no-op fallback, not a reliable data source — GMP/live
+        subscription data actually comes from the AI web-search fallback
+        (`fetch_ipo_live_data_via_ai`), not from this scraper.
+    
+        Args:
+            company_name: Raw company name (as reported by NSE).
+    
+        Returns:
+            Dict of whatever fields were found (subset of: ipo_url, open_date,
+            close_date, ipo_date, listing_date, price_band, lot_size,
+            issue_size, face_value, exchange, issue_type, min_investment).
+            Returns {} if no matching IPO page could be found on either
+            search page.
+        """
+        print(f"[IPO] InvestorGain: searching for {company_name}...")
+    
+        name_clean = _normalize_company_key(company_name)
+    
+        for search_url in [
+            "https://www.investorgain.com/report/ipo-subscription-live/331/",
+            "https://www.investorgain.com/report/upcoming-ipo/331/",
+        ]:
+            resp = requests.get(
+                search_url, headers=HEADERS_INVESTORGAIN, timeout=15
+            )
+            soup = BeautifulSoup(resp.text, "html.parser")
+    
+            ipo_url = ""
+            for a in soup.find_all("a", href=True):
+                text = a.get_text(strip=True).lower()
+                href = a["href"]
+                if name_clean[:8] in text and "/ipo/" in href:
+                    ipo_url = href
+                    if not ipo_url.startswith("http"):
+                        ipo_url = "https://www.investorgain.com" + ipo_url
+                    break
+    
+            if ipo_url:
+                break
+    
+        if not ipo_url:
+            print(f"[IPO] InvestorGain: {company_name} not found")
+            return {}
+    
+        print(f"[IPO] InvestorGain: {ipo_url}")
+        resp2 = requests.get(ipo_url, headers=HEADERS_INVESTORGAIN, timeout=15)
+        soup2 = BeautifulSoup(resp2.text, "html.parser")
+        data  = {"ipo_url": ipo_url}
+    
+        for row in soup2.find_all("tr"):
             cols = row.find_all(["td","th"])
             if len(cols) < 2:
                 continue
@@ -610,424 +937,241 @@ def _scrape_chittorgarh(company_name: str) -> dict:
             value = cols[1].get_text(strip=True)
             if not key or not value:
                 continue
-
-            if "ipo date" in key:
-                data["ipo_date"] = value
-                open_d, close_d  = _parse_ipo_date(value)
+    
+            if "open date" in key or "ipo date" in key:
+                open_d, close_d    = _parse_ipo_date(value)
                 data["open_date"]  = open_d
                 data["close_date"] = close_d
-
-            if "listing date"       in key: data["listing_date"]     = value.rstrip("T").strip()
-            if "price band"         in key: data["price_band"]       = value
-            if "lot size"           in key: data["lot_size"]          = value
-            if "market lot"         in key: data["lot_size"]          = value
-            if "total issue size"   in key: data["issue_size"]       = value
-            if "issue size"         in key: data["issue_size"]       = value
-            if "face value"         in key: data["face_value"]       = value
-            if "listing at"         in key: data["exchange"]         = value
-            if "issue type"         in key: data["issue_type"]       = value
-            if "sale type"          in key: data["sale_type"]        = value
-            if "fresh issue"        in key: data["fresh_issue"]      = value
-            if "offer for sale"     in key: data["ofs"]              = value
-            if "min investment"     in key: data["min_investment"]   = value
-            if "registrar"          in key: data["registrar"]        = value
-            if "lead manager"       in key: data["lead_manager"]     = value
-            # Only the top-level "X Shares Offered" rows carry the real quota —
-            # sub-rows like "− QIB (Ex. Anchor)..." / "bNII > ₹10L" / "sNII < ₹10L"
-            # and "Retail (Min)"/"Retail (Max)" (lot-count rows, not quotas) also
-            # match a loose "qib"/"nii"/"retail" substring check and were
-            # clobbering the real value with whichever matched last.
-            if "shares offered" in key and not key.startswith(("−", "-")):
-                if key.startswith("qib"):    data["qib_quota"]    = value
-                elif key.startswith("nii"):  data["nii_quota"]    = value
-                elif key.startswith("retail"): data["retail_quota"] = value
-            if "share holding pre"  in key: data["pre_issue_shares"] = value
-            if "share holding post" in key: data["post_issue_shares"]= value
-
-    for tag in soup.find_all(["td","span"]):
-        text = tag.get_text(strip=True)
-        if (len(text) < 30 and "₹" in text and
-                ("grey market" in text.lower() or "gmp" in text.lower()) and
-                _looks_like_valid_gmp(text)):
-            data["gmp"] = text
-            break
-
-    company_lower = _normalize_company_key(company_name)
-    company_words = [w for w in company_lower.split() if len(w) > 3]
-    for div in soup.find_all("div", class_="accordion-body"):
-        text = div.get_text(strip=True)
-        if (len(text) > 80 and "ipo" in text.lower() and
-                any(w in text.lower() for w in company_words)):
-            data["business"] = text[:500]
-            break
-
-    for div in soup.find_all("div", class_=True):
-        classes = " ".join(div.get("class", []))
-        if "custom-ipo-table" not in classes:
-            continue
-        fin_table = div.find("table")
-        if not fin_table:
-            continue
-        row_data = {}
-        for row in fin_table.find_all("tr"):
-            cells = [c.get_text(strip=True) for c in row.find_all(["td", "th"])]
-            if len(cells) < 2:
-                continue
-            row_data[cells[0]] = cells[1:]
-        if "Period Ended" not in row_data or not any(
-            k in row_data for k in ("Total Income", "Profit After Tax", "Assets")
-        ):
-            continue
-
-        periods   = row_data.get("Period Ended", [])
-        income    = row_data.get("Total Income", [])
-        pat       = row_data.get("Profit After Tax", [])
-        networth  = row_data.get("NET Worth", [])
-        borrowing = row_data.get("Total Borrowing", [])
-
-        def _growth(cur, prev):
-            try:
-                cur_f  = float(cur.replace(",", ""))
-                prev_f = float(prev.replace(",", ""))
-                if prev_f == 0:
-                    return None
-                return f"{((cur_f - prev_f) / prev_f) * 100:+.1f}%"
-            except (ValueError, IndexError):
-                return None
-
-        lines = ["Financials (₹ Crore, from RHP):"]
-        for i, period in enumerate(periods[:2]):
-            parts = [f"Period: {period}"]
-            if i < len(income):
-                parts.append(f"Revenue: ₹{income[i]} Cr")
-            if i < len(pat):
-                parts.append(f"PAT: ₹{pat[i]} Cr")
-            if i < len(networth):
-                parts.append(f"Net Worth: ₹{networth[i]} Cr")
-            if i < len(borrowing):
-                parts.append(f"Borrowings: ₹{borrowing[i]} Cr")
-            lines.append("  " + ", ".join(parts))
-        if len(income) >= 2:
-            g = _growth(income[0], income[1])
-            if g:
-                lines.append(f"  Revenue YoY growth: {g}")
-        if len(pat) >= 2:
-            g = _growth(pat[0], pat[1])
-            if g:
-                lines.append(f"  PAT YoY growth: {g}")
-
-        data["financials"] = "\n".join(lines)
-        break
-
-    match = re.search(r"Market Cap.*?₹([\d,.]+\s*Cr)", soup.get_text())
-    if match:
-        data["market_cap"] = "₹" + match.group(1)
-
-    print(f"[IPO] Chittorgarh fields: {list(data.keys())}")
-    return data
-
-
-# ══════════════════════════════════════════════════════════════
-#  SCRAPER 2 — INVESTORGAIN
-# ══════════════════════════════════════════════════════════════
-
-def _scrape_investorgain(company_name: str) -> dict:
-    """
-    Searches InvestorGain's live-subscription and upcoming-IPO listing
-    pages for `company_name`, then scrapes its detail page for date/price/
-    lot/issue-size style fields.
-
-    GOTCHA: confirmed by live testing this session, this scraper is
-    effectively non-functional in practice. InvestorGain's real data
-    table (subscription figures, GMP) is rendered client-side by
-    JavaScript; plain `requests` + BeautifulSoup only ever sees the
-    pre-render HTML shell, so the fields this function is nominally meant
-    to contribute typically come back empty even when a matching IPO page
-    is found. It is kept in the `_scrape_ipo_details` waterfall mainly as
-    a low-cost no-op fallback, not a reliable data source — GMP/live
-    subscription data actually comes from the AI web-search fallback
-    (`fetch_ipo_live_data_via_ai`), not from this scraper.
-
-    Args:
-        company_name: Raw company name (as reported by NSE).
-
-    Returns:
-        Dict of whatever fields were found (subset of: ipo_url, open_date,
-        close_date, ipo_date, listing_date, price_band, lot_size,
-        issue_size, face_value, exchange, issue_type, min_investment).
-        Returns {} if no matching IPO page could be found on either
-        search page.
-    """
-    print(f"[IPO] InvestorGain: searching for {company_name}...")
-
-    name_clean = _normalize_company_key(company_name)
-
-    for search_url in [
-        "https://www.investorgain.com/report/ipo-subscription-live/331/",
-        "https://www.investorgain.com/report/upcoming-ipo/331/",
-    ]:
-        resp = requests.get(
-            search_url, headers=HEADERS_INVESTORGAIN, timeout=15
-        )
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        ipo_url = ""
-        for a in soup.find_all("a", href=True):
-            text = a.get_text(strip=True).lower()
-            href = a["href"]
-            if name_clean[:8] in text and "/ipo/" in href:
-                ipo_url = href
-                if not ipo_url.startswith("http"):
-                    ipo_url = "https://www.investorgain.com" + ipo_url
-                break
-
-        if ipo_url:
-            break
-
-    if not ipo_url:
-        print(f"[IPO] InvestorGain: {company_name} not found")
-        return {}
-
-    print(f"[IPO] InvestorGain: {ipo_url}")
-    resp2 = requests.get(ipo_url, headers=HEADERS_INVESTORGAIN, timeout=15)
-    soup2 = BeautifulSoup(resp2.text, "html.parser")
-    data  = {"ipo_url": ipo_url}
-
-    for row in soup2.find_all("tr"):
-        cols = row.find_all(["td","th"])
-        if len(cols) < 2:
-            continue
-        key   = cols[0].get_text(strip=True).lower()
-        value = cols[1].get_text(strip=True)
-        if not key or not value:
-            continue
-
-        if "open date" in key or "ipo date" in key:
-            open_d, close_d    = _parse_ipo_date(value)
-            data["open_date"]  = open_d
-            data["close_date"] = close_d
-            data["ipo_date"]   = value
-        if "close date"     in key: data["close_date"]    = value
-        if "listing date"   in key: data["listing_date"]  = value.rstrip("T").strip()
-        if "price band"     in key: data["price_band"]    = value
-        if "lot size"       in key: data["lot_size"]       = value
-        if "issue size"     in key: data["issue_size"]    = value
-        if "face value"     in key: data["face_value"]    = value
-        if "listing at"     in key: data["exchange"]      = value
-        if "issue type"     in key: data["issue_type"]    = value
-        if "min investment" in key: data["min_investment"]= value
-
-    print(f"[IPO] InvestorGain fields: {list(data.keys())}")
-    return data
+                data["ipo_date"]   = value
+            if "close date"     in key: data["close_date"]    = value
+            if "listing date"   in key: data["listing_date"]  = value.rstrip("T").strip()
+            if "price band"     in key: data["price_band"]    = value
+            if "lot size"       in key: data["lot_size"]       = value
+            if "issue size"     in key: data["issue_size"]    = value
+            if "face value"     in key: data["face_value"]    = value
+            if "listing at"     in key: data["exchange"]      = value
+            if "issue type"     in key: data["issue_type"]    = value
+            if "min investment" in key: data["min_investment"]= value
+    
+        print(f"[IPO] InvestorGain fields: {list(data.keys())}")
+        return data
 
 
 # ══════════════════════════════════════════════════════════════
 #  SCRAPER 3 — MONEYCONTROL
 # ══════════════════════════════════════════════════════════════
 
-def _scrape_moneycontrol(company_name: str) -> dict:
-    """
-    Searches Moneycontrol's IPO listing page for `company_name` and, if
-    found, extracts price band / open-close dates / lot size / issue size
-    / listing date from the detail page's raw text via regex (there's no
-    structured table parsing here, unlike the Chittorgarh/InvestorGain
-    scrapers). If no matching link is found, falls back to regexing a
-    600-character text window around the company's first name mention on
-    the listing page itself, which is much lower-fidelity.
-
-    Args:
-        company_name: Raw company name (as reported by NSE).
-
-    Returns:
-        Dict of whatever fields the regexes matched (subset of:
-        price_band, open_date, close_date, lot_size, issue_size,
-        listing_date). Returns {} if nothing matched.
-    """
-    print(f"[IPO] Moneycontrol: searching for {company_name}...")
-
-    name_clean = _normalize_company_key(company_name)
-    name_short = name_clean.split()[0]
-
-    search_url = "https://www.moneycontrol.com/ipo"
-    resp = requests.get(search_url, headers=HEADERS_MONEYCONTROL, timeout=15)
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    ipo_url = ""
-    for a in soup.find_all("a", href=True):
-        text = a.get_text(strip=True).lower()
-        href = a["href"]
-        if (name_short in text and
-                "ipo" in href.lower() and
-                "moneycontrol.com" in href):
-            ipo_url = href
-            break
-
-    data = {}
-
-    if ipo_url:
-        print(f"[IPO] Moneycontrol: {ipo_url}")
-        resp2     = requests.get(ipo_url, headers=HEADERS_MONEYCONTROL, timeout=15)
-        soup2     = BeautifulSoup(resp2.text, "html.parser")
-        full_text = soup2.get_text()
-    else:
-        full_text = soup.get_text()
-        idx       = full_text.lower().find(name_short)
-        full_text = full_text[idx:idx+600] if idx != -1 else ""
-
-    if full_text:
-        m = re.search(r'₹[\d,]+\s*(?:to|-)\s*₹[\d,]+', full_text)
-        if m: data["price_band"] = m.group()
-
-        m = re.search(
-            r'(\w+ \d{1,2},?\s*\d{4})\s*(?:to|-)\s*(\w+ \d{1,2},?\s*\d{4})',
-            full_text
-        )
-        if m:
-            data["open_date"]  = m.group(1).strip()
-            data["close_date"] = m.group(2).strip()
-
-        m = re.search(r'(\d[\d,]*)\s*shares', full_text, re.IGNORECASE)
-        if m: data["lot_size"] = f"{m.group(1)} Shares"
-
-        m = re.search(r'₹([\d,.]+\s*(?:Cr|crore))', full_text, re.IGNORECASE)
-        if m: data["issue_size"] = f"₹{m.group(1)}"
-
-        m = re.search(
-            r'(?:listing|list)\s*(?:date|on)[:\s]+(\w+ \d{1,2},?\s*\d{4})',
-            full_text, re.IGNORECASE
-        )
-        if m: data["listing_date"] = m.group(1).strip()
-
-    if data:
-        print(f"[IPO] Moneycontrol fields: {list(data.keys())}")
-    else:
-        print(f"[IPO] Moneycontrol: no data found for {company_name}")
-
-    return data
+    def _scrape_moneycontrol(self, company_name: str) -> dict:
+        """
+        Searches Moneycontrol's IPO listing page for `company_name` and, if
+        found, extracts price band / open-close dates / lot size / issue size
+        / listing date from the detail page's raw text via regex (there's no
+        structured table parsing here, unlike the Chittorgarh/InvestorGain
+        scrapers). If no matching link is found, falls back to regexing a
+        600-character text window around the company's first name mention on
+        the listing page itself, which is much lower-fidelity.
+    
+        Args:
+            company_name: Raw company name (as reported by NSE).
+    
+        Returns:
+            Dict of whatever fields the regexes matched (subset of:
+            price_band, open_date, close_date, lot_size, issue_size,
+            listing_date). Returns {} if nothing matched.
+        """
+        print(f"[IPO] Moneycontrol: searching for {company_name}...")
+    
+        name_clean = _normalize_company_key(company_name)
+        name_short = name_clean.split()[0]
+    
+        search_url = "https://www.moneycontrol.com/ipo"
+        resp = requests.get(search_url, headers=HEADERS_MONEYCONTROL, timeout=15)
+        soup = BeautifulSoup(resp.text, "html.parser")
+    
+        ipo_url = ""
+        for a in soup.find_all("a", href=True):
+            text = a.get_text(strip=True).lower()
+            href = a["href"]
+            if (name_short in text and
+                    "ipo" in href.lower() and
+                    "moneycontrol.com" in href):
+                ipo_url = href
+                break
+    
+        data = {}
+    
+        if ipo_url:
+            print(f"[IPO] Moneycontrol: {ipo_url}")
+            resp2     = requests.get(ipo_url, headers=HEADERS_MONEYCONTROL, timeout=15)
+            soup2     = BeautifulSoup(resp2.text, "html.parser")
+            full_text = soup2.get_text()
+        else:
+            full_text = soup.get_text()
+            idx       = full_text.lower().find(name_short)
+            full_text = full_text[idx:idx+600] if idx != -1 else ""
+    
+        if full_text:
+            m = re.search(r'₹[\d,]+\s*(?:to|-)\s*₹[\d,]+', full_text)
+            if m: data["price_band"] = m.group()
+    
+            m = re.search(
+                r'(\w+ \d{1,2},?\s*\d{4})\s*(?:to|-)\s*(\w+ \d{1,2},?\s*\d{4})',
+                full_text
+            )
+            if m:
+                data["open_date"]  = m.group(1).strip()
+                data["close_date"] = m.group(2).strip()
+    
+            m = re.search(r'(\d[\d,]*)\s*shares', full_text, re.IGNORECASE)
+            if m: data["lot_size"] = f"{m.group(1)} Shares"
+    
+            m = re.search(r'₹([\d,.]+\s*(?:Cr|crore))', full_text, re.IGNORECASE)
+            if m: data["issue_size"] = f"₹{m.group(1)}"
+    
+            m = re.search(
+                r'(?:listing|list)\s*(?:date|on)[:\s]+(\w+ \d{1,2},?\s*\d{4})',
+                full_text, re.IGNORECASE
+            )
+            if m: data["listing_date"] = m.group(1).strip()
+    
+        if data:
+            print(f"[IPO] Moneycontrol fields: {list(data.keys())}")
+        else:
+            print(f"[IPO] Moneycontrol: no data found for {company_name}")
+    
+        return data
 
 
 # ══════════════════════════════════════════════════════════════
 #  WATERFALL SCRAPER + CACHE
 # ══════════════════════════════════════════════════════════════
 
-def _scrape_ipo_details(company_name: str) -> dict:
-    """
-    Returns the merged, cached IPO detail dict for `company_name` — the
-    single entry point the rest of the module uses to get enriched IPO
-    data (called from `fetch_nse_ipo`).
+    def get_details(self, company_name: str) -> dict:
+        """
+        Returns the merged, cached IPO detail dict for `company_name` — the
+        single entry point the rest of the module uses to get enriched IPO
+        data (called from `fetch_nse_ipo` via the module-level `_scraper`
+        instance).
 
-    Behavior:
-      1. Serves from `_ipo_data_cache` (keyed by `_normalize_company_key`)
-         if a fresh (< `CACHE_TTL_HOURS`) entry exists.
-      2. Otherwise runs all three scrapers (Chittorgarh, InvestorGain,
-         Moneycontrol) and merges their output field-by-field, first
-         non-empty value for each key wins (does not stop at the first
-         scraper that returns *anything* — each site tends to cover
-         different fields, and stopping early throws away data the other
-         scrapers had).
-      3. If the merge produced at least a price band or open date, also
-         calls the AI web-search fallback (`fetch_ipo_live_data_via_ai`)
-         for GMP/subscription fields specifically when the scraped GMP
-         doesn't pass `_looks_like_valid_gmp` or subscription data is
-         missing — these fields live on JS-rendered pages the requests-
-         based scrapers can't read. The AI result is only trusted after
-         the same GMP format validation.
-      4. Caches and returns the merged dict (with a `data_source` field
-         describing which sources contributed, e.g.
-         "Chittorgarh + AI-web-search").
-      5. If all live scrapers fail entirely but a stale cache entry
-         exists, returns that stale entry (tagged `data_source =
-         "cache_stale"`) rather than nothing.
+        Behavior:
+          1. Serves from `self._ipo_data_cache` (keyed by
+             `_normalize_company_key`) if a fresh (< `CACHE_TTL_HOURS`)
+             entry exists.
+          2. Otherwise runs all three scrapers (Chittorgarh, InvestorGain,
+             Moneycontrol) and merges their output field-by-field, first
+             non-empty value for each key wins (does not stop at the first
+             scraper that returns *anything* — each site tends to cover
+             different fields, and stopping early throws away data the other
+             scrapers had).
+          3. If the merge produced at least a price band or open date, also
+             calls the AI web-search fallback (`fetch_ipo_live_data_via_ai`)
+             for GMP/subscription fields specifically when the scraped GMP
+             doesn't pass `_looks_like_valid_gmp` or subscription data is
+             missing — these fields live on JS-rendered pages the requests-
+             based scrapers can't read. The AI result is only trusted after
+             the same GMP format validation.
+          4. Caches and returns the merged dict (with a `data_source` field
+             describing which sources contributed, e.g.
+             "Chittorgarh + AI-web-search").
+          5. If all live scrapers fail entirely but a stale cache entry
+             exists, returns that stale entry (tagged `data_source =
+             "cache_stale"`) rather than nothing.
 
-    Args:
-        company_name: Raw company name (as reported by NSE).
+        Args:
+            company_name: Raw company name (as reported by NSE).
 
-    Returns:
-        Merged detail dict (see `_scrape_chittorgarh`/
-        `_scrape_investorgain`/`_scrape_moneycontrol` for possible keys),
-        plus `data_source`. Returns {} only if there is no cache at all
-        and every scraper (including the AI fallback) failed to produce
-        even a price band or open date.
-    """
-    cache_key = _normalize_company_key(company_name)
+        Returns:
+            Merged detail dict (see `_scrape_chittorgarh`/
+            `_scrape_investorgain`/`_scrape_moneycontrol` for possible keys),
+            plus `data_source`. Returns {} only if there is no cache at all
+            and every scraper (including the AI fallback) failed to produce
+            even a price band or open date.
+        """
+        cache_key = _normalize_company_key(company_name)
 
-    if cache_key in _ipo_data_cache:
-        cached_data, cached_at = _ipo_data_cache[cache_key]
-        age_hours = (datetime.now() - cached_at).total_seconds() / 3600
-        if age_hours < CACHE_TTL_HOURS:
-            src = cached_data.get("data_source", "cache")
-            print(f"[IPO] Cache hit: '{cache_key}' "
-                  f"(age={age_hours:.1f}h source={src})")
-            return cached_data
-        else:
-            print(f"[IPO] Cache stale: '{cache_key}' — re-fetching")
+        if cache_key in self._ipo_data_cache:
+            cached_data, cached_at = self._ipo_data_cache[cache_key]
+            age_hours = (datetime.now() - cached_at).total_seconds() / 3600
+            if age_hours < self.CACHE_TTL_HOURS:
+                src = cached_data.get("data_source", "cache")
+                print(f"[IPO] Cache hit: '{cache_key}' "
+                      f"(age={age_hours:.1f}h source={src})")
+                return cached_data
+            else:
+                print(f"[IPO] Cache stale: '{cache_key}' — re-fetching")
 
-    scrapers = [
-        ("Chittorgarh",  _scrape_chittorgarh),
-        ("InvestorGain", _scrape_investorgain),
-        ("Moneycontrol", _scrape_moneycontrol),
-    ]
+        scrapers = [
+            ("Chittorgarh",  self._scrape_chittorgarh),
+            ("InvestorGain", self._scrape_investorgain),
+            ("Moneycontrol", self._scrape_moneycontrol),
+        ]
 
-    # Merge across all three sources instead of stopping at the first one
-    # that returns a price band — each site covers different fields (e.g.
-    # GMP/financials only ever came from Chittorgarh in practice), so
-    # stopping early silently threw away data the other scrapers had.
-    merged       = {}
-    sources_used = []
+        # Merge across all three sources instead of stopping at the first one
+        # that returns a price band — each site covers different fields (e.g.
+        # GMP/financials only ever came from Chittorgarh in practice), so
+        # stopping early silently threw away data the other scrapers had.
+        merged       = {}
+        sources_used = []
 
-    for source_name, scraper_fn in scrapers:
-        try:
-            data = scraper_fn(company_name)
-        except Exception as e:
-            print(f"[IPO] {source_name} failed: {e} → skipping")
-            continue
-
-        if not data:
-            print(f"[IPO] {source_name} → no usable data")
-            continue
-
-        sources_used.append(source_name)
-        for key, value in data.items():
-            if value and not merged.get(key):
-                merged[key] = value
-        print(f"[IPO] {source_name} → contributed fields: {list(data.keys())}")
-
-    if merged.get("price_band") or merged.get("open_date"):
-        # GMP and live subscription status live on JS-rendered pages the
-        # requests+BeautifulSoup scrapers above can't see (confirmed:
-        # InvestorGain's tables never resolve via plain requests). Fall back
-        # to the AI web_search tool for just these fields — cheaper than
-        # calling it for everything, and every value it returns is strictly
-        # format-validated before being trusted (see fetch_ipo_live_data_via_ai).
-        if not _looks_like_valid_gmp(merged.get("gmp", "")) or not merged.get("retail_sub"):
+        for source_name, scraper_fn in scrapers:
             try:
-                ai_data = fetch_ipo_live_data_via_ai(company_name)
+                data = scraper_fn(company_name)
             except Exception as e:
-                print(f"[IPO] AI live-data fetch failed: {e} → skipping")
-                ai_data = {}
+                print(f"[IPO] {source_name} failed: {e} → skipping")
+                continue
 
-            if ai_data:
-                sources_used.append("AI-web-search")
-                if not _looks_like_valid_gmp(merged.get("gmp", "")) and ai_data.get("gmp"):
-                    merged["gmp"] = ai_data["gmp"]
-                for field in ("retail_sub", "nii_sub", "qib_sub", "overall_sub"):
-                    if ai_data.get(field) and not merged.get(field):
-                        merged[field] = ai_data[field]
+            if not data:
+                print(f"[IPO] {source_name} → no usable data")
+                continue
 
-        merged["data_source"]      = " + ".join(sources_used)
-        _ipo_data_cache[cache_key] = (merged, datetime.now())
-        print(f"[IPO] ✅ Merged from [{merged['data_source']}] → cached (key='{cache_key}')")
-        return merged
+            sources_used.append(source_name)
+            for key, value in data.items():
+                if value and not merged.get(key):
+                    merged[key] = value
+            print(f"[IPO] {source_name} → contributed fields: {list(data.keys())}")
 
-    if cache_key in _ipo_data_cache:
-        stale_data, cached_at = _ipo_data_cache[cache_key]
-        age_hours = (datetime.now() - cached_at).total_seconds() / 3600
-        print(f"[IPO] ⚠️  Using stale cache (age={age_hours:.1f}h)")
-        stale_data["data_source"] = "cache_stale"
-        return stale_data
+        if merged.get("price_band") or merged.get("open_date"):
+            # GMP and live subscription status live on JS-rendered pages the
+            # requests+BeautifulSoup scrapers above can't see (confirmed:
+            # InvestorGain's tables never resolve via plain requests). Fall back
+            # to the AI web_search tool for just these fields — cheaper than
+            # calling it for everything, and every value it returns is strictly
+            # format-validated before being trusted (see fetch_ipo_live_data_via_ai).
+            if not _looks_like_valid_gmp(merged.get("gmp", "")) or not merged.get("retail_sub"):
+                try:
+                    ai_data = fetch_ipo_live_data_via_ai(company_name)
+                except Exception as e:
+                    print(f"[IPO] AI live-data fetch failed: {e} → skipping")
+                    ai_data = {}
 
-    print(f"[IPO] ❌ All sources failed: {company_name}")
-    return {}
+                if ai_data:
+                    sources_used.append("AI-web-search")
+                    if not _looks_like_valid_gmp(merged.get("gmp", "")) and ai_data.get("gmp"):
+                        merged["gmp"] = ai_data["gmp"]
+                    for field in ("retail_sub", "nii_sub", "qib_sub", "overall_sub"):
+                        if ai_data.get(field) and not merged.get(field):
+                            merged[field] = ai_data[field]
+
+            merged["data_source"]           = " + ".join(sources_used)
+            self._ipo_data_cache[cache_key] = (merged, datetime.now())
+            print(f"[IPO] ✅ Merged from [{merged['data_source']}] → cached (key='{cache_key}')")
+            return merged
+
+        if cache_key in self._ipo_data_cache:
+            stale_data, cached_at = self._ipo_data_cache[cache_key]
+            age_hours = (datetime.now() - cached_at).total_seconds() / 3600
+            print(f"[IPO] ⚠️  Using stale cache (age={age_hours:.1f}h)")
+            stale_data["data_source"] = "cache_stale"
+            return stale_data
+
+        print(f"[IPO] ❌ All sources failed: {company_name}")
+        return {}
+
+
+# Single shared instance — its caches (`_ipo_df_cache`/`_ipo_data_cache`)
+# persist across pipeline runs within the same process, matching the
+# original module-level global-cache behavior.
+_scraper = IPODetailScraper()
 
 
 # ══════════════════════════════════════════════════════════════
@@ -1141,7 +1285,7 @@ def _build_blog_title(company: str, nse_data: dict, extra: dict) -> str:
         company: Company name to include in the title.
         nse_data: Raw NSE company dict (has `issue_price`/`open_date`
             fallback values).
-        extra: Merged scraper dict from `_scrape_ipo_details` (preferred
+        extra: Merged scraper dict from `get_details` (preferred
             source for `price_band`/`open_date`).
 
     Returns:
@@ -1180,7 +1324,7 @@ def _build_blog_content(company: str, nse_data: dict, extra: dict) -> str:
         nse_data: Raw NSE company dict, used as fallback for
             status/open_date/close_date/issue_price/issue_size/
             issue_type.
-        extra: Merged scraper dict from `_scrape_ipo_details`, preferred
+        extra: Merged scraper dict from `get_details`, preferred
             source for nearly every field.
 
     Returns:
@@ -1260,7 +1404,7 @@ def fetch_nse_ipo() -> list:
         company = nse_item["company_name"]
         print(f"\n[IPO FEED] Processing: '{company}'")
 
-        extra = _scrape_ipo_details(company)
+        extra = _scraper.get_details(company)
 
         article = {
             "Blog_Title":   _build_blog_title(company, nse_item, extra),
