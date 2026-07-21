@@ -13,49 +13,15 @@ mergeall_engine.py's image-branch comments).
 from PIL import Image, ImageDraw, ImageFont
 import os
 
+from content_engine.image_module.base_compositor import BaseImageCompositor
+
 # --- Base Path ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-FONTS = {
-    'extrabold': os.path.join(BASE_DIR, '../fonts/ExtraBold.ttf'),
-    'bold':      os.path.join(BASE_DIR, '../fonts/GoogleSans_17pt-Bold.ttf'),
-    'regular':   os.path.join(BASE_DIR, '../fonts/Regular.ttf'),
-}
-
-
-def get_font(style='regular', size=24):
-    """
-    Load a TrueType font at the given point size.
-
-    Args:
-        style: key into FONTS ('extrabold', 'bold', 'regular'). Unknown
-            styles fall straight through to the fallback fonts below.
-        size: point size to render at.
-
-    Returns:
-        An ImageFont.FreeTypeFont, or ImageFont.load_default() if none
-        of the paths (including the DejaVu/Liberation fallbacks) exist.
-
-    Gotcha: FONTS maps 'extrabold' -> 'ExtraBold.ttf' and 'regular' ->
-        'Regular.ttf', but the actual files in content_engine/fonts/
-        are lowercase (extrabold.ttf, regular.ttf). This resolves fine
-        on case-insensitive filesystems (Windows) but silently misses
-        on case-sensitive ones (Linux containers), falling back to the
-        DejaVu/Liberation fonts or the PIL default bitmap font instead
-        of raising an error.
-    """
-    path = FONTS.get(style)
-    if path and os.path.exists(path):
-        return ImageFont.truetype(path, size)
-    fallbacks = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    ]
-    for f in fallbacks:
-        if os.path.exists(f):
-            print(f"[FONT] Using fallback: {f}")
-            return ImageFont.truetype(f, size)
-    return ImageFont.load_default()
+# FONTS / get_font moved to base_compositor.BaseImageCompositor (shared
+# with ipo_compositor.py, which had a byte-identical copy of both).
+FONTS    = BaseImageCompositor.FONTS
+get_font = BaseImageCompositor.get_font
 
 
 def wrap_text_by_pixels(text, font, max_width, draw):
@@ -257,103 +223,6 @@ def _compose_with_text(img: Image.Image, texts: dict, image_type: str) -> Image.
             y += 36 if image_type == "blog" else 44
 
     return img
-# note this is latest code comment.
-# def _compose_with_text(img: Image.Image, texts: dict, image_type: str) -> Image.Image:
-#     """Add gradient overlay + text. Used for blog and instagram."""
-
-#     W, H = img.size
-
-#     # ── Gradient Overlay ──────────────────────────────────────
-#     overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
-#     draw_ov = ImageDraw.Draw(overlay)
-
-#     if image_type == "instagram":
-#         zone               = int(H * 0.55)
-#         gradient_max_alpha = 220
-#     else:
-#         zone               = int(H * 0.45)
-#         gradient_max_alpha = 200
-
-#     for i in range(zone):
-#         alpha = int((i / zone) * gradient_max_alpha)
-#         draw_ov.rectangle(
-#             [(0, H - zone + i), (W, H - zone + i + 1)],
-#             fill=(0, 0, 0, alpha)
-#         )
-
-#     img  = Image.alpha_composite(img, overlay)
-#     draw = ImageDraw.Draw(img)
-
-#     # ── Font sizes ────────────────────────────────────────────
-#     if image_type == "blog":
-#         headline_size = 52
-#         subtext_size  = 26
-#         tag_size      = 22
-#         line_spacing  = 65
-#         max_lines     = 3
-#     else:  # instagram
-#         headline_size = 72
-#         subtext_size  = 34
-#         tag_size      = 28
-#         line_spacing  = 88
-#         max_lines     = 3
-
-#     try:
-#         sub_font = get_font('regular', subtext_size)
-#         tag_font = get_font('bold',    tag_size)
-#     except OSError:
-#         raise Exception("Font files not found or invalid.")
-
-#     # ── TAG ───────────────────────────────────────────────────
-#     tag_text = texts.get("tag", "NEWS").upper()
-#     tag_bbox = draw.textbbox((0, 0), tag_text, font=tag_font)
-#     tag_w    = tag_bbox[2] - tag_bbox[0] + 32
-#     tag_x    = 60
-#     tag_y    = H - int(H * 0.42)
-
-#     draw.rectangle(
-#         [tag_x, tag_y, tag_x + tag_w, tag_y + 36],
-#         fill=(26, 86, 219, 230)
-#     )
-#     draw.text((tag_x + 16, tag_y + 4), tag_text, font=tag_font, fill="white")
-
-#     # ── HEADLINE ──────────────────────────────────────────────
-#     headline        = texts.get("headline", "")
-#     max_text_width  = W - 120
-#     max_text_height = int(H * 0.28)
-#     current_size    = headline_size
-
-#     while current_size > 30:
-#         hl_font       = get_font('extrabold', current_size)
-#         wrapped_lines = wrap_text_by_pixels(headline, hl_font, max_text_width, draw)
-
-#         if len(wrapped_lines) > max_lines:
-#             wrapped_lines = wrapped_lines[:max_lines]
-#             wrapped_lines[-1] += "..."
-
-#         total_height = len(wrapped_lines) * line_spacing
-
-#         if total_height <= max_text_height:
-#             break
-
-#         current_size -= 2
-
-#     y = tag_y + 50
-#     for line in wrapped_lines:
-#         draw.text((60, y), line, font=hl_font, fill="white")
-#         y += line_spacing
-
-#     # ── SUBTEXT ───────────────────────────────────────────────
-#     subtext   = texts.get("subtext", "")
-#     sub_lines = wrap_text_by_pixels(subtext, sub_font, max_text_width, draw)
-#     sub_lines = sub_lines[:2]
-
-#     for line in sub_lines:
-#         draw.text((60, y + 5), line, font=sub_font, fill=(200, 200, 200, 255))
-#         y += 40 if image_type == "blog" else 48
-
-#     return img
-
 
 # --- Main Function ---
 def compose_image(
