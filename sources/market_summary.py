@@ -139,6 +139,74 @@ def market_pcr(oi_rows: list):
     return None
 
 
+import csv
+import io
+from datetime import date, timedelta
+
+import requests
+
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/csv, */*",
+}
+
+INDEX_CLOSE_URL    = "https://archives.nseindia.com/content/indices/ind_close_all_{ddmmyyyy}.csv"
+SEC_BHAV_URL       = "https://archives.nseindia.com/products/content/sec_bhavdata_full_{ddmmyyyy}.csv"
+PARTICIPANT_OI_URL = "https://archives.nseindia.com/content/nsccl/fao_participant_oi_{ddmmyyyy}.csv"
+
+MAX_LOOKBACK_DAYS = 7
+
+
+def _fetch_csv(url: str):
+    """
+    GETs a CSV URL and parses it into a list of row dicts.
+
+    Never raises -- returns None on any network error, non-200 status,
+    or parse failure. Callers treat None as "no data for this date"
+    (weekend/holiday/not-yet-published), not as an error to propagate.
+    """
+    try:
+        response = requests.get(url, headers=HEADERS, timeout=20)
+    except requests.RequestException:
+        return None
+    if response.status_code != 200:
+        return None
+    try:
+        reader = csv.DictReader(io.StringIO(response.content.decode("utf-8-sig")))
+        rows = list(reader)
+    except (csv.Error, UnicodeDecodeError):
+        return None
+    return rows or None
+
+
+def resolve_last_trading_day(start: date):
+    """
+    Steps backward from `start` (exclusive) through up to
+    MAX_LOOKBACK_DAYS calendar days, returning the first date whose
+    index-closing archive fetches successfully -- this is how weekends
+    and market holidays get skipped without a separate holiday calendar.
+
+    Args:
+        start: the date to step back from (pass date.today() in
+            production; a fixed date in tests for determinism).
+
+    Returns:
+        (resolved_date, index_rows) for the first date with data, or
+        None if nothing was found within MAX_LOOKBACK_DAYS.
+    """
+    for offset in range(1, MAX_LOOKBACK_DAYS + 1):
+        candidate = start - timedelta(days=offset)
+        ddmmyyyy = candidate.strftime("%d%m%Y")
+        rows = _fetch_csv(INDEX_CLOSE_URL.format(ddmmyyyy=ddmmyyyy))
+        if rows:
+            return candidate, rows
+    return None
+
+
 if __name__ == "__main__":
     print("Run tools/test_market_summary_calculations.py to check this module's "
           "pure functions, or tools/test_market_summary_fetch.py for the live "
