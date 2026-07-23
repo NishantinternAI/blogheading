@@ -166,7 +166,7 @@ one random Zerodha article is picked and published immediately (skips stacks).
 Articles are classified into 3 stacks by `source` field only:
 
 ```python
-PRIORITY_SOURCES  = ["nse_ipo", "market_summary"]
+PRIORITY_SOURCES  = ["nse_ipo", "google_trends", "market_summary"]
 CORPORATE_SOURCES = ["nse_corporate"]
 NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint"]
 ```

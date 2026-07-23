@@ -123,8 +123,20 @@ def top_movers(bhav_rows: list, min_trades: int = 500, top_n: int = 5):
         })
 
     candidates.sort(key=lambda c: c["pct_change"], reverse=True)
-    gainers = candidates[:top_n]
-    losers  = list(reversed(candidates[-top_n:]))
+
+    if len(candidates) >= 2 * top_n:
+        gainers = candidates[:top_n]
+        losers  = list(reversed(candidates[-top_n:]))
+    else:
+        # Fewer than 2*top_n candidates -- a plain candidates[:top_n] /
+        # candidates[-top_n:] split could pick the same stock for both
+        # lists. Partition candidates in half instead so gainers/losers
+        # never overlap (can't happen on a real full session; only
+        # matters for an abbreviated/thin one).
+        split   = len(candidates) // 2
+        gainers = candidates[:split]
+        losers  = list(reversed(candidates[split:]))
+
     return gainers, losers
 
 
