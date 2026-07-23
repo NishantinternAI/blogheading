@@ -176,7 +176,14 @@ def _fetch_csv(url: str):
         return None
     try:
         reader = csv.DictReader(io.StringIO(response.content.decode("utf-8-sig")))
-        rows = list(reader)
+        rows = [
+            {
+                (k.strip() if isinstance(k, str) else k):
+                    (v.strip() if isinstance(v, str) else v)
+                for k, v in row.items()
+            }
+            for row in reader
+        ]
     except (csv.Error, UnicodeDecodeError):
         return None
     return rows or None
