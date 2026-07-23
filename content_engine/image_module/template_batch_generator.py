@@ -10,6 +10,7 @@ Not wired into the live per-blog pipeline -- this only grows the on-disk
 template pool that content_engine/image_module/template_selector.py already
 reads from.
 """
+import base64
 import json
 import os
 import tempfile
@@ -374,3 +375,97 @@ def submit_weekly_batch(openai_client=None) -> dict:
     _save_state(new_state)
     print(f"[TEMPLATE BATCH] Submitted batch {batch.id} for {len(assignments)} templates")
     return new_state
+
+
+def _decode_and_store_image(b64_json: str, category: str, idx: int, batchdate: str) -> str:
+    """
+    Decodes one generated master image, pad-resizes it into outer
+    (640x480) and inner (1920x490) crops using that category's pad color,
+    saves both under content_engine/templates/<category>/{outer,inner}/,
+    appends a description entry, and returns the filename written (same
+    filename used for both the outer and inner file).
+    """
+    import io
+
+    info = CATEGORY_PROMPTS[category]
+    master_bytes = base64.b64decode(b64_json)
+    master = Image.open(io.BytesIO(master_bytes)).convert("RGB")
+
+    outer_dir = os.path.join(TEMPLATE_BASE, category, "outer")
+    inner_dir = os.path.join(TEMPLATE_BASE, category, "inner")
+    os.makedirs(outer_dir, exist_ok=True)
+    os.makedirs(inner_dir, exist_ok=True)
+
+    filename = f"ai_{category}_{batchdate}_{idx}.png"
+    outer_img = contain_fit_and_pad(master, TARGET_SIZES["outer"], info["pad_color"])
+    inner_img = contain_fit_and_pad(master, TARGET_SIZES["inner"], info["pad_color"])
+    outer_img.save(os.path.join(outer_dir, filename))
+    inner_img.save(os.path.join(inner_dir, filename))
+
+    append_template_description(category, filename)
+    return filename
+
+
+def fetch_completed_batch(openai_client=None) -> dict:
+    """
+    Checks the currently-tracked batch's status:
+      - "completed"                    -> downloads output, decodes+pads+
+                                           saves each image, marks state
+                                           "fetched".
+      - in-progress/validating         -> leaves state as "submitted",
+                                           returns {"in_progress": status}.
+      - failed/expired/cancelled       -> falls back to synchronous
+                                           generation for the same
+                                           assignments, marks state
+                                           "fetched_via_fallback".
+    Returns {"noop": "..."} if there's no active ("submitted") batch.
+    """
+    oc = openai_client or client
+    state = _load_state()
+    if state.get("status") != "submitted":
+        msg = "No active batch to fetch"
+        print(f"[TEMPLATE BATCH] {msg}")
+        return {"noop": msg}
+
+    batch = oc.batches.retrieve(state["batch_id"])
+    batchdate = state["submitted_at"][:10].replace("-", "")
+
+    if batch.status == "completed":
+        output_file = oc.files.content(batch.output_file_id)
+        saved = []
+        for line in output_file.text.splitlines():
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            category, idx_str = record["custom_id"].split("__")
+            idx = int(idx_str)
+            b64_json = record["response"]["body"]["data"][0]["b64_json"]
+            filename = _decode_and_store_image(b64_json, category, idx, batchdate)
+            saved.append(filename)
+        state["status"] = "fetched"
+        _save_state(state)
+        print(f"[TEMPLATE BATCH] Fetched and saved {len(saved)} templates")
+        return {"fetched": saved}
+
+    if batch.status in ("failed", "expired", "cancelled"):
+        print(f"[TEMPLATE BATCH] Batch {batch.status} — falling back to synchronous generation")
+        saved = []
+        for a in state["category_assignments"]:
+            response = oc.images.generate(
+                model="gpt-image-1.5",
+                prompt=build_category_prompt(a["category"]),
+                size=MASTER_SIZE,
+                quality="medium",
+                n=1,
+            )
+            filename = _decode_and_store_image(
+                response.data[0].b64_json, a["category"], a["idx"], batchdate
+            )
+            saved.append(filename)
+        state["status"] = "fetched_via_fallback"
+        _save_state(state)
+        print(f"[TEMPLATE BATCH] Fallback-generated {len(saved)} templates")
+        return {"fetched_via_fallback": saved}
+
+    print(f"[TEMPLATE BATCH] Batch still {batch.status} — checking again next run")
+    return {"in_progress": batch.status}
