@@ -1445,8 +1445,6 @@ def run_pipeline(selected_country="India", category="finance"):
           f"News:{len(stacks['news'])} | "
           f"Corporate:{len(stacks['corporate'])}")
 
-    final_category = category
-
     # ══════════════════════════════════════════════════════════
     # STEP 5 — Duplicate check (safety net)
     # ══════════════════════════════════════════════════════════

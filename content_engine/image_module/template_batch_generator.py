@@ -306,8 +306,12 @@ def append_template_description(category: str, filename: str) -> None:
         "avoid_for": info["avoid_for"],
     }
 
-    with open(desc_path, "w", encoding="utf-8") as f:
-        json.dump(descriptions, f, ensure_ascii=False, indent=2)
+    with tempfile.NamedTemporaryFile(
+        "w", dir=category_dir, delete=False, suffix=".tmp", encoding="utf-8"
+    ) as tmp:
+        json.dump(descriptions, tmp, ensure_ascii=False, indent=2)
+        tmp_path = tmp.name
+    os.replace(tmp_path, desc_path)
 
 
 def _load_state() -> dict:
@@ -436,12 +440,25 @@ def fetch_completed_batch(openai_client=None) -> dict:
         for line in output_file.text.splitlines():
             if not line.strip():
                 continue
-            record = json.loads(line)
-            category, idx_str = record["custom_id"].split("__")
-            idx = int(idx_str)
-            b64_json = record["response"]["body"]["data"][0]["b64_json"]
-            filename = _decode_and_store_image(b64_json, category, idx, batchdate)
-            saved.append(filename)
+            custom_id = "<unknown>"
+            try:
+                record = json.loads(line)
+                custom_id = record.get("custom_id", "<unknown>")
+                category, idx_str = custom_id.split("__")
+                idx = int(idx_str)
+                b64_json = record["response"]["body"]["data"][0]["b64_json"]
+                filename = _decode_and_store_image(b64_json, category, idx, batchdate)
+                saved.append(filename)
+            except Exception as exc:
+                print(
+                    f"[TEMPLATE BATCH] WARNING: skipping bad line for "
+                    f"custom_id={custom_id!r}: {exc}"
+                )
+                continue
+        # Mark 'fetched' regardless of any per-line failures above -- a
+        # single bad line must not permanently wedge the overlap guard in
+        # submit_weekly_batch() (which skips submitting while status stays
+        # "submitted").
         state["status"] = "fetched"
         _save_state(state)
         print(f"[TEMPLATE BATCH] Fetched and saved {len(saved)} templates")

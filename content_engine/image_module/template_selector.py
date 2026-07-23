@@ -39,8 +39,10 @@ _CATEGORY_KEYWORDS = {
 def classify_template_category(title: str, content: str = "") -> str:
     """
     Classify a blog's title/content into one of TEMPLATE_CATEGORIES using
-    the same keyword bins as ai_image_generator.build_image_prompt(). Falls
-    back to "general" if nothing matches.
+    keyword bins based on (but not identical to) ai_image_generator's
+    build_image_prompt() -- notably, the finance bin here omits the bare
+    keyword "record" to avoid over-matching generic phrases (e.g. "record
+    crowds"). Falls back to "general" if nothing matches.
     """
     combined = f"{title or ''} {content or ''}".lower()
     for category in _CATEGORY_KEYWORD_ORDER:
