@@ -210,3 +210,28 @@ def contain_fit_and_pad(master: "Image.Image", target_size: tuple, pad_color: tu
     paste_y = (target_h - new_h) // 2
     canvas.paste(resized, (paste_x, paste_y))
     return canvas
+
+
+WEEKLY_TEMPLATE_COUNT = 10
+
+
+def build_weekly_assignments(iso_week: int, count: int = WEEKLY_TEMPLATE_COUNT) -> list:
+    """
+    Returns `count` dicts of {"category": str, "idx": int} -- one per
+    template to generate this week -- round-robining through
+    TEMPLATE_CATEGORIES starting at an offset derived from `iso_week`, so
+    the "extra" templates (count % len(TEMPLATE_CATEGORIES)) land on a
+    different subset of categories each week instead of always the same
+    ones. `idx` is a per-category counter *within this batch*, used to keep
+    generated filenames unique when a category appears more than once.
+    """
+    n = len(TEMPLATE_CATEGORIES)
+    offset = iso_week % n
+    per_category_counter = {}
+    assignments = []
+    for i in range(count):
+        category = TEMPLATE_CATEGORIES[(offset + i) % n]
+        idx = per_category_counter.get(category, 0)
+        per_category_counter[category] = idx + 1
+        assignments.append({"category": category, "idx": idx})
+    return assignments
