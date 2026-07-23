@@ -67,7 +67,8 @@ from content_engine.image_module.text_extractor import extract_image_text
 from content_engine.image_module.template_selector import (
     select_template,
     select_template_pair,
-    select_template_pair_smart
+    select_template_pair_smart,
+    classify_template_category,
 )
 from content_engine.image_module.compositor     import compose_image
 from content_engine.image_module.ipo_compositor import compose_ipo_image
@@ -1383,15 +1384,16 @@ def run_pipeline(selected_country="India", category="finance"):
 
             safe_title = clean_filename(final_item["Blog_Title"])
             img_title, img_content = _imaging_text_source(final_item)
+            template_category = classify_template_category(img_title, img_content)
             image_text = extract_image_text(
                 img_title,
                 img_content,
-                category.upper()
+                template_category.upper()
             )
             final_item["image_text"] = image_text
 
             template_pair  = select_template_pair_smart(
-                category,
+                template_category,
                 img_title,
                 img_content
             )
@@ -1562,8 +1564,9 @@ def run_pipeline(selected_country="India", category="finance"):
                 print(f"[IMAGE] IPO fallback → smart template + text overlay")
                 ipo_text      = _extract_ipo_image_text(final_item)
                 _ipo_img_title, _ipo_img_content = _imaging_text_source(final_item)
+                _ipo_template_category = classify_template_category(_ipo_img_title, _ipo_img_content)
                 template_pair = _select_template_pair_smart(
-                    final_category,   # was "priority" — no templates/priority/ folder, so it fell to random MD5 every time
+                    _ipo_template_category,
                     _ipo_img_title,
                     _ipo_img_content
                 )
@@ -1612,15 +1615,16 @@ def run_pipeline(selected_country="India", category="finance"):
                   f"(source={article_source}) → compositor.py")
 
             img_title, img_content = _imaging_text_source(final_item)
+            template_category = classify_template_category(img_title, img_content)
 
             final_item["image_text"] = _extract_image_text(
                 img_title,
                 img_content,
-                final_category.upper()
+                template_category.upper()
             )
 
             template_pair  = _select_template_pair_smart(
-                final_category,
+                template_category,
                 img_title,
                 img_content
             )
