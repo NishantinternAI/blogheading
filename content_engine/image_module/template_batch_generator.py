@@ -12,10 +12,22 @@ reads from.
 """
 import json
 import os
+import tempfile
+from datetime import datetime, timezone, timedelta
 
+from openai import OpenAI
 from PIL import Image
 
 from content_engine.image_module.template_selector import TEMPLATE_CATEGORIES
+
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+BATCH_STATE_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "..", "output",
+        "template_batch_state.json",
+    )
+)
 
 TARGET_SIZES = {
     "outer": (640, 480),
@@ -295,3 +307,70 @@ def append_template_description(category: str, filename: str) -> None:
 
     with open(desc_path, "w", encoding="utf-8") as f:
         json.dump(descriptions, f, ensure_ascii=False, indent=2)
+
+
+def _load_state() -> dict:
+    if not os.path.exists(BATCH_STATE_PATH):
+        return {}
+    with open(BATCH_STATE_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _save_state(state: dict) -> None:
+    dir_name = os.path.dirname(BATCH_STATE_PATH)
+    os.makedirs(dir_name, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w", dir=dir_name, delete=False, suffix=".tmp", encoding="utf-8"
+    ) as tmp:
+        json.dump(state, tmp, ensure_ascii=False, indent=2)
+        tmp_path = tmp.name
+    os.replace(tmp_path, BATCH_STATE_PATH)
+
+
+def submit_weekly_batch(openai_client=None) -> dict:
+    """
+    Builds this week's category assignments, writes a Batch API .jsonl
+    input file, uploads it, creates the batch job, and records it in
+    BATCH_STATE_PATH with status "submitted".
+
+    Skips (returns {"skipped": "..."}) if a previous batch is still
+    "submitted" (not yet resolved by fetch_completed_batch()) -- avoids
+    overlapping batches. `openai_client` is injectable for tests; defaults
+    to the module-level `client`.
+    """
+    oc = openai_client or client
+    state = _load_state()
+    if state.get("status") == "submitted":
+        msg = f"Batch {state.get('batch_id')} still submitted — skipping this week"
+        print(f"[TEMPLATE BATCH] {msg}")
+        return {"skipped": msg}
+
+    ist = timezone(timedelta(hours=5, minutes=30))
+    iso_week = datetime.now(ist).isocalendar()[1]
+    assignments = build_weekly_assignments(iso_week)
+    lines = build_batch_input_lines(assignments)
+
+    batch_dir = os.path.dirname(BATCH_STATE_PATH)
+    os.makedirs(batch_dir, exist_ok=True)
+    input_path = os.path.join(batch_dir, "template_batch_input.jsonl")
+    with open(input_path, "w", encoding="utf-8") as f:
+        for line in lines:
+            f.write(json.dumps(line, ensure_ascii=False) + "\n")
+
+    with open(input_path, "rb") as f:
+        uploaded = oc.files.create(file=f, purpose="batch")
+    batch = oc.batches.create(
+        input_file_id=uploaded.id,
+        endpoint="/v1/images/generations",
+        completion_window="24h",
+    )
+
+    new_state = {
+        "batch_id": batch.id,
+        "submitted_at": datetime.now(timezone.utc).isoformat(),
+        "category_assignments": assignments,
+        "status": "submitted",
+    }
+    _save_state(new_state)
+    print(f"[TEMPLATE BATCH] Submitted batch {batch.id} for {len(assignments)} templates")
+    return new_state
