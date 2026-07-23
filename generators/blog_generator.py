@@ -1292,6 +1292,197 @@ Return only valid JSON. No markdown. No explanation. No code fences.
     return data
 
 
+def generate_market_summary_blog(item: dict) -> dict:
+    """
+    Generate an SEO/GEO-optimised blog for a morning market summary item.
+
+    Builds the prompt directly from item["Blog_Title"] / item["Blog_Content"]
+    (no external fetch or keyword-volume lookup, same as generate_ipo_blog) --
+    the source data is already fully structured by
+    sources.market_summary.fetch_morning_summary(). Calls cached_model_call(),
+    with a newline-sanitization fallback if the first JSON parse fails.
+
+    Args:
+        item: dict expected to contain "Blog_Title" and "Blog_Content"
+            (see sources/market_summary.py's fetch_morning_summary()).
+
+    Returns:
+        Post-processed blog dict (same shape as generate_blog()/
+        generate_ipo_blog()), or {} if the JSON is unrecoverable.
+    """
+    prompt = f"""
+You are a senior financial journalist and SEO strategist writing for Swastika Investmart —
+a SEBI-registered Indian stockbroker serving retail investors across India.
+
+You write morning market summary blogs that rank on Google and get cited by AI search
+engines like Perplexity and ChatGPT. Retail investors read these first thing before the
+market opens to know what to watch.
+
+---
+
+THE SOURCE MATERIAL
+
+{item['Blog_Content']}
+
+---
+
+YOUR MISSION
+
+Turn this data into a blog a retail investor reads over morning coffee before the market
+opens. They want to know: where did we close, what levels matter today, which stocks moved
+and why it's worth noting, and what the options market is signaling. Every sentence must
+earn its place. Never invent a number not present in the source material above.
+
+---
+
+BLOG TITLE
+
+Write a title containing "Nifty 50" or "Bank Nifty" plus the trading date, signaling this
+is a same-day-relevant market summary a retail investor would search for each morning.
+
+---
+
+OPENING
+
+Start with the single most useful fact from the source data — the closing level, the key
+support/resistance level to watch, or the standout mover. Do not open with a generic
+"markets closed mixed yesterday" line with no number in it.
+
+---
+
+BODY STRUCTURE
+
+Each H2 must be a specific, dated question or claim a retail investor would search
+("Nifty 50 Support and Resistance Levels for [date]", "Top Gainers and Losers on [date]",
+etc.). Cover, using ONLY the numbers given in the source material:
+
+- Nifty 50 and Nifty Bank pivot support/resistance levels, explained in plain language —
+  what a pivot, R1/R2, S1/S2 level actually means for a trader watching today's session
+- Top 5 gainers and top 5 losers from the previous session, as a table
+- Market-wide index-options PCR, if present in the source data, with its stated caveat
+  reproduced faithfully (this is an aggregate Nifty+Bank Nifty figure, never call it
+  "Nifty PCR" specifically)
+
+Make clear throughout that the levels and movers are from the PREVIOUS session's close,
+being used as reference points for today — never imply this is live/intraday data.
+
+---
+
+TLDR
+
+Write exactly 4 short, punchy sentences covering: the previous close, the key level to
+watch, the standout mover, and the PCR signal (if available). Each sentence must stand
+alone and deliver real information.
+
+---
+
+TABLES
+
+Present the top 5 gainers and top 5 losers as HTML tables — never as a prose list of
+tickers and percentages. Use the exact figures from the source material.
+
+---
+
+FAQ
+
+Write 4–6 questions a retail investor would actually search about today's market open.
+Every question must be tied to the specific levels/movers/PCR given, not generic
+"how does the stock market work" filler. Answers must be grounded in source data only.
+
+---
+
+CONCLUSION
+
+Write 1–2 paragraphs under <h2>Conclusion</h2> — the heading first, paragraphs after.
+Tell the investor plainly what to watch for at today's open given yesterday's close and
+levels, and end with one concrete, actionable sentence. Plain prose only — never begin a
+sentence with "Conclusion:", "Takeaway:", "In summary:", or similar labels.
+
+---
+
+SWASTIKA CONTEXT
+
+Swastika offers: stocks, F&O, mutual funds, IPOs, ETFs, bonds, MCX, SLBM, pledging,
+research reports, and Sarthi — an AI stock assistant that gives institutional-level
+research on any stock or index to retail investors.
+
+Place one implicit CTA in the body where it genuinely fits. Always format the Sarthi
+mention as a clickable hyperlink using exactly this format:
+<a href="https://www.swastika.co.in/sarthi" rel="noopener" target="_blank">Swastika's Sarthi AI stock assistant</a>
+Never mention Sarthi as plain text — it must always be a hyperlink.
+
+---
+
+SEO OUTPUT REQUIREMENTS
+
+Meta Title: Under 60 characters. Must contain "Nifty 50" or "Bank Nifty" plus a sense of
+timeliness (date or "today"). Count the characters.
+
+Meta Description: Under 155 characters. One sentence telling the reader what they'll learn
+about today's key levels and movers. Count the characters.
+
+---
+
+HTML RULES
+
+Use only these tags: <h1> <h2> <h3> <h4> <p> <ul> <li> <strong> <u> <a href="">
+<table> <tr> <th> <td>
+
+TLDR points go in <li> tags. No paragraph after the closing </ul> of TLDR.
+FAQ questions use <h4>. Answers use <p>. No nested <p> tags inside <p> tags.
+Tables use <table><tr><th><td> only. No inline styles.
+Every major section uses <h2>. Use <h3> only for genuine subsections.
+
+---
+
+MANDATORY BLOG STRUCTURE
+
+Blog_Content must follow this exact section order:
+
+1. <h1> — blog title
+2. <h2>TLDR</h2> — followed immediately by <ul> with exactly 4 <li> items, nothing after
+3. Opening <p> — the hook paragraph
+4. Body <h2> sections — pivot levels, gainers/losers, PCR (if available)
+5. <h2>FAQ</h2> — followed by <h4>/<p> pairs, no nested <p> tags
+6. <h2>Conclusion</h2> — followed by 1–2 <p> paragraphs, content immediately after the
+   heading, never before it, and never left empty
+
+---
+
+OUTPUT
+
+Return only valid JSON. No markdown. No explanation. No code fences.
+
+{{
+  "Blog_Title": "",
+  "Meta_Title": "",
+  "Meta_Description": "",
+  "TLDR": ["", "", "", ""],
+  "Blog_Content": "",
+  "FAQ_Schema": {{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": []
+  }}
+}}
+"""
+    result = cached_model_call(prompt)
+    try:
+        data = json.loads(result)
+    except json.JSONDecodeError as e:
+        print(f"[MARKET SUMMARY BLOG] ⚠️  JSON parse failed: {e} — attempting fix...")
+        sanitized = result.replace('\r\n', '\\n').replace('\r', '\\n').replace('\n', '\\n')
+        try:
+            data = json.loads(sanitized)
+            print(f"[MARKET SUMMARY BLOG] ✅ JSON recovered — blog content preserved")
+        except json.JSONDecodeError as e2:
+            print(f"[MARKET SUMMARY BLOG] ❌ JSON unrecoverable: {e2} — skipping article")
+            return {}
+    source = item.get("source", "")
+    data = fix_all_fields(data, source=source)
+    return data
+
+
 
 
 
