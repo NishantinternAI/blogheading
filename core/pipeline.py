@@ -1,5 +1,5 @@
 """
-mergeall_engine.py — core pipeline orchestrator for Blogheading.
+pipeline.py — core pipeline orchestrator for Blogheading.
 
 This module owns the end-to-end content pipeline: turning fetched Indian
 financial news / NSE IPO filings / corporate-action data into a single
@@ -59,11 +59,11 @@ from sources.google_trends import fetch_google_trends
 from sources.google_news_business import fetch_google_news_business
 from sources.economic_times import fetch_economic_times
 from sources.ndtv_profit         import fetch_ndtv_profit
-from sources.Business_Standard import fetch_business_standard
+from sources.business_standard import fetch_business_standard
 
 # ── Image modules ─────────────────────────────────────────────
 from content_engine.image_module.text_extractor import extract_image_text
-from content_engine.image_module.tempalte_selector import (
+from content_engine.image_module.template_selector import (
     select_template,
     select_template_pair,
     select_template_pair_smart
@@ -88,7 +88,11 @@ from utils.date_filter import filter_fresh_articles
 #  BASE DIRECTORIES
 # ══════════════════════════════════════════════════════════════
 
-BASE_DIR            = os.path.dirname(os.path.abspath(__file__))
+# pipeline.py lives in core/; the repo root — where output/, output_images/ and
+# content_engine/templates/ live — is the PARENT of this file's directory.
+# (Was dirname(abspath(__file__)) when this module sat at the repo root; after the
+# move into core/ that pointed one level too deep, at /app/core.)
+BASE_DIR            = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_IMG_DIR      = os.path.join(BASE_DIR, "output_images")
 OUTPUT_IMG_JPG_DIR  = os.path.join(BASE_DIR, "output_images", "jpg_images")
 OUTPUT_IMG_WEBP_DIR = os.path.join(BASE_DIR, "output_images", "webp_images")
@@ -184,15 +188,21 @@ def _parse_blog_output(raw: str) -> dict:
 
 
 def _get_ipo_template_path() -> str:
-    """Returns IPO Alert template path (for blog outer + instagram)."""
+    """Returns the branded IPO Alert template path (blog outer + instagram), if present.
+
+    `content_engine/templates/ipo_alert.png` is an OPTIONAL branded background.
+    It is not shipped in the repo; when absent, the IPO image path falls back to
+    smart-template selection + IPO text overlay (see the caller in run_pipeline
+    and `_extract_ipo_image_text`), which produces a valid image. To use a branded
+    IPO background instead, drop `ipo_alert.png` into `content_engine/templates/`.
+    Returns "" when the asset is not present (the documented fallback signal)."""
     ipo_template = os.path.join(
         BASE_DIR, "content_engine", "templates", "ipo_alert.png"
     )
-    print(f"[DEBUG] IPO template path: {ipo_template}")
     if os.path.exists(ipo_template):
-        print(f"[IPO TEMPLATE] Found: {ipo_template}")
+        print(f"[IPO TEMPLATE] Using branded template: {ipo_template}")
         return ipo_template
-    print("[IPO TEMPLATE] File NOT found")
+    print("[IPO TEMPLATE] Optional ipo_alert.png not present → using smart-template fallback")
     return ""
 
 def _clear_stale_stacks():
@@ -232,18 +242,21 @@ def _clear_stale_stacks():
 
 def _get_ipo_inner_template_path() -> str:
     """
-    Returns IPO Blog Inner template path (1920×490).
-    This is a separate pre-made image — no resize needed.
-    Falls back to ipo_alert.png if ipo_inner.png not found.
+    Returns the branded IPO Blog Inner template path (1920×490), if present.
+
+    `content_engine/templates/ipo_inner.png` is an OPTIONAL branded asset, not
+    shipped in the repo. When absent this falls back to `ipo_alert.png`, and if
+    that is also absent the caller uses smart-template selection (see
+    `_get_ipo_template_path`). Drop `ipo_inner.png` into `content_engine/templates/`
+    to use a dedicated branded inner background.
     """
     ipo_inner = os.path.join(
         BASE_DIR, "content_engine", "templates", "ipo_inner.png"
     )
-    print(f"[DEBUG] IPO inner template path: {ipo_inner}")
     if os.path.exists(ipo_inner):
-        print(f"[IPO INNER] Found: {ipo_inner}")
+        print(f"[IPO INNER] Using branded template: {ipo_inner}")
         return ipo_inner
-    print("[IPO INNER] ipo_inner.png not found — using ipo_alert.png fallback")
+    print("[IPO INNER] Optional ipo_inner.png not present → trying ipo_alert.png, else smart-template fallback")
     return _get_ipo_template_path()
 
 
@@ -1093,9 +1106,27 @@ def _extract_image_text(title, content, category):
 
 @timed
 def _select_template_pair_smart(category, title, content=""):
-    """Timed wrapper around tempalte_selector.select_template_pair_smart —
+    """Timed wrapper around template_selector.select_template_pair_smart —
     picks a matching outer+inner template pair for a given category/title/content."""
     return select_template_pair_smart(category, title, content)
+
+
+def _imaging_text_source(final_item):
+    """Return (title, content) that should drive image overlay text AND template
+    selection.
+
+    Prefers the *generated* blog (final_item["blog"] — the SEO article that
+    actually gets published) over the raw source snippet (final_item["Blog_Title"]/
+    ["Blog_Content"], which is only the pre-generation input). Using the raw
+    source made the overlay headline and the chosen template describe a different
+    story than the reader sees. Falls back to the raw fields when generation is
+    missing or failed to parse (e.g. a parse error leaves no Blog_Title)."""
+    blog = final_item.get("blog")
+    if not isinstance(blog, dict):
+        blog = {}
+    title   = blog.get("Blog_Title")   or final_item.get("Blog_Title", "")
+    content = blog.get("Blog_Content") or final_item.get("Blog_Content", "")
+    return title, content
 
 @timed
 def _compose_image(template, image_text, jpg_path, webp_path, image_type):
@@ -1326,17 +1357,18 @@ def run_pipeline(selected_country="India", category="finance"):
                 final_item["secondary_keywords"] = blog_dict.pop("secondary_keywords", [])
 
             safe_title = clean_filename(final_item["Blog_Title"])
+            img_title, img_content = _imaging_text_source(final_item)
             image_text = extract_image_text(
-                final_item["Blog_Title"],
-                final_item.get("Blog_Content", ""),
+                img_title,
+                img_content,
                 category.upper()
             )
             final_item["image_text"] = image_text
 
             template_pair  = select_template_pair_smart(
                 category,
-                final_item["Blog_Title"],
-                final_item.get("Blog_Content", "")
+                img_title,
+                img_content
             )
             outer_template = template_pair["outer"]
             inner_template = template_pair["inner"]
@@ -1501,10 +1533,11 @@ def run_pipeline(selected_country="India", category="finance"):
                 # Fallback: ipo_alert.png missing
                 print(f"[IMAGE] IPO fallback → smart template + text overlay")
                 ipo_text      = _extract_ipo_image_text(final_item)
+                _ipo_img_title, _ipo_img_content = _imaging_text_source(final_item)
                 template_pair = _select_template_pair_smart(
-                    "priority",
-                    final_item["Blog_Title"],
-                    final_item.get("Blog_Content", "")
+                    final_category,   # was "priority" — no templates/priority/ folder, so it fell to random MD5 every time
+                    _ipo_img_title,
+                    _ipo_img_content
                 )
                 final_item["blog_image"] = _compose_image(
                     template_pair["outer"], ipo_text,
@@ -1550,16 +1583,18 @@ def run_pipeline(selected_country="India", category="finance"):
             print(f"[IMAGE] {pop_type.upper()} "
                   f"(source={article_source}) → compositor.py")
 
+            img_title, img_content = _imaging_text_source(final_item)
+
             final_item["image_text"] = _extract_image_text(
-                final_item["Blog_Title"],
-                final_item.get("Blog_Content", ""),
+                img_title,
+                img_content,
                 final_category.upper()
             )
 
             template_pair  = _select_template_pair_smart(
                 final_category,
-                final_item["Blog_Title"],
-                final_item.get("Blog_Content", "")
+                img_title,
+                img_content
             )
             outer_template = template_pair["outer"]
             inner_template = template_pair["inner"]

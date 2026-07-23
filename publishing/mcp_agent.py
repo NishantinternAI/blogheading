@@ -13,7 +13,7 @@ import os
 import json
 import logging
 from config import client, MODEL
-from webflow_poster import post_entry_as_draft, post_results_as_drafts
+from publishing.webflow_poster import post_entry_as_draft, post_results_as_drafts
 
 log = logging.getLogger(__name__)
 

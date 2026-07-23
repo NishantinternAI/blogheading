@@ -1,5 +1,5 @@
 import os, hashlib, json
-from add_cached import cached_model_call
+from core.model_client import cached_model_call
 
 BASE_DIR          = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_BASE     = os.path.abspath(os.path.join(BASE_DIR, "../templates"))

@@ -6,9 +6,9 @@
 
 # PIPELINE INTEGRATION — ONE LINE CHANGE
 # ────────────────────────────────────────
-# In mergeall_engine.py:
+# In pipeline.py:
 
-#     from keyword_researcher import enrich_with_keywords
+#     from keywords.keyword_researcher import enrich_with_keywords
 
 #     # BEFORE:
 #     data = generate_blog(item)

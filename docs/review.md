@@ -29,7 +29,7 @@ Module-level statements that execute on `import`:
 - `sources/livemint.py:34` → `print(len(fetch_livemint()))`
 - `sources/fetch_nse_corporate.py:41-42` → `result = fetch_nse_corporate()` + print
 
-`mergeall_engine.py` imports all of these at the top, so **every scheduler
+`pipeline.py` imports all of these at the top, so **every scheduler
 start fires 5 unnecessary HTTP requests** (plus the startup log noise:
 `25 / 200 / 10 / 35 / NSE COUNT`). `sources/ipo.py` is the only one that correctly
 guards its test code with `if __name__ == "__main__":`.
@@ -39,7 +39,7 @@ guards its test code with `if __name__ == "__main__":`.
 
 ## P1 — Logic bugs
 
-### 3. Zerodha fallback ignores its own dedup result  (`mergeall_engine.py:1592-1602`)  **[NEW — the merge "fix" is incomplete]**
+### 3. Zerodha fallback ignores its own dedup result  (`pipeline.py:1592-1602`)  **[NEW — the merge "fix" is incomplete]**
 Commit `05672c1` ("fix duplicate handling in zerodha fallback") added a
 `fresh_zerodha` dedup list and an abort-if-empty check — but the line that
 actually picks the article was left untouched:
@@ -98,7 +98,7 @@ list it applied to "all string fields." So Chinese/foreign characters in the
 tags are safe to filter.)
 **Fix:** also run `fix_garbage_characters` over `Blog_Content`.
 
-### 7. Exceptions swallowed without traceback  (`mergeall_engine.py:1852-1853`)
+### 7. Exceptions swallowed without traceback  (`pipeline.py:1852-1853`)
 ```python
 except Exception as e:
     print(f"[ERROR] {e}")
@@ -152,13 +152,13 @@ genuinely no India/finance matches floods the news stack with everything. May be
 intentional (avoid empty pipeline), but it silently defeats the filter. At least
 distinguish `"none"` (legitimately empty) from a parse error.
 
-### 12. `USE_AI_IMAGES` duplicated, manual sync  (`mergeall_engine.py:996`, `app.py:224`)
+### 12. `USE_AI_IMAGES` duplicated, manual sync  (`pipeline.py:996`, `app.py:224`)
 Two hardcoded copies that "must match." If one is flipped without the other, the
 dashboard reads the wrong JSON file and shows stale/empty data. Should be one
 env var read by both.
 
 ### 13. Dead code — large
-- `mergeall_engine.py`: active code is **941–1856** (~915 lines). Lines **1–940**
+- `pipeline.py`: active code is **941–1856** (~915 lines). Lines **1–940**
   and **1858–5415** are two full commented-out prior versions (~4,500 lines).
 - `generators/blog_generator.py`: active **1–803**; **805–2142** commented (~1,340).
 - `content_engine/image_module/ipo_compositor.py`: active from **420**; ~400

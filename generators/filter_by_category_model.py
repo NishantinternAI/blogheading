@@ -1,5 +1,5 @@
 import json
-from add_cached import cached_model_call
+from core.model_client import cached_model_call
 
 def filter_by_category_model(data, user_category):
 

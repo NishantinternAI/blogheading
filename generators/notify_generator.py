@@ -1,5 +1,5 @@
 import json
-from add_cached import cached_model_call
+from core.model_client import cached_model_call
 
 
 

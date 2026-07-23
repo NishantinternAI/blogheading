@@ -1,49 +1,37 @@
-# cat > .gitignore << 'EOF'
-# API Keys and secrets — NEVER push these
+# ── API keys and secrets — NEVER commit ──────────────────────
 .env
 *.env
 config.py
 secrets.py
+client_secret.json
+google-ads.yaml
+*.yaml
 
-# Python cache — not needed
+# ── Claude Code project instructions — local only, not for GitHub ─
+CLAUDE.md
+
+# ── Python cache / build ─────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
 
-# OS files — not needed
+# ── OS files ─────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-EOF
 
+# ── Generated data / artifacts (never source) ────────────────
 blogheading.tar
-*.jpg
-*.webp
-*.yml
-*.jsonl
 output/
 output_images/
+logs/
+*.log
+*.jsonl
 
-
-
-
-
-
-
-
-
-
+# Generated media + data dumps (template assets are committed explicitly)
 *.png
 *.jpg
 *.jpeg
-*.json
-*.jsonl
 *.webp
-*.log
-
-.env
-
-__pycache__/
-output/
-output_images/google-ads.yaml
+*.json

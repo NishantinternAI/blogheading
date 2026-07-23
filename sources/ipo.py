@@ -9,7 +9,7 @@ InvestorGain, and Moneycontrol, plus an AI web-search fallback
 subscription status -- fields that only exist on JS-rendered pages plain
 requests/BeautifulSoup scraping can't reach.
 
-Entry point: fetch_nse_ipo() -- called from mergeall_engine.py's live
+Entry point: fetch_nse_ipo() -- called from pipeline.py's live
 run_pipeline() as the "nse_ipo" source. Returns a list of article dicts
 (Blog_Title/Blog_Content/company/source=...) ready for generate_ipo_blog().
 
@@ -29,7 +29,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 
-from add_cached import fetch_ipo_live_data_via_ai
+from core.model_client import fetch_ipo_live_data_via_ai
 
 
 # ══════════════════════════════════════════════════════════════

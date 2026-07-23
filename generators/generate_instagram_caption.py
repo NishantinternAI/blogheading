@@ -1,5 +1,5 @@
 # import json
-# from add_cached import cached_model_call
+# from core.model_client import cached_model_call
 
 
 # def generate_instagram_caption(item):
@@ -82,7 +82,7 @@
 # generators/generate_instagram_caption.py
 
 import json
-from add_cached import cached_model_call
+from core.model_client import cached_model_call
 # ─────────────────────────────────────────
 # Normalized Swastika Services Tag Line
 # ─────────────────────────────────────────

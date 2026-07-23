@@ -1,7 +1,7 @@
 import json, os, unicodedata, re, sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root, for content_engine
-from content_engine.image_module.tempalte_selector import select_template_pair
+from content_engine.image_module.template_selector import select_template_pair
 from content_engine.image_module.compositor import compose_image
 from content_engine.image_module.text_extractor import extract_image_text
 

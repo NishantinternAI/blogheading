@@ -31,7 +31,7 @@ import tempfile
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root, for keyword_researcher
-from keyword_researcher import get_keyword_volumes
+from keywords.keyword_researcher import get_keyword_volumes
 
 CHECKPOINT_EVERY = 10
 DELAY_BETWEEN_CALLS = 1.0  # seconds — be gentle with the Keyword Planner API

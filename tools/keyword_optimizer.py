@@ -5,7 +5,7 @@ Full context-aware keyword optimization — Pass 2.
 
 PIPELINE INTEGRATION
 ────────────────────
-In mergeall_engine.py:
+In pipeline.py:
 
     from keyword_optimizer import optimize_keywords
 
@@ -19,7 +19,7 @@ import json
 import logging
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root, for add_cached
-from add_cached import cached_model_call
+from core.model_client import cached_model_call
 
 log = logging.getLogger(__name__)
 

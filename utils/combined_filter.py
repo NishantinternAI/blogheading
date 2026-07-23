@@ -1,5 +1,5 @@
 import json
-from add_cached import cached_model_call
+from core.model_client import cached_model_call
 
 
 def filter_by_country_and_category(data, user_country, user_category):

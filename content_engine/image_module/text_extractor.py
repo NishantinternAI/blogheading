@@ -1,6 +1,6 @@
 # image_module/text_extractor.py
 import openai, json, os
-from add_cached import cached_model_call
+from core.model_client import cached_model_call
 def extract_image_text(blog_title: str, blog_content: str, category: str) -> dict:
     """
     Returns: { headline, subtext, tag }

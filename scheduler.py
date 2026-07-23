@@ -13,8 +13,8 @@ the Dockerfile CMD. Treat it as legacy/alternative.
 import logging
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
-from mergeall_engine import run_pipeline
-from mcp_agent import run_agent
+from core.pipeline import run_pipeline
+from publishing.mcp_agent import run_agent
 
 logging.basicConfig(level=logging.INFO)
 

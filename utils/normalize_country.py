@@ -1,5 +1,5 @@
 import json
-from add_cached import cached_model_call
+from core.model_client import cached_model_call
 
 def filter_by_country_model(data, user_country):
     # Step 1: Prepare titles

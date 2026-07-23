@@ -4,7 +4,7 @@ app.py -- Streamlit review dashboard.
 Runs as its own container (`streamlit run app.py`), independently of
 scheduler.py's pipeline loop. Reads output/output.json (or
 output/testing_webp_output.json when USE_AI_IMAGES=True in this file --
-must stay in sync with the same flag in mergeall_engine.py) and lets a
+must stay in sync with the same flag in pipeline.py) and lets a
 human review/browse generated blogs, images, and captions before or
 after they're posted to Webflow.
 """
@@ -363,7 +363,7 @@ def load_data():
     module-level USE_AI_IMAGES flag defined just above this function:
     "testing_webp_output.json" when True, else "output.json". GOTCHA:
     this flag is a separate constant from the same-named USE_AI_IMAGES
-    flag in mergeall_engine.py and must be kept in sync with it manually
+    flag in pipeline.py and must be kept in sync with it manually
     — there is no shared config. Returns [] if the file is missing or
     fails to parse as JSON (never raises). Cached by Streamlit for 60s
     (ttl=60); the "Refresh data" button clears this cache on demand.

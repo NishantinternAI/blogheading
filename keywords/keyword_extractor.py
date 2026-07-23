@@ -1,4 +1,4 @@
-from add_cached import cached_model_call
+from core.model_client import cached_model_call
 import json
 
 def extract_keywords(article_content: str) -> dict:

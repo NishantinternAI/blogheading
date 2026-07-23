@@ -5,7 +5,7 @@ Builds the blog-outer / blog-inner / Instagram images specifically for
 IPO articles, overlaying company name plus zone values (price band,
 GMP, dates) onto the ipo_alert.png / ipo_inner.png templates. Always
 used for source="nse_ipo" articles regardless of the USE_AI_IMAGES
-flag -- see mergeall_engine.py's image-branch comments for why IPO
+flag -- see pipeline.py's image-branch comments for why IPO
 articles are special-cased ahead of the AI-image / template-compositor
 split that applies to everything else.
 

@@ -19,7 +19,7 @@ from pathlib import Path, PureWindowsPath
 
 import requests
 
-from related_links import (
+from keywords.related_links import (
     get_related_links,
     build_related_links_html,
     load_graph,
@@ -63,21 +63,44 @@ IST = timezone(timedelta(hours=5, minutes=30))
 
 # -- Helpers ------------------------------------------------------------------
 
-def save_webflow_url(blog_links, webflow_url, output_path=OUTPUT_JSON_PATH):
-    """Find the blog record by Blog_Links and attach its published Webflow URL."""
+def save_webflow_url(blog_links, webflow_url, output_path=OUTPUT_JSON_PATH,
+                     generated_title=None):
+    """Find the blog record just published and attach its live Webflow URL.
+
+    Matching by `Blog_Links` alone is unsafe: corporate/IPO articles frequently
+    share a source URL (e.g. the generic NSE corporate-actions page) or have an
+    empty `Blog_Links`, so a first-match-by-link would write the URL onto the
+    wrong (older) record. When `generated_title` is supplied (the generated
+    blog["Blog_Title"] that was actually published), it is used as an additional
+    discriminator: the match requires BOTH the link and the generated title, and
+    if no link+title match is found we fall back to a title-only match before
+    finally trying link-only. This keeps shared/empty links from mis-attaching.
+    """
     with open(output_path, "r", encoding="utf-8") as f:
         blogs = json.load(f)
 
-    found = False
-    for blog in blogs:
-        if blog.get("Blog_Links") == blog_links:
-            blog["webflow_url"] = webflow_url
-            found = True
-            break
+    def _gen_title(b):
+        gt = b.get("blog")
+        return gt.get("Blog_Title") if isinstance(gt, dict) else None
 
-    if not found:
-        print(f"[WARN] No matching blog found for Blog_Links={blog_links}; URL not saved.")
+    match = None
+    if generated_title:
+        # Strongest: same source link AND same generated title
+        match = next((b for b in blogs
+                      if b.get("Blog_Links") == blog_links
+                      and _gen_title(b) == generated_title), None)
+        # Next: generated title alone (unique enough; handles empty/shared links)
+        if match is None:
+            match = next((b for b in blogs if _gen_title(b) == generated_title), None)
+    # Last resort: legacy link-only match (safe only when the link is unique)
+    if match is None:
+        match = next((b for b in blogs if b.get("Blog_Links") == blog_links), None)
+
+    if match is None:
+        print(f"[WARN] No matching blog found (link={blog_links!r}, "
+              f"title={generated_title!r}); URL not saved.")
         return False
+    match["webflow_url"] = webflow_url
 
     dir_name = os.path.dirname(os.path.abspath(output_path))
     with tempfile.NamedTemporaryFile("w", dir=dir_name, delete=False, suffix=".tmp", encoding="utf-8") as tmp:
@@ -893,7 +916,11 @@ def post_entry_as_draft(entry: dict, image_dir: str = "") -> dict:
             actual_slug = data.get("fieldData", {}).get("slug", slug)
             webflow_url = f"https://{SITE_DOMAIN}/blog/{actual_slug}"
             try:
-                save_webflow_url(blog_links=entry.get("Blog_Links"), webflow_url=webflow_url)
+                save_webflow_url(
+                    blog_links=entry.get("Blog_Links"),
+                    webflow_url=webflow_url,
+                    generated_title=entry.get("blog", {}).get("Blog_Title"),
+                )
             except Exception as e:
                 print(f"[WEBFLOW] WARN: could not save webflow_url to output.json: {e}")
 

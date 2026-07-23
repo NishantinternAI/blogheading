@@ -4,10 +4,10 @@ content_engine/image_module/compositor.py -- Non-IPO blog image compositor.
 Builds the blog-outer / blog-inner / Instagram images for regular
 (non-IPO) articles: picks a template, overlays the extracted headline
 text, and exports both a JPG and a WebP version. Used from
-mergeall_engine.py's run_pipeline() whenever USE_AI_IMAGES is False and
+pipeline.py's run_pipeline() whenever USE_AI_IMAGES is False and
 the article isn't an IPO (IPO articles always go through
 ipo_compositor.py instead, regardless of USE_AI_IMAGES -- see
-mergeall_engine.py's image-branch comments).
+pipeline.py's image-branch comments).
 """
 
 from PIL import Image, ImageDraw, ImageFont

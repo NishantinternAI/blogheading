@@ -3,7 +3,7 @@ sources/common.py -- shared helpers used across multiple RSS fetcher modules.
 
 assess_quality() was copy-pasted byte-identically into 7 fetchers
 (zerodha, cnbc, paisa, livemint, economic_times, ndtv_profit,
-Business_Standard) -- consolidated here so there's one place to change
+business_standard) -- consolidated here so there's one place to change
 the word-count thresholds if they're ever tuned.
 
 Deliberately NOT consolidated: each fetcher's dedup-by-title logic

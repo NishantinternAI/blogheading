@@ -3,11 +3,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__))) # ← adds genera
 import json
 import re
 from bs4 import BeautifulSoup
-from add_cached import cached_model_call
+from core.model_client import cached_model_call
 from utils.mcp_tools import fetch_and_clean
-from add_cached import cached_model_call, fetch_via_websearch
-from priAndsec_keywords import extract_keywords
-from keyword_researcher import get_keyword_volumes 
+from core.model_client import cached_model_call, fetch_via_websearch
+from keywords.keyword_extractor import extract_keywords
+from keywords.keyword_researcher import get_keyword_volumes 
 from json_repair import repair_json
 
 
@@ -145,9 +145,9 @@ def fix_duplicate_swastika(html: str) -> str:
 
 
 def fix_table_na(html: str) -> str:
-    """Replace empty/placeholder table cells (N/A, NA, None, -, --, or blank) with 'To be announced'."""
+    """Replace empty/placeholder table cells (N/A, NA, None, -, --, en-dash, em-dash, or blank) with 'To be announced'."""
     html = re.sub(
-        r'<td>\s*(?:N/A|n/a|NA|na|None|-|--)\s*</td>',
+        r'<td>\s*(?:N/A|n/a|NA|na|None|-{1,2}|–|—)\s*</td>',
         '<td>To be announced</td>', html
     )
     html = re.sub(r'<td>\s*</td>', '<td>To be announced</td>', html)

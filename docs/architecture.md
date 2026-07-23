@@ -66,7 +66,7 @@ Every 15 minutes:
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
-│                   mergeall_engine.py                         │
+│                   pipeline.py                         │
 │                     run_pipeline()                          │
 │                                                             │
 │  Step 1 → Load 3 stacks from disk                           │
@@ -94,7 +94,7 @@ Every 15 minutes:
 Blogheading/
 │
 ├── scheduler.py                         ← APScheduler entry point
-├── mergeall_engine.py                   ← Main pipeline (run_pipeline)
+├── pipeline.py                   ← Main pipeline (run_pipeline)
 ├── app.py                               ← Streamlit dashboard
 │
 ├── sources/
@@ -733,7 +733,7 @@ hashtags = "" if isinstance(insta, str) else insta.get("hashtags", "")
 
 ## 14. Configuration Flags
 
-### `mergeall_engine.py`
+### `pipeline.py`
 
 ```python
 USE_AI_IMAGES = False   # True → OpenAI gpt-image-1 for non-IPO
@@ -757,7 +757,7 @@ CACHE_TTL_HOURS = 6
 ### `app.py`
 
 ```python
-USE_AI_IMAGES = False   # Must match mergeall_engine.py
+USE_AI_IMAGES = False   # Must match pipeline.py
 # True  → reads testing_webp_output.json
 # False → reads output.json
 ```
@@ -888,7 +888,7 @@ print('Reset done')
 
 # 2. Run pipeline
 python -c "
-from mergeall_engine import run_pipeline
+from pipeline import run_pipeline
 results = run_pipeline()
 if results:
     r = results[0]
@@ -961,7 +961,7 @@ Then check: `docker logs -f blogheading-scheduler-1`
 
 ```
 sources/ipo.py              TEST_MODE = False
-mergeall_engine.py      USE_AI_IMAGES = True/False (your choice)
+pipeline.py      USE_AI_IMAGES = True/False (your choice)
 app.py                  USE_AI_IMAGES = True/False (must match above)
 ```
 

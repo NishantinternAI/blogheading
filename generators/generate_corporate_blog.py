@@ -5,7 +5,7 @@ Generates a full SEO/GEO-optimised blog article for NSE Corporate Action items.
 
 PIPELINE INTEGRATION
 ────────────────────
-In mergeall_engine.py:
+In pipeline.py:
 
     from generate_corporate_blog import generate_corporate_blog
 
@@ -39,7 +39,7 @@ from bs4 import BeautifulSoup
 log = logging.getLogger(__name__)
 
 # ── your existing pipeline modules ────────────────────────────────────────────
-from add_cached import cached_model_call, fix_all_fields, _strip_page_furniture
+from core.model_client import cached_model_call, fix_all_fields, _strip_page_furniture
 
 
 # ─────────────────────────────────────────────────────────────────────────────
