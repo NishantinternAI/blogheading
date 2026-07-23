@@ -15,6 +15,10 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
 from core.pipeline import run_pipeline
 from publishing.mcp_agent import run_agent
+from content_engine.image_module.template_batch_generator import (
+    submit_weekly_batch,
+    fetch_completed_batch,
+)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -36,6 +40,20 @@ def pipeline_job():
     if results:
         # Hand control to the AI agent with the single generated entry
         run_agent(entry=results[0])
+
+
+@scheduler.scheduled_job('cron', day_of_week='sat', hour=2, minute=0, timezone='Asia/Kolkata')
+def weekly_template_submit_job():
+    """Saturday 02:00 IST -- submits this week's AI template-pool batch."""
+    print("\n[TEMPLATE BATCH] Submitting weekly template batch...")
+    submit_weekly_batch()
+
+
+@scheduler.scheduled_job('cron', day_of_week='mon', hour=9, minute=0, timezone='Asia/Kolkata')
+def weekly_template_fetch_job():
+    """Monday 09:00 IST -- fetches (or falls back on) this week's batch."""
+    print("\n[TEMPLATE BATCH] Checking weekly template batch...")
+    fetch_completed_batch()
 
 
 if __name__ == "__main__":
