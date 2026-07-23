@@ -315,6 +315,9 @@ def fetch_morning_summary():
         print(f"[MARKET SUMMARY] No bhavcopy data for {trade_date} -- skipping")
         return []
     gainers, losers = top_movers(bhav_rows)
+    if not gainers or not losers:
+        print(f"[MARKET SUMMARY] No qualifying gainers/losers for {trade_date} -- skipping")
+        return []
 
     oi_rows = _fetch_csv(PARTICIPANT_OI_URL.format(ddmmyyyy=ddmmyyyy))
     pcr = market_pcr(oi_rows) if oi_rows else None

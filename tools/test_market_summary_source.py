@@ -13,7 +13,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root
 
-from sources.market_summary import fetch_morning_summary
+from datetime import date
+
+from sources.market_summary import fetch_morning_summary, resolve_last_trading_day
 
 
 def check(label, condition):
@@ -36,6 +38,15 @@ check("Blog_Content mentions Nifty 50", "Nifty 50" in article["Blog_Content"])
 check("Blog_Content mentions Bank Nifty or Nifty Bank", (
     "Bank Nifty" in article["Blog_Content"] or "Nifty Bank" in article["Blog_Content"]
 ))
+check("Blog_Content does not contain the hollow-article fallback text", (
+    "None available" not in article["Blog_Content"]
+))
+
+resolved = resolve_last_trading_day(date.today())
+if resolved is not None:
+    trade_date, _ = resolved
+    date_label = trade_date.strftime("%d %b %Y")
+    check("Blog_Title contains the resolved trading date", date_label in article["Blog_Title"])
 
 print(f"\nBlog_Title: {article['Blog_Title']}")
 print(f"\nBlog_Content preview:\n{article['Blog_Content'][:600]}")
