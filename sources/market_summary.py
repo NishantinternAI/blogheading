@@ -10,6 +10,27 @@ Three archives, one trading day at a time:
   - fao_participant_oi_DDMMYYYY.csv  -> aggregate index-options OI (market PCR)
 """
 
+import csv
+import io
+from datetime import date, timedelta
+
+import requests
+
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/csv, */*",
+}
+
+INDEX_CLOSE_URL    = "https://archives.nseindia.com/content/indices/ind_close_all_{ddmmyyyy}.csv"
+SEC_BHAV_URL       = "https://archives.nseindia.com/products/content/sec_bhavdata_full_{ddmmyyyy}.csv"
+PARTICIPANT_OI_URL = "https://archives.nseindia.com/content/nsccl/fao_participant_oi_{ddmmyyyy}.csv"
+
+MAX_LOOKBACK_DAYS = 7
+
 
 def pivot_levels(high: float, low: float, close: float) -> dict:
     """
@@ -139,28 +160,6 @@ def market_pcr(oi_rows: list):
     return None
 
 
-import csv
-import io
-from datetime import date, timedelta
-
-import requests
-
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/csv, */*",
-}
-
-INDEX_CLOSE_URL    = "https://archives.nseindia.com/content/indices/ind_close_all_{ddmmyyyy}.csv"
-SEC_BHAV_URL       = "https://archives.nseindia.com/products/content/sec_bhavdata_full_{ddmmyyyy}.csv"
-PARTICIPANT_OI_URL = "https://archives.nseindia.com/content/nsccl/fao_participant_oi_{ddmmyyyy}.csv"
-
-MAX_LOOKBACK_DAYS = 7
-
-
 def _fetch_csv(url: str):
     """
     GETs a CSV URL and parses it into a list of row dicts.
@@ -205,6 +204,128 @@ def resolve_last_trading_day(start: date):
         if rows:
             return candidate, rows
     return None
+
+
+def _build_blog_content(date_label, nifty_levels, bank_nifty_levels, gainers, losers, pcr):
+    """
+    Builds the plain-text brief handed to generate_market_summary_blog()
+    (not the final blog copy itself) -- field-by-field numbers followed
+    by a fixed instruction block, matching the convention
+    sources/ipo.py's _build_blog_content() uses for the IPO generator.
+
+    Args:
+        date_label: human-readable resolved trading date, e.g. "22 Jul 2026".
+        nifty_levels: pivot_levels() dict for Nifty 50.
+        bank_nifty_levels: pivot_levels() dict for Nifty Bank.
+        gainers: top_movers() gainers list.
+        losers: top_movers() losers list.
+        pcr: market_pcr() result, or None if unavailable.
+
+    Returns:
+        The formatted plain-text brief string (stripped of leading/
+        trailing whitespace).
+    """
+    gainers_lines = "\n".join(
+        f"  {i+1}. {g['symbol']}: {g['prev_close']} -> {g['close']} ({g['pct_change']:+.2f}%)"
+        for i, g in enumerate(gainers)
+    ) or "  None available"
+    losers_lines = "\n".join(
+        f"  {i+1}. {l['symbol']}: {l['prev_close']} -> {l['close']} ({l['pct_change']:+.2f}%)"
+        for i, l in enumerate(losers)
+    ) or "  None available"
+
+    pcr_block = (
+        f"Market-wide Index Options PCR (Put OI / Call OI, Nifty + Bank Nifty combined): {pcr}\n"
+        f"IMPORTANT: this PCR figure is AGGREGATE across all index options -- "
+        f"it is NOT a Nifty-only PCR. State this clearly if you mention it; "
+        f"never call it \"Nifty PCR\"."
+        if pcr is not None else
+        "Market-wide Index Options PCR: Not available for this session."
+    )
+
+    return f"""
+Trading Day    : {date_label} (previous session's close -- NOT live/intraday data)
+
+Nifty 50 Pivot Levels
+  Pivot : {nifty_levels['pivot']}
+  R1    : {nifty_levels['r1']}   R2 : {nifty_levels['r2']}
+  S1    : {nifty_levels['s1']}   S2 : {nifty_levels['s2']}
+
+Nifty Bank Pivot Levels
+  Pivot : {bank_nifty_levels['pivot']}
+  R1    : {bank_nifty_levels['r1']}   R2 : {bank_nifty_levels['r2']}
+  S1    : {bank_nifty_levels['s1']}   S2 : {bank_nifty_levels['s2']}
+
+TOP 5 GAINERS ({date_label} session, EQ series, liquid names only):
+{gainers_lines}
+
+TOP 5 LOSERS ({date_label} session, EQ series, liquid names only):
+{losers_lines}
+
+{pcr_block}
+
+Write a "morning market summary" blog using ONLY the numbers above.
+Do not invent any price, level, or percentage not stated here. Explain what
+support/resistance pivot levels mean for a retail reader in plain language,
+present gainers/losers as a table, and if PCR is available, present it with
+its stated caveat exactly as given -- never imply it is Nifty-specific.
+Make clear throughout that these are PREVIOUS SESSION closing levels being
+used as reference points for today's trading, not live intraday data.
+""".strip()
+
+
+def fetch_morning_summary():
+    """
+    Builds the morning market summary article from NSE's public
+    end-of-day archives. See module docstring / design spec for the
+    full data-source rationale.
+
+    Returns:
+        [] if support/resistance or gainers/losers data (both
+        required) couldn't be resolved. Otherwise a single-item list
+        containing one article dict:
+        {"Blog_Title", "Blog_Content", "Blog_Links", "source"}.
+
+    PCR is best-effort: if the participant-OI archive fetch/parse
+    fails, the PCR section is simply omitted from Blog_Content rather
+    than blocking the whole article.
+    """
+    resolved = resolve_last_trading_day(date.today())
+    if resolved is None:
+        print("[MARKET SUMMARY] No trading day found within lookback window -- skipping")
+        return []
+    trade_date, index_rows = resolved
+    ddmmyyyy = trade_date.strftime("%d%m%Y")
+
+    nifty_levels      = index_pivot_levels(index_rows, "Nifty 50")
+    bank_nifty_levels = index_pivot_levels(index_rows, "Nifty Bank")
+    if not nifty_levels or not bank_nifty_levels:
+        print(f"[MARKET SUMMARY] Missing Nifty 50/Bank Nifty pivot data for {trade_date} -- skipping")
+        return []
+
+    bhav_rows = _fetch_csv(SEC_BHAV_URL.format(ddmmyyyy=ddmmyyyy))
+    if not bhav_rows:
+        print(f"[MARKET SUMMARY] No bhavcopy data for {trade_date} -- skipping")
+        return []
+    gainers, losers = top_movers(bhav_rows)
+
+    oi_rows = _fetch_csv(PARTICIPANT_OI_URL.format(ddmmyyyy=ddmmyyyy))
+    pcr = market_pcr(oi_rows) if oi_rows else None
+
+    date_label = trade_date.strftime("%d %b %Y")
+    title = (
+        f"Nifty 50, Bank Nifty Morning Market Summary — Support, Resistance "
+        f"& Top Movers ({date_label})"
+    )
+    content = _build_blog_content(date_label, nifty_levels, bank_nifty_levels, gainers, losers, pcr)
+
+    print(f"[MARKET SUMMARY] Built article for {trade_date}")
+    return [{
+        "Blog_Title":   title,
+        "Blog_Content": content,
+        "Blog_Links":   "https://www.nseindia.com/market-data/live-market-indices",
+        "source":       "market_summary",
+    }]
 
 
 if __name__ == "__main__":
