@@ -5,6 +5,49 @@ BASE_DIR          = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_BASE     = os.path.abspath(os.path.join(BASE_DIR, "../templates"))
 FALLBACK_CATEGORY = 'general'
 
+TEMPLATE_CATEGORIES = [
+    "finance", "general", "dividend", "rbi_policy", "gold_oil", "tech", "banking",
+]
+
+# Priority order matters: checked top to bottom, first match wins. A story
+# mentioning both "RBI" and "bank" should land on the more specific
+# rbi_policy bucket rather than the broader banking one.
+_CATEGORY_KEYWORD_ORDER = ["dividend", "rbi_policy", "gold_oil", "tech", "banking", "finance"]
+
+_CATEGORY_KEYWORDS = {
+    "dividend": ["dividend", "ex-date", "record date", "payout", "buyback"],
+    "rbi_policy": ["rbi", "reserve bank", "monetary", "inflation", "cpi", "repo"],
+    "gold_oil": [
+        "gold", "silver", "bullion", "precious metal",
+        "oil", "crude", "petroleum", "fuel", "ongc", "bpcl", "hpcl",
+    ],
+    "tech": ["infosys", "tcs", "wipro", "it sector", "tech", "software"],
+    "banking": [
+        "psu bank", "private bank", "npa", "credit growth", "sbi",
+        "hdfc bank", "icici bank", "axis bank", "kotak", "bank", "banking",
+    ],
+    "finance": [
+        "surge", "rally", "jump", "rise", "gain", "profit", "high",
+        "soar", "climb", "positive", "boost",
+        "fall", "crash", "drop", "decline", "loss", "slump", "plunge", "sink",
+        "dip", "weak", "negative",
+        "rupee", "dollar", "forex", "currency", "usd",
+    ],
+}
+
+
+def classify_template_category(title: str, content: str = "") -> str:
+    """
+    Classify a blog's title/content into one of TEMPLATE_CATEGORIES using
+    the same keyword bins as ai_image_generator.build_image_prompt(). Falls
+    back to "general" if nothing matches.
+    """
+    combined = f"{title or ''} {content or ''}".lower()
+    for category in _CATEGORY_KEYWORD_ORDER:
+        if any(keyword in combined for keyword in _CATEGORY_KEYWORDS[category]):
+            return category
+    return "general"
+
 
 def get_templates_from_folder(folder: str) -> list:
     """Returns sorted list of template paths from a folder."""
