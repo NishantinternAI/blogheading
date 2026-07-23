@@ -10,6 +10,7 @@ Not wired into the live per-blog pipeline -- this only grows the on-disk
 template pool that content_engine/image_module/template_selector.py already
 reads from.
 """
+import json
 import os
 
 from PIL import Image
@@ -22,6 +23,10 @@ TARGET_SIZES = {
 }
 
 MASTER_SIZE = "1536x1024"
+
+TEMPLATE_BASE = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "templates")
+)
 
 # Static per-category art direction + a curated pad color (a precomputed
 # stand-in for "derive a color from the color_mood string" -- simpler and
@@ -235,3 +240,58 @@ def build_weekly_assignments(iso_week: int, count: int = WEEKLY_TEMPLATE_COUNT) 
         per_category_counter[category] = idx + 1
         assignments.append({"category": category, "idx": idx})
     return assignments
+
+
+def build_batch_input_lines(assignments: list) -> list:
+    """
+    Returns a list of JSON-serializable dicts, one per OpenAI Batch API
+    request line, for POST /v1/images/generations via gpt-image-1.5.
+    `custom_id` encodes "<category>__<idx>" so fetch_completed_batch() can
+    map each output image back to its assignment.
+    """
+    lines = []
+    for a in assignments:
+        custom_id = f"{a['category']}__{a['idx']}"
+        lines.append({
+            "custom_id": custom_id,
+            "method": "POST",
+            "url": "/v1/images/generations",
+            "body": {
+                "model": "gpt-image-1.5",
+                "prompt": build_category_prompt(a["category"]),
+                "size": MASTER_SIZE,
+                "quality": "medium",
+                "n": 1,
+            },
+        })
+    return lines
+
+
+def append_template_description(category: str, filename: str) -> None:
+    """
+    Append a description entry for a newly generated outer template into
+    content_engine/templates/<category>/image_descriptions.json, creating
+    the category folder and/or file if missing. Schema matches the existing
+    image_descriptions.json files (visual/mood/best_for/avoid_for), read by
+    template_selector.select_template_pair_smart().
+    """
+    info = CATEGORY_PROMPTS[category]
+    category_dir = os.path.join(TEMPLATE_BASE, category)
+    os.makedirs(category_dir, exist_ok=True)
+    desc_path = os.path.join(category_dir, "image_descriptions.json")
+
+    if os.path.exists(desc_path):
+        with open(desc_path, "r", encoding="utf-8") as f:
+            descriptions = json.load(f)
+    else:
+        descriptions = {}
+
+    descriptions[f"outer/{filename}"] = {
+        "visual": info["visual_scene"],
+        "mood": info["color_mood"],
+        "best_for": info["best_for"],
+        "avoid_for": info["avoid_for"],
+    }
+
+    with open(desc_path, "w", encoding="utf-8") as f:
+        json.dump(descriptions, f, ensure_ascii=False, indent=2)

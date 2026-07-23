@@ -84,6 +84,45 @@ check(
     week0[0]["category"] == week7[0]["category"],
 )
 
+import json
+import os
+import tempfile
+
+from content_engine.image_module.template_batch_generator import (
+    build_batch_input_lines,
+    append_template_description,
+)
+import content_engine.image_module.template_batch_generator as tbg
+
+# -- build_batch_input_lines(): one line per assignment, correct shape -----
+assignments = build_weekly_assignments(iso_week=0, count=3)
+lines = build_batch_input_lines(assignments)
+check("build_batch_input_lines returns one line per assignment", len(lines) == 3)
+first = lines[0]
+check("line has custom_id encoding category+idx", first["custom_id"] == f"{assignments[0]['category']}__{assignments[0]['idx']}")
+check("line targets the images endpoint", first["url"] == "/v1/images/generations")
+check("line body uses gpt-image-1.5", first["body"]["model"] == "gpt-image-1.5")
+check("line body size is the master size", first["body"]["size"] == "1536x1024")
+check("every line is JSON-serializable", all(json.dumps(l) for l in lines))
+
+# -- append_template_description(): writes/creates image_descriptions.json -
+with tempfile.TemporaryDirectory() as tmp_base:
+    original_base = tbg.TEMPLATE_BASE
+    tbg.TEMPLATE_BASE = tmp_base
+    try:
+        append_template_description("dividend", "ai_dividend_20260801_0.png")
+        desc_path = os.path.join(tmp_base, "dividend", "image_descriptions.json")
+        check("image_descriptions.json created", os.path.exists(desc_path))
+        with open(desc_path, encoding="utf-8") as f:
+            data = json.load(f)
+        key = "outer/ai_dividend_20260801_0.png"
+        check("new entry present under outer/<filename>", key in data)
+        check("entry has visual/mood/best_for/avoid_for keys", all(
+            k in data[key] for k in ("visual", "mood", "best_for", "avoid_for")
+        ))
+    finally:
+        tbg.TEMPLATE_BASE = original_base
+
 if failures:
     print(f"\n{len(failures)} FAILURE(S)")
     raise SystemExit(1)
