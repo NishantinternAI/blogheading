@@ -17,12 +17,19 @@ Three data points, computed entirely from NSE's public archive CSVs (same
 family as `tools/fetch_nse_index_data.py` already uses) — no live scraping,
 no anti-bot session dance:
 
-1. **Support/resistance levels** for Nifty 50 and Sensex — classic pivot
+1. **Support/resistance levels** for Nifty 50 and Nifty Bank — classic pivot
    point formula from the previous trading day's OHLC
    (`ind_close_all_DDMMYYYY.csv`):
    - Pivot `P = (High + Low + Close) / 3`
    - `R1 = 2P - Low`, `S1 = 2P - High`
    - `R2 = P + (High - Low)`, `S2 = P - (High - Low)`
+
+   **Correction from the original approved draft**: Sensex is a BSE index,
+   not NSE — `ind_close_all` (an NSE archive) never contains a Sensex row.
+   There's no confirmed public BSE archive equivalent, so Sensex pivot
+   levels are dropped for this iteration; Nifty Bank is included instead
+   since it's confirmed present in the same archive and is a second
+   widely-watched level retail readers ask about.
 
 2. **Top 5 gainers + top 5 losers** — from `sec_bhavdata_full_DDMMYYYY.csv`
    (every `EQ`-series stock's `PREV_CLOSE`/`CLOSE_PRICE`). We compute %
@@ -50,13 +57,13 @@ the levels to watch today" framing — not live data.
    this naturally skips weekends and market holidays without needing a
    separate holiday calendar.
 2. Fetch and parse the three archives for that resolved date.
-3. Compute pivot levels (Nifty 50 + Sensex), top 5/top 5 gainers/losers, and
+3. Compute pivot levels (Nifty 50 + Bank Nifty), top 5/top 5 gainers/losers, and
    PCR.
 4. Build one article dict in the same shape the pipeline expects
    (`Blog_Title`, `Blog_Content`, `Blog_Links`, `source`) — see
    `sources/fetch_nse_corporate.py`'s `_build_item()` for the existing
    convention to follow. `Blog_Title` includes the resolved date (e.g.
-   "Nifty 50, Sensex Morning Market Summary — Support, Resistance & Top
+   "Nifty 50, Bank Nifty Morning Market Summary — Support, Resistance & Top
    Movers (23 Jul 2026)") so the pipeline's existing title-based "already
    published" dedup naturally prevents re-publishing the same day's summary
    twice — no new dedup mechanism needed.
