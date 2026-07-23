@@ -867,6 +867,11 @@ def _full_fetch_and_build_stack(selected_country: str, category: str) -> dict:
     if a.get("source") == "nse_ipo"
     ]
 
+    market_summary_articles = [
+    a for a in all_data
+    if a.get("source") == "market_summary"
+    ]
+
     google_trends_articles = [
     a for a in all_data
     if a.get("source") == "google_trends"
@@ -878,7 +883,7 @@ def _full_fetch_and_build_stack(selected_country: str, category: str) -> dict:
 
     other_articles = [
     a for a in all_data
-    if a.get("source") not in ["nse_ipo", "google_trends"]
+    if a.get("source") not in ["nse_ipo", "google_trends", "market_summary"]
     ]
     finance_trends, _ = filter_by_country_and_category(
     google_trends_articles,
@@ -890,6 +895,7 @@ def _full_fetch_and_build_stack(selected_country: str, category: str) -> dict:
         print(f"[FILTER] No finance trends found in Google Trends today")
 
     print(f"[FILTER] IPO articles (bypass filter): {len(ipo_articles)}")
+    print(f"[FILTER] Market summary articles (bypass filter): {len(market_summary_articles)}")
 
     filtered_other, source = filter_by_country_and_category(
         other_articles, selected_country, category
@@ -898,6 +904,7 @@ def _full_fetch_and_build_stack(selected_country: str, category: str) -> dict:
 
     filtered_data = (
     ipo_articles +
+    market_summary_articles +
     finance_trends +
     filtered_other
     )
@@ -943,10 +950,15 @@ def _fetch_after_timestamp(
 
     all_data = _fetch_all_sources(top_n=6)
 
-    # ── Split into 3 groups ───────────────────────────────────
+    # ── Split into groups ──────────────────────────────────────
     ipo_articles = [
         a for a in all_data
         if a.get("source") == "nse_ipo"
+    ]
+
+    market_summary_articles = [
+        a for a in all_data
+        if a.get("source") == "market_summary"
     ]
 
     google_trends_articles = [
@@ -956,10 +968,11 @@ def _fetch_after_timestamp(
 
     other_articles = [
         a for a in all_data
-        if a.get("source") not in ["nse_ipo", "google_trends"]
+        if a.get("source") not in ["nse_ipo", "google_trends", "market_summary"]
     ]
 
     print(f"[FILTER] IPO articles (bypass filter)    : {len(ipo_articles)}")
+    print(f"[FILTER] Market summary articles (bypass filter) : {len(market_summary_articles)}")
     print(f"[FILTER] Google Trends articles           : {len(google_trends_articles)}")
     print(f"[FILTER] Other articles (to filter)      : {len(other_articles)}")
 
@@ -980,8 +993,8 @@ def _fetch_after_timestamp(
     )
     print(f"[FILTER] Other articles after filter     : {len(filtered_other)}")
 
-    # ── Combine all 3 groups ──────────────────────────────────
-    filtered_data = ipo_articles + finance_trends + filtered_other
+    # ── Combine all groups ─────────────────────────────────────
+    filtered_data = ipo_articles + market_summary_articles + finance_trends + filtered_other
     print(f"[FILTER] Total combined                  : {len(filtered_data)}")
 
     if not filtered_data:

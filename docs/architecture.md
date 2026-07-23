@@ -443,18 +443,23 @@ Total: 6 files, 2 API calls
 
 ## 10. AI Filter Bypass
 
-IPO articles (`source=nse_ipo`) skip the AI country/category filter:
+IPO articles (`source=nse_ipo`) and market summary articles
+(`source=market_summary`) both skip the AI country/category filter:
 
 ```python
-ipo_articles   = [a for a in all_data if a.get("source") == "nse_ipo"]
-other_articles = [a for a in all_data if a.get("source") != "nse_ipo"]
-filtered_other = filter_by_country_and_category(other_articles, ...)
-filtered_data  = ipo_articles + filtered_other
+ipo_articles             = [a for a in all_data if a.get("source") == "nse_ipo"]
+market_summary_articles  = [a for a in all_data if a.get("source") == "market_summary"]
+other_articles           = [a for a in all_data if a.get("source") not in ("nse_ipo", "market_summary")]
+filtered_other           = filter_by_country_and_category(other_articles, ...)
+filtered_data            = ipo_articles + market_summary_articles + filtered_other
 ```
 
 **Why bypass is needed:** IPO `Blog_Content` is structured form data, not prose.
 The AI filter misclassifies it as non-finance and removes all IPO articles,
-leaving the priority stack permanently empty.
+leaving the priority stack permanently empty. `market_summary`'s `Blog_Content`
+is the same kind of structured field-by-field brief (pivot levels, gainers/
+losers table data) rather than narrative prose, so it carries the identical
+misclassification risk and gets the same bypass.
 
 ---
 
