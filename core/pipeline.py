@@ -55,6 +55,7 @@ from sources.paisa               import fetch_5paisa
 from sources.livemint            import fetch_livemint
 from sources.fetch_nse_corporate import fetch_nse_corporate
 from sources.ipo                 import fetch_nse_ipo
+from sources.market_summary      import fetch_morning_summary
 from sources.google_trends import fetch_google_trends
 from sources.google_news_business import fetch_google_news_business
 from sources.economic_times import fetch_economic_times
@@ -78,7 +79,7 @@ from utils.combined_filter import filter_by_country_and_category
 from generators.notify_generator            import generate_notification
 from generators.generate_instagram_caption  import generate_instagram_caption
 from generators.get_system_timestamp        import get_run_timestamp
-from generators.blog_generator import generate_blog, generate_ipo_blog
+from generators.blog_generator import generate_blog, generate_ipo_blog, generate_market_summary_blog
 from storage.save_output                import save_output
 from utils.timer import timed, Timer, print_timing_summary, reset_timings
 from utils.date_filter import filter_fresh_articles
@@ -132,7 +133,7 @@ POSTING_PATTERN = [
 #  SOURCE CONFIG
 # ══════════════════════════════════════════════════════════════
 
-PRIORITY_SOURCES  = ["nse_ipo", "google_trends"]
+PRIORITY_SOURCES  = ["nse_ipo", "google_trends", "market_summary"]
 CORPORATE_SOURCES = []
 NEWS_SOURCES      = ["zerodha", "5paisa", "livemint","google_news_business","economic_times","ndtv_profit","business_standard"]
 
@@ -716,6 +717,7 @@ def _fetch_all_sources(top_n: int = 6) -> list:
 
     sources = [
         (fetch_nse_ipo,       "nse_ipo"),
+        (fetch_morning_summary, "market_summary"),
         (fetch_google_trends,  "google_trends"),
         (fetch_google_news_business, "google_news_business"),
         (fetch_economic_times,       "economic_times"),
@@ -731,8 +733,10 @@ def _fetch_all_sources(top_n: int = 6) -> list:
             with Timer(f"fetch_{source_name}"):
                 if source_name == "nse_ipo":
                     data = fetcher()        # IPO — limited to top_n
+                elif source_name == "market_summary":
+                    data = fetcher()        # Market summary — returns 0 or 1 article
                 elif source_name == "google_trends":
-                    data = fetcher()   
+                    data = fetcher()
                 elif source_name == "google_news_business":
                     data = fetcher(top_n=top_n)          # Business news — pass top_n to fetcher
                 else:
@@ -1085,6 +1089,14 @@ def _generate_ipo_blog(item):          # ← add this
     used only for priority-stack articles whose source is "nse_ipo"; uses a
     dedicated IPO prompt instead of the generic blog prompt."""
     return generate_ipo_blog(item)
+
+@timed
+def _generate_market_summary_blog(item):
+    """Timed wrapper around generators.blog_generator.generate_market_summary_blog(item) —
+    used only for priority-stack articles whose source is "market_summary"; builds
+    the prompt directly from the structured data fetch_morning_summary() produces,
+    same as _generate_ipo_blog does for IPO items."""
+    return generate_market_summary_blog(item)
 
 @timed
 def _generate_notification(item):
@@ -1454,12 +1466,15 @@ def run_pipeline(selected_country="India", category="finance"):
             print(f"[BLOG] IPO article (priority + nse_ipo) → generate_ipo_blog")
             print(f"[KEYWORDS] Fetching keyword data from Google...")
             blog_result = clean_newlines(_generate_ipo_blog(final_item))
+        elif pop_type == "priority" and article_source == "market_summary":
+            print(f"[BLOG] Market summary article (priority + market_summary) → generate_market_summary_blog")
+            blog_result = clean_newlines(_generate_market_summary_blog(final_item))
         else:
             print(f"[BLOG] {pop_type.upper()} article "
                   f"(source={article_source}) → generate_blog")
             print(f"[KEYWORDS] Fetching keyword data from Google...")
             blog_result= clean_newlines(_generate_blog(final_item))
-        
+
         if not blog_result:
             print(f"[PIPELINE] ⚠️  Blog generation returned empty — "
                   f"skipping article: '{final_item.get('Blog_Title','')[:60]}'")
