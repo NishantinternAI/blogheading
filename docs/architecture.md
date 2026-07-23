@@ -166,16 +166,24 @@ one random Zerodha article is picked and published immediately (skips stacks).
 Articles are classified into 3 stacks by `source` field only:
 
 ```python
-PRIORITY_SOURCES  = ["nse_ipo"]
+PRIORITY_SOURCES  = ["nse_ipo", "market_summary"]
 CORPORATE_SOURCES = ["nse_corporate"]
 NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint"]
 ```
 
 | Stack File | Sources | Image Method |
 |---|---|---|
-| `stack_priority.json` | `nse_ipo` | `ipo_compositor.py` always |
+| `stack_priority.json` | `nse_ipo`, `market_summary` | See notes |
 | `stack_news.json` | zerodha, cnbc, 5paisa, livemint | AI or template |
 | `stack_corporate.json` | `nse_corporate` | AI or template |
+
+**Priority Stack Image Methods:**
+- `nse_ipo` articles: `ipo_compositor.py` always (template-based)
+- `market_summary` articles: AI or template (per `USE_AI_IMAGES` flag, same as news/corporate)
+
+**Market Summary Articles**
+
+`market_summary` articles route to the priority stack and follow the `POSTING_PATTERN`. Unlike IPO articles, they use the standard image generation path (AI-generated or smart template) rather than the IPO compositor. The blog generator uses a dedicated `generate_market_summary_blog()` prompt function (in `generators/blog_generator.py`) rather than the generic `generate_blog()`. Data comes from `sources/market_summary.py`, built from NSE's public end-of-day archive CSVs, providing Nifty 50 and Bank Nifty pivot support/resistance levels, top gainers/losers, and market-wide statistics (PCR ratio).
 
 ---
 
