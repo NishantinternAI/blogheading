@@ -13,13 +13,13 @@ current tree after merging `origin/main` (`05672c1`, `4b9987c`).
 
 ## P0 — Breaks / misbehaves in production
 
-### 1. `pillow` missing from `requirements.txt`
-`requirements.txt` has no `pillow`. Five modules do `from PIL import Image`:
+### 1. ~~`pillow` missing from `requirements.txt`~~ **[FIXED 2026-07-24]**
+~~`requirements.txt` has no `pillow`. Five modules do `from PIL import Image`:
 `content_engine/image_module/{compositor,ipo_compositor,ai_image_generator,validator}.py`
 and `verify_images.py`. A clean Docker build (`pip install -r requirements.txt`)
 will not have Pillow → **all image generation fails** the moment the first
-article is processed.
-**Fix:** add `pillow` to `requirements.txt`.
+article is processed.~~
+Added `pillow` to `requirements.txt`.
 
 ### 2. Import-time network calls in 5 of 6 RSS fetchers  **[NEW — earlier pass caught only 1]**
 Module-level statements that execute on `import`:
