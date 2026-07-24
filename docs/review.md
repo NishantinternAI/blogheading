@@ -74,20 +74,15 @@ Since the phase-b refactor, both compositors share one `FONTS` dict in
 pointing `'extrabold'`/`'regular'` at the actual lowercase filenames
 (`extrabold.ttf`/`regular.ttf`).
 
-### 5. `extract_faq_keyword()` result computed then discarded  (`app.py:490,503`)  **[NEW]**
-```python
-tldr_keyword = extract_faq_keyword(ai_title)   # line 490 — never used
-blog_combined += f"<h2>Key Takeaways</h2>\n"    # bare, no keyword
-...
-faq_keyword = extract_faq_keyword(ai_title)     # line 503 — never used
-blog_combined += f"<h2>FAQ</h2>\n"              # bare, no keyword
-```
-The emitted HTML is bare `<h2>Key Takeaways</h2>` / `<h2>FAQ</h2>`. This
-**contradicts README §13.4/§13.5 and the Changelog**, which claim
-`<h2>Key Takeaways – {keyword}</h2>` and `<h2>FAQ – {keyword} For Investors</h2>`.
-Also note `extract_faq_keyword`'s `STOP` set (`app.py:52`) ends with a literal
-`...` (Python `Ellipsis`) — placeholder code that was never finished.
-**This is a half-reverted feature — see "Decisions for the owner" below.**
+### 5. ~~`extract_faq_keyword()` result computed then discarded~~ **[RESOLVED 2026-07-24 — owner decision]**
+Re-verified against the current tree: the calls that computed
+`tldr_keyword`/`faq_keyword` and discarded them no longer exist at all
+(not just discarded — removed), so headings were already bare
+`<h2>Key Takeaways</h2>` / `<h2>FAQ</h2>` with no dead call sites left
+behind. Owner chose to keep bare headings and delete the now-fully-unused
+`extract_faq_keyword()` function from `app.py` rather than restore the
+keyword-in-h2 feature. `docs/architecture.md` §13.2/§13.4/§13.5 and the
+Changelog corrected to match.
 
 ### 6. `fix_garbage_characters` is never applied to `Blog_Content`  (`generators/blog_generator.py:210-228`)  **[NEW]**
 In `fix_all_fields`, the garbage/foreign-char filter runs only for
@@ -177,7 +172,7 @@ env var read by both.
 |---|---|---|---|---|
 | 14 | §1 Overview | "every 15 minutes" | `scheduler.py:14` cron `*/5` = **5 min** | Fix README |
 | 15 | §11.5 + §12 + Changelog | Mandatory **internal links** (3, before FAQ); `fix_duplicate_links`/`fix_links_before_faq` active | Both post-processors are **commented out** (`blog_generator.py:116-151,222-223`); prompt now says "**NO internal links anywhere**" (line 728) | **Owner decision** (see below) |
-| 16 | §13.4/§13.5 + Changelog | keyword-rich `<h2>Key Takeaways – …>` / `<h2>FAQ – … For Investors>` | `app.py` emits bare h2 (finding #5) | **Owner decision** |
+| 16 | ~~§13.4/§13.5 + Changelog~~ | ~~keyword-rich `<h2>Key Takeaways – …>` / `<h2>FAQ – … For Investors>`~~ | `app.py` emits bare h2 (finding #5) | **Resolved 2026-07-24 — fixed docs** |
 | 17 | §7.7/§14 | `TEST_MODE = True`, `TEST_COMPANY = "Aureate Tradde"` | `sources/ipo.py:677-678` `TEST_MODE = False`, `"Q-Line Biotech Limited"` | Fix README (code correct for prod) |
 | 18 | §16 Deployment | `version: 3.8`, `env_file: .env` compose | `Dockerfile` is `python:3.10`; README §1 says Python 3.11; no compose file in repo | Fix README / add compose |
 | 19 | §16 Deployment | no mention of `config.py` | `config.py` is **required** (`add_cached.py:2` `from config import client, MODEL`), gitignored — must exist on server before first run | Document it |
@@ -192,9 +187,10 @@ stale README would *introduce* a regression. Choose per item:
 
 - **Internal links (#15):** restore the feature (uncomment processors + re-add
   prompt rule) **OR** keep current "no links" behaviour and correct README §11.5/§12.
-- **Keyword-in-H2 (#16):** restore (wire `tldr_keyword`/`faq_keyword` into the h2
-  strings + finish the `STOP` set) **OR** remove the dead variables and correct
-  README §13.4/§13.5.
+- ~~**Keyword-in-H2 (#16)**~~ — **Resolved 2026-07-24:** owner chose to keep
+  bare `<h2>Key Takeaways</h2>` / `<h2>FAQ</h2>`, removed the now-fully-unused
+  `extract_faq_keyword()` from `app.py`, and corrected
+  `docs/architecture.md` §13.2/§13.4/§13.5 + Changelog to match.
 
 ---
 

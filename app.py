@@ -230,20 +230,6 @@ def parse_date(item) -> datetime:
     return datetime.min
 
 
-def extract_faq_keyword(blog_title: str) -> str:
-    """
-    Derives a short keyword phrase from a blog title for FAQ display purposes.
-
-    Strips a fixed set of stopwords and financial punctuation (dashes, `?`,
-    `!`, `|`, `₹`, `%`, `,`), then returns the first 4 remaining words
-    joined by spaces. Returns "Finance" if nothing remains after stripping.
-    """
-    STOP = {"should", "you", "buy", "sell", "now", "is", "are"}
-    clean = re.sub(r"[–—\-\?!\|₹%,]", " ", blog_title)
-    words = [w for w in clean.split() if w.lower() not in STOP]
-    return " ".join(words[:4]) if words else "Finance"
-
-
 def get_image_path(image_field, prefer: str = "webp") -> str:
     """
     Resolves a filesystem path from an item's image field.

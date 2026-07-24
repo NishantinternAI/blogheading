@@ -649,9 +649,9 @@ The dashboard assembles final blog HTML from multiple JSON fields:
 output.json fields → assembled blog HTML
 
 blog.Blog_Title     → <h1>title</h1>
-blog.TLDR           → <h2>Key Takeaways – [keyword]</h2><ul>...</ul>
+blog.TLDR           → <h2>Key Takeaways</h2><ul>...</ul>
 blog.Blog_Content   → cleaned HTML (h1/TLDR/FAQ/Conclusion stripped)
-blog.FAQ_Schema     → <h2>FAQ – [keyword] For Investors</h2>
+blog.FAQ_Schema     → <h2>FAQ</h2>
                       <h4>question?</h4><p>answer</p>  (h4 not h3)
 blog.Conclusion     → <h2>Conclusion</h2><p>...</p>
 ```
@@ -660,7 +660,6 @@ blog.Conclusion     → <h2>Conclusion</h2><p>...</p>
 
 | Function | Purpose |
 |---|---|
-| `extract_faq_keyword(title)` | Extracts 3-4 meaningful words from blog title for TLDR h2 and FAQ h2 |
 | `clean_blog_html(html)` | Strips h1/TLDR/FAQ/Conclusion from Blog_Content (re-added cleanly) |
 | `parse_date(item)` | Handles RFC2822, ISO, NSE date formats for correct sorting |
 
@@ -688,38 +687,27 @@ Also strips:
 
 Note: `table` tags are kept so IPO data tables display correctly.
 
-### 13.4 TLDR H2 — Keyword Added
+### 13.4 TLDR H2 — Bare Heading
 
 ```python
-# Old (generic):
-blog_combined += "<h2>TLDR</h2>\n<ul>\n"
-
-# New (keyword-rich):
-tldr_keyword = extract_faq_keyword(ai_title)
-blog_combined += f"<h2>Key Takeaways – {tldr_keyword}</h2>\n<ul>\n"
-
-# Example output:
-# <h2>Key Takeaways – Gold Price Falls Today</h2>
-# <h2>Key Takeaways – Aureate Tradde IPO</h2>
-# <h2>Key Takeaways – Sensex Falls 500 Points</h2>
+blog_combined += "<h2>Key Takeaways</h2>\n<ul>\n"
 ```
 
-### 13.5 FAQ H2 and H4 — Fixed
+No per-article keyword is added to this heading — this was a keyword-rich
+`<h2>Key Takeaways – {keyword}</h2>` at one point, backed by an
+`extract_faq_keyword()` helper, but that call was dropped and the
+now-dead helper removed (2026-07-24; owner decision, see
+`docs/review.md` #5/#16). Heading is plain `<h2>Key Takeaways</h2>`.
+
+### 13.5 FAQ H2 and H4
 
 ```python
-# Old (generic h2 + h3 questions):
-blog_combined += "<h2>Frequently Asked Questions</h2>\n"
-blog_combined += f"<h3>{q}</h3>\n<p>{a}</p>\n\n"
-
-# New (keyword h2 + h4 questions):
-faq_keyword = extract_faq_keyword(ai_title)
-blog_combined += f"<h2>Frequently Asked Questions – {faq_keyword} For Investors</h2>\n"
+blog_combined += "<h2>FAQ</h2>\n"
 blog_combined += f"<h4>{q}</h4>\n<p>{a}</p>\n\n"
-
-# Example output:
-# <h2>FAQ – Aureate Tradde IPO For Investors</h2>
-# <h2>FAQ – Gold Price Falls Today For Investors</h2>
 ```
+
+Same as above — no keyword suffix on the FAQ heading. Questions render
+as `<h4>` (not `<h3>`).
 
 ### 13.6 Notification Handling
 
@@ -1035,6 +1023,12 @@ content_engine/templates/ipo_inner.png   (1920×490)
 - `notify_text`: handles both string and dict formats
 - `instagram_notify`: handles both string and dict formats
 
+> **2026-07-24 update:** the keyword-in-h2 calls above were dropped at
+> some point (headings went back to bare `<h2>Key Takeaways</h2>` /
+> `<h2>FAQ</h2>`) and `extract_faq_keyword()` sat unused. Owner decision
+> was to keep bare headings and remove the now-dead function — see
+> §13.4/§13.5 above and `docs/review.md` #5/#16.
+
 ---
 
-*Last updated: June 2026*
+*Last updated: 2026-07-24*
