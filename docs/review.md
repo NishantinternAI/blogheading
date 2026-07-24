@@ -84,14 +84,18 @@ behind. Owner chose to keep bare headings and delete the now-fully-unused
 keyword-in-h2 feature. `docs/architecture.md` §13.2/§13.4/§13.5 and the
 Changelog corrected to match.
 
-### 6. `fix_garbage_characters` is never applied to `Blog_Content`  (`generators/blog_generator.py:210-228`)  **[NEW]**
-In `fix_all_fields`, the garbage/foreign-char filter runs only for
+### 6. ~~`fix_garbage_characters` is never applied to `Blog_Content`~~ **[FIXED 2026-07-24]**
+~~In `fix_all_fields`, the garbage/foreign-char filter runs only for
 `Blog_Title, Meta_Title, Meta_Description, Conclusion`. For `Blog_Content` only
 the HTML-specific fixers run — `fix_garbage_characters` is **not** called.
 README §11.9/§12 claim "English only — removes foreign language characters" and
 list it applied to "all string fields." So Chinese/foreign characters in the
-**blog body** survive. (`fix_garbage_characters` keeps all `<128` chars, so HTML
-tags are safe to filter.)
+**blog body** survive.~~
+Added a `fix_garbage_characters(value)` call to the `Blog_Content` branch
+of `fix_all_fields` (`generators/blog_generator.py`), right after the
+newline normalisation and before the HTML-structure fixers. Verified it
+strips non-ASCII/non-allowlisted characters while leaving HTML tags and
+allowlisted symbols (`₹`, en/em dash, curly quotes, `°`, `…`) intact.
 **Fix:** also run `fix_garbage_characters` over `Blog_Content`.
 
 ### 7. Exceptions swallowed without traceback  (`pipeline.py:1852-1853`)
@@ -210,16 +214,18 @@ stale README would *introduce* a regression. Choose per item:
 ---
 
 ## Suggested fix order
-1. `requirements.txt` += `pillow` (P0 #1)
-2. Guard all 5 RSS import-time calls (P0 #2)
-3. `random.choice(fresh_zerodha)` (P1 #3)
-4. Font filename casing in both compositors (P1 #4)
-5. `fix_garbage_characters` on `Blog_Content` (P1 #6)
+1. ~~`requirements.txt` += `pillow` (P0 #1)~~ — done 2026-07-24
+2. ~~Guard all 5 RSS import-time calls (P0 #2)~~ — already fixed, stale finding
+3. ~~`random.choice(fresh_zerodha)` (P1 #3)~~ — already fixed, stale finding
+4. ~~Font filename casing in both compositors (P1 #4)~~ — done 2026-07-24
+5. ~~`fix_garbage_characters` on `Blog_Content` (P1 #6)~~ — done 2026-07-24
 6. `traceback.print_exc()` (P1 #7)
 7. `timeout=15` on NSE corporate fetch (P2 #10)
 8. Atomic `save_output` write (P2 #8)
 9. TTL on Chittorgarh map (P2 #9)
-10. (Owner) dead-code deletion, `USE_AI_IMAGES` env var, doc fixes, #15/#16 decisions
+10. ~~(Owner) #15/#16 decisions~~ — #16 resolved 2026-07-24 (bare headings kept,
+    docs fixed); #15 (internal links) still open. Dead-code deletion,
+    `USE_AI_IMAGES` env var unification still open.
 
 ---
 

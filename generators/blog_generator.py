@@ -596,6 +596,7 @@ def fix_all_fields(data: dict, source: str = "") -> dict:
       2.  FAQ schema answer cleanup
       3.  String-level fixes on all keys (em-dash, garbage chars)
       4.  Blog_Content transformations:
+            0. Garbage/foreign-character strip (fix_garbage_characters)
             a. Strip TLDR from content
             b. Nested <p> cleanup
             c. TLDR h2 removal
@@ -629,6 +630,7 @@ def fix_all_fields(data: dict, source: str = "") -> dict:
 
             if key == "Blog_Content":
                 value = value.replace('\\n', ' ').replace('\n', ' ')  # ← FIRST
+                value = fix_garbage_characters(value)
                 value = fix_strip_tldr_from_content(value)      # a
                 value = fix_nested_p_tags(value)                 # b
                 value = fix_html_tags(value)
