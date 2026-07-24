@@ -9,6 +9,7 @@ services:
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
     environment:
       - TZ=Asia/Kolkata
+      - USE_AI_IMAGES=${USE_AI_IMAGES:-False}
     volumes:
       - ./output:/app/output
       - ./output_images:/app/output_images
@@ -19,6 +20,7 @@ services:
     command: python3 scheduler.py
     environment:
       - TZ=Asia/Kolkata
+      - USE_AI_IMAGES=${USE_AI_IMAGES:-False}
       - WEBFLOW_API_TOKEN=${WEBFLOW_API_TOKEN}
       - SITE_ID=649a7bd9d30be4bdd61239e5
       - COLLECTION_ID=64d4a2b7bcb8f41bb4083979

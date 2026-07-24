@@ -3,10 +3,10 @@ app.py -- Streamlit review dashboard.
 
 Runs as its own container (`streamlit run app.py`), independently of
 scheduler.py's pipeline loop. Reads output/output.json (or
-output/testing_webp_output.json when USE_AI_IMAGES=True in this file --
-must stay in sync with the same flag in pipeline.py) and lets a
-human review/browse generated blogs, images, and captions before or
-after they're posted to Webflow.
+output/testing_webp_output.json when the USE_AI_IMAGES env var is set,
+same var core/pipeline.py reads) and lets a human review/browse
+generated blogs, images, and captions before or after they're posted
+to Webflow.
 """
 
 import streamlit as st
@@ -17,6 +17,9 @@ from urllib.parse import urlparse
 from email.utils import parsedate_to_datetime
 from datetime import datetime
 import json
+from dotenv import load_dotenv
+
+load_dotenv()  # picks up USE_AI_IMAGES (and anything else) from .env for local runs
 
 st.set_page_config(layout="wide", page_title="Swastika Blog Dashboard")
 
@@ -336,7 +339,7 @@ def show_image_section(label: str, image_field, display_width: int, idx: int, ke
 st.title("Blog Dashboard")
 st.caption(f"Country: {DEFAULT_COUNTRY}  ·  Category: {DEFAULT_CATEGORY.capitalize()}")
 
-USE_AI_IMAGES = False
+USE_AI_IMAGES = os.getenv("USE_AI_IMAGES", "False").strip().lower() in ("1", "true", "yes")
 OUTPUT_FILE   = "testing_webp_output.json" if USE_AI_IMAGES else "output.json"
 
 
@@ -347,11 +350,11 @@ def load_data():
 
     Reads from output/{OUTPUT_FILE}, where OUTPUT_FILE is chosen by the
     module-level USE_AI_IMAGES flag defined just above this function:
-    "testing_webp_output.json" when True, else "output.json". GOTCHA:
-    this flag is a separate constant from the same-named USE_AI_IMAGES
-    flag in pipeline.py and must be kept in sync with it manually
-    — there is no shared config. Returns [] if the file is missing or
-    fails to parse as JSON (never raises). Cached by Streamlit for 60s
+    "testing_webp_output.json" when True, else "output.json". Read from
+    the USE_AI_IMAGES env var (same one core/pipeline.py reads), so the
+    two processes agree without a manual two-file edit. Returns [] if
+    the file is missing or fails to parse as JSON (never raises). Cached
+    by Streamlit for 60s
     (ttl=60); the "Refresh data" button clears this cache on demand.
     """
     path = f"output/{OUTPUT_FILE}"

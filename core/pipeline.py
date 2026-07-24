@@ -108,13 +108,13 @@ STACK_FILES = {
     "corporate": os.path.join(BASE_DIR, "output", "stack_corporate.json"),
 }
 
-# NOTE: USE_AI_IMAGES must be kept in sync with the same-named flag in
-# app.py (Streamlit dashboard) — there is no shared env var for this, it's
+# USE_AI_IMAGES is read from the environment (set in docker-compose.yml /
+# .env) so app.py (Streamlit dashboard) and this file always agree without
 # a manual two-file edit. It switches both which output JSON file is read/
 # written (output.json vs testing_webp_output.json) and which image
 # generation path (AI generator vs template compositor) run_pipeline() uses.
 # Exception: IPO articles always use ipo_compositor.py regardless of this flag.
-USE_AI_IMAGES   = False
+USE_AI_IMAGES   = os.getenv("USE_AI_IMAGES", "False").strip().lower() in ("1", "true", "yes")
 OUTPUT_FILENAME = "testing_webp_output.json" if USE_AI_IMAGES else "output.json"
 print(f"[MODE] USE_AI_IMAGES={USE_AI_IMAGES} → saving to output/{OUTPUT_FILENAME}")
 

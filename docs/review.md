@@ -148,22 +148,28 @@ test: fresh cache (age < 6h) short-circuits with zero network calls; a
 Re-checked `sources/fetch_nse_corporate.py`: its one `requests.get(NSE_RSS_URL, ...)`
 call already has `timeout=20`. No code change needed.
 
-### 11. Country/category filter fails open  (`utils/combined_filter.py:101-102`)  **[NEW — review for intent]**
+### 11. ~~Country/category filter fails open~~ **[STALE — already fixed, verified 2026-07-24]**
 ```python
 if not filtered:
     print("[FILTER] No match → returning all data")
     return data, "fallback"
 ```
-When the AI legitimately matches **nothing** (`source="none"`), the code returns
-**all** unfiltered articles — identical to the parse-failure path. So a run with
-genuinely no India/finance matches floods the news stack with everything. May be
-intentional (avoid empty pipeline), but it silently defeats the filter. At least
-distinguish `"none"` (legitimately empty) from a parse error.
+Re-checked `utils/combined_filter.py` against the current tree: no such
+fail-open branch exists. Both the "AI matched nothing" path and the
+JSON-parse-failure path now return `([], "none")` — a genuinely-empty
+match no longer floods the stack with unfiltered articles. No code
+change needed.
 
-### 12. `USE_AI_IMAGES` duplicated, manual sync  (`pipeline.py:996`, `app.py:224`)
-Two hardcoded copies that "must match." If one is flipped without the other, the
-dashboard reads the wrong JSON file and shows stale/empty data. Should be one
-env var read by both.
+### 12. ~~`USE_AI_IMAGES` duplicated, manual sync~~ **[FIXED 2026-07-24]**
+~~Two hardcoded copies that "must match." If one is flipped without the other, the
+dashboard reads the wrong JSON file and shows stale/empty data.~~ Both
+`core/pipeline.py` and `app.py` now read `USE_AI_IMAGES` from the
+environment (`os.getenv("USE_AI_IMAGES", "False")`, truthy on
+`1`/`true`/`yes`), and `docker-compose.yml` sets it once via
+`${USE_AI_IMAGES:-False}` in both services' `environment:` blocks. For
+local (non-Docker) runs, `app.py` now calls `load_dotenv()` directly and
+`core/pipeline.py` already picked up `.env` transitively via
+`config.py`'s `load_dotenv()`. `CLAUDE.md` updated to match.
 
 ### 13. Dead code — large
 - `pipeline.py`: active code is **941–1856** (~915 lines). Lines **1–940**
@@ -231,9 +237,9 @@ stale README would *introduce* a regression. Choose per item:
 7. ~~`timeout=15` on NSE corporate fetch (P2 #10)~~ — already fixed, stale finding
 8. ~~Atomic `save_output` write (P2 #8)~~ — done 2026-07-24
 9. ~~TTL on Chittorgarh map (P2 #9)~~ — done 2026-07-24
-10. ~~(Owner) #15/#16 decisions~~ — #16 resolved 2026-07-24 (bare headings kept,
-    docs fixed); #15 (internal links) still open. Dead-code deletion,
-    `USE_AI_IMAGES` env var unification still open.
+10. (Owner) #15/#16 decisions — #16 resolved 2026-07-24 (bare headings kept,
+    docs fixed); #15 (internal links) still open. Dead-code deletion still
+    open. ~~`USE_AI_IMAGES` env var unification~~ — done 2026-07-24 (P2 #12).
 
 ---
 
