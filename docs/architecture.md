@@ -1,8 +1,9 @@
 # Blogheading — Automated Financial Blog Pipeline
 
 > Automated pipeline that generates SEO-optimised blogs, Instagram captions,
-> push notifications, and images from Indian financial news every 15 minutes.
-> Runs 24/7 on Docker.
+> push notifications, and images from Indian financial news every 8 minutes
+> (`scheduler.py`'s live cron interval — corrected 2026-07-24, was
+> previously documented as 15 minutes). Runs 24/7 on Docker.
 
 ---
 
@@ -31,7 +32,7 @@
 ## 1. Project Overview
 
 ```
-Every 15 minutes:
+Every 8 minutes:
   Fetch financial news from 6 sources
   Filter → Deduplicate → Classify → Save to 3 stacks
   Pop one article (based on POSTING_PATTERN)
@@ -45,8 +46,8 @@ Every 15 minutes:
 
 | Layer | Technology |
 |---|---|
-| Language | Python 3.11 |
-| Scheduler | APScheduler (cron every 15 min) |
+| Language | Python 3.10 (`Dockerfile`'s `FROM python:3.10` — corrected 2026-07-24, was documented as 3.11) |
+| Scheduler | APScheduler (cron every 8 min — corrected 2026-07-24, was documented as 15 min) |
 | Containerisation | Docker + docker-compose |
 | AI (blog/captions) | OpenAI GPT |
 | AI (images) | OpenAI gpt-image-1 |
@@ -367,16 +368,14 @@ for article in fresh:
 `issue_size` · `face_value` · `exchange` · `issue_type` · `sale_type` ·
 `gmp` · `market_cap` · `business` · `financials` · `data_source`
 
-### 7.7 TEST_MODE
+### 7.7 ~~TEST_MODE~~ **[REMOVED — corrected 2026-07-24]**
 
-```python
-TEST_MODE    = False             # set False before push to server
-TEST_COMPANY = "Aureate Tradde"
-```
-
-Available test companies: Aureate Tradde, Liotech Industries, Merritronix,
-Hexagon Nutrition, SMR Jewels, Harikanta Overseas, Rajnandini Fashion India,
-Yaashvi Jewellers, Vegorama Punjabi Angithi.
+This flag no longer exists in `sources/ipo.py`. The `if __name__ == "__main__":`
+block at the bottom of the file now just calls `fetch_nse_ipo()` directly
+against the live NSE feed — there is no fixed-test-company branch to
+toggle off before deploying. `CLAUDE.md`'s "Known gotchas" note about
+`TEST_MODE` needing to be `False` before deploying is stale for the same
+reason and should be treated as no-op going forward.
 
 ---
 
@@ -770,17 +769,20 @@ NEWS_SOURCES      = ["zerodha", "cnbc", "5paisa", "livemint"]
 ### `sources/ipo.py`
 
 ```python
-TEST_MODE       = True              # False = real NSE feed
-TEST_COMPANY    = "Aureate Tradde"
-CACHE_TTL_HOURS = 6
+CACHE_TTL_HOURS = 6   # IPODetailScraper — per-company data cache
+                       # (2026-07-24: same TTL now also gates the
+                       # Chittorgarh IPO-map cache — see §9 in review.md)
 ```
 
-### `app.py`
+`TEST_MODE`/`TEST_COMPANY` no longer exist — removed at some point
+before 2026-07-24 (see §7.7).
+
+### `app.py` / `core/pipeline.py`
 
 ```python
-USE_AI_IMAGES = False   # Must match pipeline.py
-# True  → reads testing_webp_output.json
-# False → reads output.json
+USE_AI_IMAGES = os.getenv("USE_AI_IMAGES", "False") ...  # env var, shared by both files (fixed 2026-07-24)
+# True  → reads/writes testing_webp_output.json
+# False → reads/writes output.json
 ```
 
 ---
@@ -828,6 +830,20 @@ Each published article in `output/output.json`:
 
 ## 16. Deployment
 
+### Required gitignored files (added 2026-07-24 — previously undocumented)
+
+Nothing in the pipeline imports successfully without these existing on
+the server/locally first — none are checked into git:
+- `config.py` — OpenAI client + model name (`core/model_client.py`
+  does `from config import client, MODEL`; also calls `load_dotenv()`,
+  which is why `.env` values reach the rest of the pipeline).
+- `.env` — secrets (`WEBFLOW_API_TOKEN`, `OPENAI_API_KEY`, `USE_AI_IMAGES`,
+  etc.), loaded via `config.py`'s `load_dotenv()` for `core/pipeline.py`
+  and directly by `app.py`.
+- `google-ads.yaml` — Google Ads API credentials, required for the
+  keyword-planner scripts; also bind-mounted read-only into the
+  `scheduler` container in `docker-compose.yml`.
+
 ### Docker Commands
 
 ```bash
@@ -865,31 +881,16 @@ docker logs -f blogheading-scheduler-1
 
 ### `docker-compose.yml`
 
-```yaml
-version: "3.8"
-services:
-  scheduler:
-    build: .
-    container_name: blogheading-scheduler-1
-    restart: always
-    volumes:
-      - ./output:/app/output
-      - ./output_images:/app/output_images
-    env_file: .env
-    command: python scheduler.py
-
-  streamlit:
-    build: .
-    container_name: blogheading-streamlit-1
-    restart: always
-    ports:
-      - "8501:8501"
-    volumes:
-      - ./output:/app/output
-      - ./output_images:/app/output_images
-    env_file: .env
-    command: streamlit run app.py --server.port 8501 --server.address 0.0.0.0
-```
+**Corrected 2026-07-24** — the block previously here didn't match the
+actual file at all (wrong `restart` policy, invented `container_name`/
+`env_file` keys that don't exist in the real file). See the real
+`docker-compose.yml` at the repo root for the source of truth; in
+summary: `version: "3.8"`, both services use explicit `environment:`
+entries (no `env_file:`) including the shared `USE_AI_IMAGES` var (§14),
+`restart: unless-stopped` (not `always`), and no `container_name:` — the
+`blogheading-scheduler-1`/`blogheading-streamlit-1` names used elsewhere
+in this doc are Compose's auto-generated `<project>-<service>-<n>` names,
+not configured explicitly.
 
 ---
 

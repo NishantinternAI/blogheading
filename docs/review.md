@@ -194,12 +194,12 @@ local (non-Docker) runs, `app.py` now calls `load_dotenv()` directly and
 
 | # | README location | README says | Code actually does | Direction |
 |---|---|---|---|---|
-| 14 | §1 Overview | "every 15 minutes" | `scheduler.py:14` cron `*/5` = **5 min** | Fix README |
+| 14 | ~~§1 Overview~~ | ~~"every 15 minutes"~~ | `scheduler.py:31` cron `minute='*/8'` = **8 min** (not the 5 min this row originally claimed — re-verified against current code) | **Fixed 2026-07-24** — `docs/architecture.md` overview + intro block corrected to "every 8 minutes" |
 | 15 | ~~§11.5 + §12 + Changelog~~ | ~~Mandatory **internal links** (3, before FAQ); `fix_duplicate_links`/`fix_links_before_faq` active~~ | Neither post-processor exists in `blog_generator.py` any more, and the prompt has no internal-link rule at all (positive or negative) — the feature moved entirely to publish time (`keywords/related_links.py` + `publishing/webflow_poster.py`, injected before Conclusion). | **Resolved 2026-07-24 — docs corrected** |
 | 16 | ~~§13.4/§13.5 + Changelog~~ | ~~keyword-rich `<h2>Key Takeaways – …>` / `<h2>FAQ – … For Investors>`~~ | `app.py` emits bare h2 (finding #5) | **Resolved 2026-07-24 — fixed docs** |
-| 17 | §7.7/§14 | `TEST_MODE = True`, `TEST_COMPANY = "Aureate Tradde"` | `sources/ipo.py:677-678` `TEST_MODE = False`, `"Q-Line Biotech Limited"` | Fix README (code correct for prod) |
-| 18 | §16 Deployment | `version: 3.8`, `env_file: .env` compose | `Dockerfile` is `python:3.10`; README §1 says Python 3.11; no compose file in repo | Fix README / add compose |
-| 19 | §16 Deployment | no mention of `config.py` | `config.py` is **required** (`add_cached.py:2` `from config import client, MODEL`), gitignored — must exist on server before first run | Document it |
+| 17 | ~~§7.7/§14~~ | ~~`TEST_MODE = True`, `TEST_COMPANY = "Aureate Tradde"`~~ | `TEST_MODE`/`TEST_COMPANY` **no longer exist at all** in `sources/ipo.py` — the `__main__` block calls `fetch_nse_ipo()` directly against the live feed, no toggle needed | **Fixed 2026-07-24** — `docs/architecture.md` §7.7/§14 corrected to describe current behavior; `CLAUDE.md`'s gotcha note about this flag is stale too |
+| 18 | ~~§16 Deployment~~ | ~~`version: 3.8`, `env_file: .env` compose~~ | `docker-compose.yml` now exists in the repo (it didn't when this row was written) but never matched the doc's fabricated snippet — real file uses explicit `environment:` entries (no `env_file:`), `restart: unless-stopped`, no `container_name:`. `Dockerfile` is `python:3.10`; doc said Python 3.11 | **Fixed 2026-07-24** — `docs/architecture.md` §1 tech-stack table + §16 compose snippet corrected to match the real files |
+| 19 | ~~§16 Deployment~~ | ~~no mention of `config.py`~~ | `config.py` is **required** (now `core/model_client.py:31` `from config import client, MODEL`), gitignored — must exist on server before first run | **Fixed 2026-07-24** — added a "Required gitignored files" subsection to `docs/architecture.md` §16 covering `config.py`, `.env`, and `google-ads.yaml` |
 
 ---
 
