@@ -230,6 +230,72 @@ def _title_case_headings(html: str) -> str:
     )
 
 
+APP_DOWNLOAD_AD_HTML = (
+    '<div class="w-embed"><div style="'
+    'background: linear-gradient(to right, #39C3E6, #0B616D);'
+    'border-radius: 8px; '
+    'padding: 32px 24px; '
+    'margin: 35px 0; '
+    'width: 100%;'
+    'box-sizing: border-box;'
+    'text-align: center;'
+    'box-shadow: 0 4px 15px rgba(11, 97, 109, 0.2);'
+    'font-family: sans-serif;">'
+    '<div style="'
+    'font-size: 22px; '
+    'font-weight: 700; '
+    'color: #ffffff; '
+    'margin-bottom: 20px; '
+    'line-height: 1.3;'
+    'letter-spacing: -0.01em;'
+    'text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);">'
+    'Download App Now'
+    '</div>'
+    '<div class="appsblock ccenter" style="'
+    'display: flex; '
+    'justify-content: center; '
+    'gap: 16px; '
+    'flex-wrap: wrap;">'
+    '<a rel="noopener noreferrer" href="https://play.google.com/store/apps/details?id=swastika.tradingo.justrade" target="_blank" class="w-inline-block" style="display: inline-block;">'
+    '<img src="https://cdn.prod.website-files.com/649a7bd9d30be4bdd61239e5/659f97377f92a9d5b2572d85_google_play.webp" loading="lazy" alt="google play" class="app-img" style="height: 42px; width: auto; display: block;">'
+    '</a>'
+    '<a rel="noopener noreferrer" href="https://apps.apple.com/in/app/justrade2-0-stocks-investmart/id1627649963" target="_blank" class="w-inline-block" style="display: inline-block;">'
+    '<img src="https://cdn.prod.website-files.com/649a7bd9d30be4bdd61239e5/659f97615e983f345bd9d60f_app_store.webp" loading="lazy" alt="app store" class="app-img" style="height: 42px; width: auto; display: block;">'
+    '</a>'
+    '</div></div></div>'
+)
+
+
+def _inject_app_download_ads(content: str) -> str:
+    """
+    Insert the app-download promo banner between body <h2> sections, mirroring
+    the placement pattern used on the live site: roughly 2 banners spaced
+    through the body, never inside TLDR/FAQ/Conclusion.
+
+    Must run on `content` while it holds ONLY the generated body sections plus
+    the (already-generated) Conclusion heading -- i.e. before TLDR is
+    prepended and before FAQ is (re)injected -- so every <h2> found here
+    except "Conclusion" counts as a body section boundary.
+    """
+    h2_pattern = re.compile(r"<h2[^>]*>.*?</h2>", re.IGNORECASE | re.DOTALL)
+    body_h2s = [m for m in h2_pattern.finditer(content)
+                if "conclusion" not in m.group(0).lower()]
+    n = len(body_h2s)
+    if n < 2:
+        return content
+
+    # Evenly-spaced boundaries, e.g. n=3 -> after section 0 and section 1.
+    slots = sorted({s for s in (n // 3, (2 * n) // 3) if 0 < s < n})
+    if not slots:
+        return content
+
+    result = content
+    for slot in sorted(slots, reverse=True):
+        pos = body_h2s[slot].start()
+        result = result[:pos] + APP_DOWNLOAD_AD_HTML + result[pos:]
+    return result
+
+
 def _build_tldr_html(tldr: list) -> str:
     """Convert TLDR list into a visible Key Takeaways HTML block."""
     if not tldr:
@@ -751,6 +817,8 @@ def post_entry_as_draft(entry: dict, image_dir: str = "") -> dict:
         1.  _strip_h1()                     -- remove duplicate H1
         2.  _title_case_headings()          -- force Title Case on H2s
         3.  _remove_empty_sections()        -- auto-fix empty H2s
+        3b. _inject_app_download_ads()      -- insert app-download promo banners
+                                                between body sections
         4.  _build_tldr_html()              -- prepend Key Takeaways
         4b. related links injected here     -- pillar/cluster links
         5.  _strip_existing_faq()           -- remove LLM FAQ
@@ -791,6 +859,7 @@ def post_entry_as_draft(entry: dict, image_dir: str = "") -> dict:
     raw_content = _strip_h1(raw_content)
     raw_content = _title_case_headings(raw_content)
     raw_content = _remove_empty_sections(raw_content)
+    raw_content = _inject_app_download_ads(raw_content)
     raw_content = _build_tldr_html(tldr) + raw_content
 
     # -- Related links -- matched against keyword_graph.json --------------------
