@@ -4,6 +4,8 @@ import re
 import feedparser
 from bs4 import BeautifulSoup
 
+from sources.common import assess_quality
+
 
 # ══════════════════════════════════════════════════════════════
 #  CONFIG
@@ -124,6 +126,7 @@ def fetch_google_news_business(top_n: int = 6) -> list:
 
     articles    = []
     seen_titles = set()
+    skipped     = 0
 
     for entry in entries:
         if len(articles) >= top_n:
@@ -162,6 +165,20 @@ def fetch_google_news_business(top_n: int = 6) -> list:
             for r in related
         )
 
+        # Skip if nothing usable -- no related headlines parsed means there's
+        # no real content for the LLM to write from, just bare RSS metadata.
+        # (This is the root cause of the 2026-07-24 "Google A Stock Price"
+        # incident: an article with an empty Related Coverage section passed
+        # the title-only country/category filter, then the LLM latched onto
+        # the literal word "Google" in the "Source: Google News Business
+        # India" line and hallucinated an entirely unrelated topic.)
+        if not related_block or len(related_block.split()) < 20:
+            print(f"[GNB] Skipped — no usable related-headline content for '{title[:50]}'")
+            skipped += 1
+            continue
+
+        quality = assess_quality(related_block)
+
         # ── Build Blog_Content ────────────────────────────────
         blog_content = f"""Source         : Google News Business India
 Primary Source : {source_name}
@@ -184,9 +201,11 @@ Each headline represents how a different publication covered the story."""
             "Blog_PublishDate": published,
             "Blog_Content":     blog_content,
             "source_name":      source_name,
+            "_content_words":   quality["word_count"],
+            "_content_quality": quality["quality"],
         })
 
-    print(f"\n[GNB] Fetched: {len(articles)} articles")
+    print(f"\n[GNB] Skipped: {skipped} | Fetched: {len(articles)} articles")
     return articles
 
 
