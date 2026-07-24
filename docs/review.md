@@ -21,19 +21,19 @@ will not have Pillow → **all image generation fails** the moment the first
 article is processed.~~
 Added `pillow` to `requirements.txt`.
 
-### 2. Import-time network calls in 5 of 6 RSS fetchers  **[NEW — earlier pass caught only 1]**
-Module-level statements that execute on `import`:
-- `sources/zerodha.py:37` → `print(len(fetch_zerodha()))`
-- `sources/cnbc.py:22` → `print(len(fetch_cnbc()))`
-- `sources/paisa.py:23` → `print(len(fetch_5paisa()))`
-- `sources/livemint.py:34` → `print(len(fetch_livemint()))`
-- `sources/fetch_nse_corporate.py:41-42` → `result = fetch_nse_corporate()` + print
+### 2. ~~Import-time network calls in 5 of 6 RSS fetchers~~ **[STALE — already fixed, verified 2026-07-24]**
+~~Module-level statements that execute on `import`:~~
+- ~~`sources/zerodha.py:37` → `print(len(fetch_zerodha()))`~~
+- ~~`sources/cnbc.py:22` → `print(len(fetch_cnbc()))`~~
+- ~~`sources/paisa.py:23` → `print(len(fetch_5paisa()))`~~
+- ~~`sources/livemint.py:34` → `print(len(fetch_livemint()))`~~
+- ~~`sources/fetch_nse_corporate.py:41-42` → `result = fetch_nse_corporate()` + print~~
 
-`pipeline.py` imports all of these at the top, so **every scheduler
-start fires 5 unnecessary HTTP requests** (plus the startup log noise:
-`25 / 200 / 10 / 35 / NSE COUNT`). `sources/ipo.py` is the only one that correctly
-guards its test code with `if __name__ == "__main__":`.
-**Fix:** wrap each stray call in `if __name__ == "__main__":`.
+Re-checked against the current tree: all five test-call blocks in
+`sources/{zerodha,cnbc,paisa,livemint,fetch_nse_corporate}.py` are now
+guarded by `if __name__ == "__main__":`. No code change needed here —
+this matches the note already in `CLAUDE.md` ("Known gotchas") that this
+finding no longer holds post-2026-07-refactor.
 
 ---
 
