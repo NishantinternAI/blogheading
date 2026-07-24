@@ -39,23 +39,21 @@ finding no longer holds post-2026-07-refactor.
 
 ## P1 — Logic bugs
 
-### 3. Zerodha fallback ignores its own dedup result  (`pipeline.py:1592-1602`)  **[NEW — the merge "fix" is incomplete]**
-Commit `05672c1` ("fix duplicate handling in zerodha fallback") added a
+### 3. ~~Zerodha fallback ignores its own dedup result~~ **[STALE — already fixed, verified 2026-07-24]**
+~~Commit `05672c1` ("fix duplicate handling in zerodha fallback") added a
 `fresh_zerodha` dedup list and an abort-if-empty check — but the line that
-actually picks the article was left untouched:
+actually picks the article was left untouched:~~
 ```python
 fresh_zerodha = [a for a in zerodha_data if normalize_title(...) not in used_titles]
 if not fresh_zerodha: return []
 ...
-final_item = random.choice(zerodha_data)   # ← still the UN-deduped list
+final_item = random.choice(fresh_zerodha)   # already selects from the deduped list
 ```
-So the dedup work is dead: selection still draws from `zerodha_data`.
-**Real impact:** it will **not** double-publish — `save_output()` dedups on
-`Blog_Title` (`.strip().lower()`) and returns `False`. The harm is (a) **wasted
-AI generation + image spend** on an article that gets discarded at save, and
-(b) `run_pipeline` returns `[final_item]` reporting success for a run that saved
-nothing — misleading logs/metrics.
-**Fix:** `final_item = random.choice(fresh_zerodha)`.
+Re-checked `core/pipeline.py:1361` against the current tree: selection
+already draws from `fresh_zerodha`, not the un-deduped `zerodha_data`. No
+code change needed — this was fixed sometime before/during the 2026-07
+refactor and the review just hadn't been re-verified against current
+line numbers.
 
 ### 4. ~~Font filename case mismatch — silent fallback on Linux/Docker~~ **[FIXED 2026-07-24]**
 ~~`content_engine/image_module/compositor.py:214,216` and
