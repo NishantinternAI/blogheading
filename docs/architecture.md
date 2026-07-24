@@ -547,8 +547,21 @@ All other types (Gold, Stock, RBI, Market) — NO table.
 
 ### 11.5 Internal Links Rule
 
-3 internal links added **once only** — immediately before FAQ section.
-Links are topic-specific (different URLs for IPO vs Gold vs RBI vs Market).
+**Corrected 2026-07-24** — this is not implemented in the LLM prompt or in
+`blog_generator.py`'s post-processing at all (that approach — `fix_duplicate_links()`
+/ `fix_links_before_faq()` — no longer exists in the code; review.md #15
+tracked this as an open half-reverted feature and is now resolved as
+"implemented, just via a different mechanism").
+
+Internal ("related") links are instead added at **publish time** in
+`publishing/webflow_poster.py`, sourced from `keywords/related_links.py`:
+up to `MAX_RELATED_LINKS` (3) links to other blogs sharing the same
+primary keyword (or a fuzzy-matched one), ranked by secondary-keyword
+overlap then search volume, injected as an `<h2>Related Reads</h2>`
+block immediately **before the Conclusion** heading (not before FAQ —
+FAQ is handled separately, see §13.5). The link graph lives in
+`output/keyword_graph.json`, keyed by primary keyword, and is updated
+after each successful publish via `add_blog_to_graph()`.
 
 ### 11.6 Title Rules
 
@@ -609,8 +622,6 @@ All processors are in `generators/blog_generator.py` and called via `fix_all_fie
 | `fix_faq_tags()` | Converts `<h3>` → `<h4>` inside FAQ section only |
 | `fix_faq_h2_keyword()` | Adds keyword to bare FAQ h2 |
 | `fix_placeholder_h3()` | Removes/replaces generic placeholder h3 text |
-| `fix_duplicate_links()` | Keeps only the last internal links block |
-| `fix_links_before_faq()` | Moves internal links to correct position (before FAQ) |
 | `fix_duplicate_swastika()` | Keeps only the first Swastika paragraph |
 | `fix_table_na()` | Replaces N/A cells with "To be announced" |
 | `fix_remove_non_ipo_table()` | Removes table from non-IPO articles |
@@ -1003,7 +1014,10 @@ content_engine/templates/ipo_inner.png   (1920×490)
 - Added dynamic H2 structure — each type gets keyword-rich H2s
 - Added dynamic H3 rule — specific to actual news, not generic
 - IPO-only data table rule — other article types get no table
-- Added mandatory internal links section (3 links, before FAQ)
+- Added mandatory internal links section (3 links, before FAQ) — superseded
+  2026-07-24: internal links are now added at publish time via
+  `keywords/related_links.py` + `publishing/webflow_poster.py`, injected
+  before Conclusion rather than before FAQ. See §11.5.
 - Word count increased from 600-800 to 900-1200 words
 - Title rules: number + you + question mark mandatory
 - Banned 15+ jargon words from titles (PAT, YoY, Volatile, etc.)

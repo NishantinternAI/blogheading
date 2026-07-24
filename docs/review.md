@@ -195,7 +195,7 @@ local (non-Docker) runs, `app.py` now calls `load_dotenv()` directly and
 | # | README location | README says | Code actually does | Direction |
 |---|---|---|---|---|
 | 14 | §1 Overview | "every 15 minutes" | `scheduler.py:14` cron `*/5` = **5 min** | Fix README |
-| 15 | §11.5 + §12 + Changelog | Mandatory **internal links** (3, before FAQ); `fix_duplicate_links`/`fix_links_before_faq` active | Both post-processors are **commented out** (`blog_generator.py:116-151,222-223`); prompt now says "**NO internal links anywhere**" (line 728) | **Owner decision** (see below) |
+| 15 | ~~§11.5 + §12 + Changelog~~ | ~~Mandatory **internal links** (3, before FAQ); `fix_duplicate_links`/`fix_links_before_faq` active~~ | Neither post-processor exists in `blog_generator.py` any more, and the prompt has no internal-link rule at all (positive or negative) — the feature moved entirely to publish time (`keywords/related_links.py` + `publishing/webflow_poster.py`, injected before Conclusion). | **Resolved 2026-07-24 — docs corrected** |
 | 16 | ~~§13.4/§13.5 + Changelog~~ | ~~keyword-rich `<h2>Key Takeaways – …>` / `<h2>FAQ – … For Investors>`~~ | `app.py` emits bare h2 (finding #5) | **Resolved 2026-07-24 — fixed docs** |
 | 17 | §7.7/§14 | `TEST_MODE = True`, `TEST_COMPANY = "Aureate Tradde"` | `sources/ipo.py:677-678` `TEST_MODE = False`, `"Q-Line Biotech Limited"` | Fix README (code correct for prod) |
 | 18 | §16 Deployment | `version: 3.8`, `env_file: .env` compose | `Dockerfile` is `python:3.10`; README §1 says Python 3.11; no compose file in repo | Fix README / add compose |
@@ -209,8 +209,20 @@ These are **half-reverted product/SEO features**, not bugs. Git history shows th
 prompt was deliberately changed. Resolving them by editing code to match the
 stale README would *introduce* a regression. Choose per item:
 
-- **Internal links (#15):** restore the feature (uncomment processors + re-add
-  prompt rule) **OR** keep current "no links" behaviour and correct README §11.5/§12.
+- ~~**Internal links (#15)**~~ — **Resolved 2026-07-24:** turns out this
+  wasn't actually half-reverted — the feature is live, just implemented
+  in a different layer than the stale docs described (publish-time
+  `keywords/related_links.py` + `publishing/webflow_poster.py`, not
+  `blog_generator.py` post-processors). `docs/architecture.md` §11.5 +
+  the func table + Changelog corrected to match. Also found and fixed a
+  real bug while verifying this: `related_links.py`'s `KEYWORD_GRAPH_PATH`
+  default was a hardcoded Windows dev path (`D:\Blogheading\output\...`)
+  that would never resolve on the Linux production container, silently
+  making the whole related-links feature a no-op in production. Changed
+  the default to a `BASE_DIR`-relative path (repo root, matching
+  `core/pipeline.py`'s and `storage/save_output.py`'s pattern) and
+  removed a ~270-line dead first draft of the module that sat above the
+  live code.
 - ~~**Keyword-in-H2 (#16)**~~ — **Resolved 2026-07-24:** owner chose to keep
   bare `<h2>Key Takeaways</h2>` / `<h2>FAQ</h2>`, removed the now-fully-unused
   `extract_faq_keyword()` from `app.py`, and corrected
@@ -243,9 +255,12 @@ stale README would *introduce* a regression. Choose per item:
 7. ~~`timeout=15` on NSE corporate fetch (P2 #10)~~ — already fixed, stale finding
 8. ~~Atomic `save_output` write (P2 #8)~~ — done 2026-07-24
 9. ~~TTL on Chittorgarh map (P2 #9)~~ — done 2026-07-24
-10. (Owner) #15/#16 decisions — #16 resolved 2026-07-24 (bare headings kept,
-    docs fixed); #15 (internal links) still open. Dead-code deletion still
-    open. ~~`USE_AI_IMAGES` env var unification~~ — done 2026-07-24 (P2 #12).
+10. ~~(Owner) #15/#16 decisions~~ — both resolved 2026-07-24. #16: bare
+    headings kept, docs fixed. #15: turned out not half-reverted at all —
+    docs corrected to describe the live publish-time mechanism, plus a
+    real production bug found & fixed along the way (`KEYWORD_GRAPH_PATH`
+    hardcoded Windows path). Dead-code deletion done (#13).
+    ~~`USE_AI_IMAGES` env var unification~~ — done 2026-07-24 (P2 #12).
 
 ---
 
