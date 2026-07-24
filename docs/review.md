@@ -301,6 +301,42 @@ stale README would *introduce* a regression. Choose per item:
 
 ---
 
+## Incident — hallucinated off-topic blog published (2026-07-24)
+
+**URL:** `https://www.swastika.co.in/blog/google-a-stock-price-trends-volume-246000month-insights-for-indian-retail-invest`
+**Reported by:** Jay Shrivastava — "why did this pass our finance+India gate,
+it's not related to anything."
+
+**Root cause traced to `output/output.json` index 1272**, source
+`google_news_business`. The original RSS item's title — "India Pulls
+Back From Iraqi Oil as Hormuz Turns Too Dangerous" — is genuinely
+finance+India-relevant, so `filter_by_country_and_category` correctly
+let it through on title alone (the filter never inspected content
+depth). But `google_news_business.py`'s `Blog_Content` for this item
+had an **empty "Related Coverage" section** — the RSS `<description>`
+parsed to zero usable headlines, leaving only bare metadata
+(`Source: Google News Business India`, publish date, no facts) and the
+"write a blog about the above topic" instruction with nothing to write
+about. The LLM, given nothing else, latched onto the literal word
+"Google" in the source line and hallucinated an entirely unrelated
+"Google A Stock Price" article, which then published successfully
+since nothing downstream checks topical coherence between input and
+output.
+
+**Fixed 2026-07-24:** `google_news_business.py` was the one fetcher (of
+7) that never adopted the `sources/common.py` `assess_quality()`
+pattern the others use. Added the same "skip if nothing usable" guard
+(empty/under-20-word related-headlines block → skip before the article
+ever reaches the blog generator) plus `_content_quality`/`_content_words`
+tagging, matching the other fetchers' convention.
+
+**Not yet done — needs a decision:** the bad blog is still live on
+Webflow at the URL above; this fix only prevents new occurrences. Manual
+unpublish/delete of that specific post is a separate follow-up action,
+not addressed by this code fix.
+
+---
+
 ## Published blog SEO QA — gold price today (2026-07-23)
 
 **URL:** `https://www.swastika.co.in/blog/gold-price-today-across-india-city-wise-24k-and-22k-rates`
