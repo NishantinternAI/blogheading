@@ -563,6 +563,15 @@ FAQ is handled separately, see §13.5). The link graph lives in
 `output/keyword_graph.json`, keyed by primary keyword, and is updated
 after each successful publish via `add_blog_to_graph()`.
 
+`KEYWORD_GRAPH_PATH` (env var, `keywords/related_links.py`) defaults to
+`BASE_DIR/output/keyword_graph.json` — `BASE_DIR` is the repo root,
+computed the same way as in `core/pipeline.py` and
+`storage/save_output.py`. **Fixed 2026-07-24:** it previously defaulted
+to a hardcoded Windows dev path (`D:\Blogheading\output\keyword_graph.json`),
+which never resolved on the Linux production container — `load_graph()`
+silently returned `{}` every run, so the related-links feature had been
+a no-op in production until this fix.
+
 ### 11.6 Title Rules
 
 Every `Blog_Title` and `Meta_Title` must have all 3:
