@@ -114,18 +114,20 @@ exception message.
 
 ## P2 — Robustness & architecture
 
-### 8. `output.json` write is not atomic  (`storage/save_output.py:39-40`)  **[NEW]**
+### 8. ~~`output.json` write is not atomic~~ **[FIXED 2026-07-24]**
 ```python
 with open(filepath, "w", encoding="utf-8") as f:
     json.dump(existing, f, ...)
 ```
-`output.json` is both the **published store** and the **dedup index**. Opening
+~~`output.json` is both the **published store** and the **dedup index**. Opening
 in `"w"` truncates first; a crash / container kill mid-`json.dump` leaves a
 truncated/corrupt file. On the next run `load_used_titles()` / the dashboard
 silently get `[]` (the bare `except` swallows `JSONDecodeError`) → **all history
-lost + dedup resets**. Write to a temp file then `os.replace()` (atomic on
-same filesystem). Also relative path `output/{filename}` — works only because
-Docker `WORKDIR=/app`; use `BASE_DIR`.
+lost + dedup resets**.~~ `storage/save_output.py` now writes to a `.tmp`
+file and `os.replace()`s it over the real path (atomic on the same
+filesystem — no window where a crash leaves a truncated file). Also
+added a module-level `BASE_DIR` (repo root, like `core/pipeline.py`'s)
+so the output path no longer depends on the process cwd being `/app`.
 
 ### 9. Chittorgarh IPO URL map never expires  (`sources/ipo.py:108-164`)  **[NEW]**
 `_build_ipo_map()` caches `_ipo_df_cache` as a module global with **no TTL**.
@@ -137,10 +139,9 @@ falls to InvestorGain/Moneycontrol or gets skipped). README §7.3 calls it
 "Cached per session," but a long-lived container = one infinite session.
 **Fix:** give `_ipo_df_cache` the same 6h TTL as the data cache.
 
-### 10. `requests.get` without timeout  (`sources/fetch_nse_corporate.py:13`)
-No `timeout=`. NSE is frequently slow/blocking; a hung socket blocks the single
-scheduler thread indefinitely (`ThreadPoolExecutor(1)`), stalling the whole
-pipeline. **Fix:** add `timeout=15`.
+### 10. ~~`requests.get` without timeout~~ **[STALE — already fixed, verified 2026-07-24]**
+Re-checked `sources/fetch_nse_corporate.py`: its one `requests.get(NSE_RSS_URL, ...)`
+call already has `timeout=20`. No code change needed.
 
 ### 11. Country/category filter fails open  (`utils/combined_filter.py:101-102`)  **[NEW — review for intent]**
 ```python
@@ -222,8 +223,8 @@ stale README would *introduce* a regression. Choose per item:
 4. ~~Font filename casing in both compositors (P1 #4)~~ — done 2026-07-24
 5. ~~`fix_garbage_characters` on `Blog_Content` (P1 #6)~~ — done 2026-07-24
 6. ~~`traceback.print_exc()` (P1 #7)~~ — done 2026-07-24
-7. `timeout=15` on NSE corporate fetch (P2 #10)
-8. Atomic `save_output` write (P2 #8)
+7. ~~`timeout=15` on NSE corporate fetch (P2 #10)~~ — already fixed, stale finding
+8. ~~Atomic `save_output` write (P2 #8)~~ — done 2026-07-24
 9. TTL on Chittorgarh map (P2 #9)
 10. ~~(Owner) #15/#16 decisions~~ — #16 resolved 2026-07-24 (bare headings kept,
     docs fixed); #15 (internal links) still open. Dead-code deletion,
