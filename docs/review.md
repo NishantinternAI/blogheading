@@ -237,8 +237,16 @@ stale README would *introduce* a regression. Choose per item:
   `PRICING` dict keyed by `MODEL`, with a fallback that prints a visible
   `[COST] WARNING` when the current model has no entry, instead of
   silently costing every model as if it were priced like the default.
-- `add_cached.py:19` `@lru_cache(maxsize=200)` keys on the full prompt (article
-  body included) → near-zero hit rate; just holds 200 large strings in memory.
+- ~~`add_cached.py:19` `@lru_cache(maxsize=200)` keys on the full prompt (article
+  body included) → near-zero hit rate; just holds 200 large strings in
+  memory.~~ **[FIXED 2026-07-24]** Removed the `@lru_cache` from
+  `cached_model_call()` entirely — with ~10 call sites across the
+  codebase all passing prompts with unique article bodies, real hit
+  rate was effectively zero, so it was pure memory waste while also
+  creating a footgun (retrying with the same prompt after a downstream
+  failure would silently replay the stale cached response instead of
+  calling the API again). Also removed the now-pointless
+  `cached_model_call.cache_clear()` call in `tools/test_title.py`.
 - Field name drift: `cnbc/paisa/livemint` emit `Blog_Links` (plural);
   `zerodha/nse_corporate` emit `Blog_Link` (singular). Handled defensively in
   `app.py` but fragile.

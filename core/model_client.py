@@ -2,9 +2,11 @@
 add_cached.py -- Model-call layer shared by the blog generators.
 
 Two OpenAI call paths live here:
-  - cached_model_call() -- the main JSON-mode blog-writing call
-    (@lru_cache'd on the prompt text). No web_search tool attached; it
-    only writes from whatever context the caller already assembled.
+  - cached_model_call() -- the main JSON-mode blog-writing call. No
+    web_search tool attached; it only writes from whatever context the
+    caller already assembled. Name kept for backward compatibility
+    across ~10 callers, but it is NOT actually memoized as of
+    2026-07-24 -- the @lru_cache was removed (see function docstring).
   - fetch_via_websearch() / fetch_ipo_live_data_via_ai() -- the two
     call paths that DO use OpenAI's built-in web_search tool, for
     fetching source-article content and live IPO GMP/subscription data
@@ -26,7 +28,6 @@ import os
 import re
 import json
 from datetime import datetime
-from functools import lru_cache
 from urllib.parse import urlparse
 from config import client, MODEL
 
@@ -406,20 +407,23 @@ def fetch_via_websearch(url: str) -> str:
 
 
 # ─────────────────────────────────────────────────────────────
-# CACHED MODEL CALL — Step 2 (json mode, no tools)
+# MODEL CALL — Step 2 (json mode, no tools)
 # ─────────────────────────────────────────────────────────────
 
-@lru_cache(maxsize=200)
 def cached_model_call(prompt: str) -> str:
     """
     Main JSON-mode blog-writing call — no web_search tool attached, so it
     writes only from context the caller already assembled into `prompt`.
 
-    Gotcha: @lru_cache'd on the exact `prompt` string (maxsize=200) — an
-    identical prompt returns the cached response and does NOT increment
-    api_call_count/total_cost or write a new log entry, so retrying with
-    the same prompt text after a downstream failure will silently reuse
-    the old result instead of calling the API again.
+    Despite the name, this is NOT memoized (the @lru_cache(maxsize=200)
+    this used to have was removed 2026-07-24): every caller's prompt
+    embeds the full article body, so real-world hit rate was near-zero —
+    it was just holding up to 200 large strings in memory for no benefit,
+    while also creating a footgun where retrying with the same prompt
+    text after a downstream failure would silently reuse the old cached
+    result instead of calling the API again (masking the retry
+    entirely — no new api_call_count/total_cost/log entry). Kept the
+    name rather than renaming across its ~10 call sites.
 
     Side effects: increments the global api_call_count, adds this call's
     cost to the global total_cost (priced per PRICING[MODEL], with a

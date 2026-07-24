@@ -4,8 +4,9 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # repo root
-from core.model_client import cached_model_call
-cached_model_call.cache_clear()
+# cached_model_call.cache_clear() removed 2026-07-24 -- cached_model_call is no
+# longer memoized (the @lru_cache it used to have was removed), so there's no
+# cache left to clear.
 
 from generators.blog_generator import generate_blog
 
