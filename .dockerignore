@@ -1,0 +1,25 @@
+# COPY . . in the Dockerfile has no filtering of its own, so without this
+# file every build ships .git/ history, generated output, and caches into
+# the image. NOTE: do NOT add config.py, .env, or google-ads.yaml here --
+# unlike output/ and output_images/ (bind-mounted at runtime in
+# docker-compose.yml, so baking them in is pure waste), those three are
+# required at import time and are not mounted as volumes, so excluding
+# them would break the container at startup.
+
+.git/
+.gitignore
+
+output/
+output_images/
+logs/
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+.DS_Store
+Thumbs.db
+
+*.tar

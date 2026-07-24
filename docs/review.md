@@ -268,7 +268,17 @@ stale README would *introduce* a regression. Choose per item:
   log line instead of raising into the waterfall's generic
   `except Exception` (which would still have caught it, but with an
   unhelpful bare "list index out of range" message).
-- No `.dockerignore` — `COPY . .` ships `.git/`, `output/`, `__pycache__/`.
+- ~~No `.dockerignore` — `COPY . .` ships `.git/`, `output/`, `__pycache__/`.~~
+  **[FIXED 2026-07-24]** Added `.dockerignore` excluding `.git/` (~40MB),
+  `output/`/`output_images/`/`logs/` (bind-mounted at runtime in
+  `docker-compose.yml` anyway, so baking them into the image was pure
+  waste), `__pycache__/`, and OS cruft. Deliberately does **not** exclude
+  `config.py`/`.env`/`google-ads.yaml` — those are required at import
+  time and aren't volume-mounted, so excluding them would break the
+  container at startup. Verified the runtime code already
+  `os.makedirs(..., exist_ok=True)`s every output directory it needs, so
+  omitting the (empty at build time anyway) directories from the build
+  context is safe.
 
 ---
 
