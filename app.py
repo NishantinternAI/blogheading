@@ -391,7 +391,7 @@ m1.metric("Total blogs", len(results))
 m2.metric("Country",     DEFAULT_COUNTRY)
 m3.metric("Category",    DEFAULT_CATEGORY.capitalize())
 m4.metric("Sources", len(set(
-    urlparse(r.get("Blog_Link") or r.get("Blog_Links", "")).netloc
+    urlparse(r.get("Blog_Links", "")).netloc
     for r in results
 )))
 
@@ -476,7 +476,7 @@ with st.container(height=500):
         publish  = item.get("Publish_Date") or item.get("Blog_PublishDate") or item.get("Run_Timestamp", "—")
         title    = get_blog(item).get("Blog_Title", "") or item.get("Blog_Title", "—")
         tag      = item.get("image_text", {}).get("tag", "GENERAL")
-        link     = item.get("Blog_Link") or item.get("Blog_Links", "—")
+        link     = item.get("Blog_Links", "—")
 
         try:
             domain = urlparse(link).netloc.replace("www.", "")
@@ -515,7 +515,7 @@ if st.session_state.selected_blog is not None:
     m2.markdown(f"**Country:** `{DEFAULT_COUNTRY}`")
     m3.markdown(f"**Generated:** `{item.get('Run_Timestamp', '—')}`")
 
-    link = item.get("Blog_Link") or item.get("Blog_Links", "")
+    link = item.get("Blog_Links", "")
     if link:
         st.markdown(f"[Read original source ↗]({link})")
     st.divider()

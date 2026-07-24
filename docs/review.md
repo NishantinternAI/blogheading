@@ -247,9 +247,16 @@ stale README would *introduce* a regression. Choose per item:
   failure would silently replay the stale cached response instead of
   calling the API again). Also removed the now-pointless
   `cached_model_call.cache_clear()` call in `tools/test_title.py`.
-- Field name drift: `cnbc/paisa/livemint` emit `Blog_Links` (plural);
+- ~~Field name drift: `cnbc/paisa/livemint` emit `Blog_Links` (plural);
   `zerodha/nse_corporate` emit `Blog_Link` (singular). Handled defensively in
-  `app.py` but fragile.
+  `app.py` but fragile.~~ **[STALE — already fixed at the source, cleaned up
+  2026-07-24]** Re-checked every `sources/*.py` fetcher: all of them
+  (including `zerodha.py` and `fetch_nse_corporate.py`) now emit
+  `Blog_Links` (plural) consistently — no fetcher emits singular
+  `Blog_Link` anywhere. `app.py` still had three leftover
+  `item.get("Blog_Link") or item.get("Blog_Links", ...)` defensive
+  fallbacks for the field that no longer exists; simplified all three to
+  a plain `item.get("Blog_Links", ...)`.
 - `sources/ipo.py:391` `_scrape_moneycontrol` → `name_clean.split()[0]` raises
   `IndexError` if the normalized name is empty (e.g. "India Ltd"); currently
   masked by the waterfall `try/except`.
