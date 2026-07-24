@@ -579,8 +579,9 @@ class IPODetailScraper:
     CACHE_TTL_HOURS = 6
 
     def __init__(self):
-        self._ipo_df_cache   = None
-        self._ipo_data_cache = {}
+        self._ipo_df_cache      = None
+        self._ipo_df_cache_at   = None
+        self._ipo_data_cache    = {}
 
     # ── SCRAPER 1 — CHITTORGARH ──────────────────────────────────
 
@@ -590,11 +591,12 @@ class IPODetailScraper:
         into a DataFrame mapping IPO name → detail-page URL, used by
         `_find_ipo_url` to locate a given company's Chittorgarh page.
 
-        Cached for the lifetime of this instance in `self._ipo_df_cache` —
-        there is no TTL, so a company that lists after the cache was first
-        built will not be found until the process restarts (see
-        CLAUDE.md gotchas). Per-URL scrape failures are caught and
-        logged; the map is simply built from whatever URLs succeeded.
+        Cached in `self._ipo_df_cache` with the same `CACHE_TTL_HOURS` TTL
+        as the per-company data cache, so a company that lists after the
+        map was first built is still found once the map goes stale and
+        gets rebuilt — no need to wait for a process restart. Per-URL
+        scrape failures are caught and logged; the map is simply built
+        from whatever URLs succeeded.
 
         Returns:
             DataFrame with columns `ipo_name`, `url`, `source`,
@@ -602,7 +604,10 @@ class IPODetailScraper:
             page failed to scrape or yielded no matching links.
         """
         if self._ipo_df_cache is not None:
-            return self._ipo_df_cache
+            age_hours = (datetime.now() - self._ipo_df_cache_at).total_seconds() / 3600
+            if age_hours < self.CACHE_TTL_HOURS:
+                return self._ipo_df_cache
+            print(f"[IPO] Chittorgarh map stale (age={age_hours:.1f}h) — rebuilding")
 
         print("[IPO] Building Chittorgarh IPO map...")
         ipo_links = []
@@ -653,7 +658,8 @@ class IPODetailScraper:
         if not df.empty:
             print(df[["ipo_name", "url"]].to_string(index=False))
 
-        self._ipo_df_cache = df
+        self._ipo_df_cache    = df
+        self._ipo_df_cache_at = datetime.now()
         return df
 
     def _find_ipo_url(self, company_name: str, df: pd.DataFrame) -> str:

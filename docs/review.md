@@ -129,15 +129,20 @@ filesystem — no window where a crash leaves a truncated file). Also
 added a module-level `BASE_DIR` (repo root, like `core/pipeline.py`'s)
 so the output path no longer depends on the process cwd being `/app`.
 
-### 9. Chittorgarh IPO URL map never expires  (`sources/ipo.py:108-164`)  **[NEW]**
-`_build_ipo_map()` caches `_ipo_df_cache` as a module global with **no TTL**.
-The per-company data cache `_ipo_data_cache` has a 6h TTL, but the *map of which
-IPOs exist* is built once on the first fetch and reused for the entire container
-lifetime (days/weeks). On a 24/7 scheduler, **IPOs filed after process start are
-never found by the primary source** (Chittorgarh `_find_ipo_url` returns "" →
-falls to InvestorGain/Moneycontrol or gets skipped). README §7.3 calls it
-"Cached per session," but a long-lived container = one infinite session.
-**Fix:** give `_ipo_df_cache` the same 6h TTL as the data cache.
+### 9. ~~Chittorgarh IPO URL map never expires~~ **[FIXED 2026-07-24]**
+~~`_build_ipo_map()` caches `_ipo_df_cache` (now `IPODetailScraper._ipo_df_cache`,
+an instance attribute per the phase-b class refactor) with **no TTL**. The
+per-company data cache `_ipo_data_cache` has a 6h TTL, but the *map of which
+IPOs exist* was built once on the first fetch and reused for the entire
+container lifetime (days/weeks). On a 24/7 scheduler, **IPOs filed after
+process start were never found by the primary source** (Chittorgarh
+`_find_ipo_url` returns "" → falls to InvestorGain/Moneycontrol or gets
+skipped).~~ Added `self._ipo_df_cache_at` (timestamp) alongside the cached
+`DataFrame` and gated the early-return in `_build_ipo_map()` on the same
+`CACHE_TTL_HOURS` (6h) used by the per-company cache — a stale map now
+triggers a rebuild instead of being reused forever. Verified with a unit
+test: fresh cache (age < 6h) short-circuits with zero network calls; a
+7h-old cache triggers a full rebuild.
 
 ### 10. ~~`requests.get` without timeout~~ **[STALE — already fixed, verified 2026-07-24]**
 Re-checked `sources/fetch_nse_corporate.py`: its one `requests.get(NSE_RSS_URL, ...)`
@@ -225,7 +230,7 @@ stale README would *introduce* a regression. Choose per item:
 6. ~~`traceback.print_exc()` (P1 #7)~~ — done 2026-07-24
 7. ~~`timeout=15` on NSE corporate fetch (P2 #10)~~ — already fixed, stale finding
 8. ~~Atomic `save_output` write (P2 #8)~~ — done 2026-07-24
-9. TTL on Chittorgarh map (P2 #9)
+9. ~~TTL on Chittorgarh map (P2 #9)~~ — done 2026-07-24
 10. ~~(Owner) #15/#16 decisions~~ — #16 resolved 2026-07-24 (bare headings kept,
     docs fixed); #15 (internal links) still open. Dead-code deletion,
     `USE_AI_IMAGES` env var unification still open.
