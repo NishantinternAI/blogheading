@@ -171,16 +171,22 @@ local (non-Docker) runs, `app.py` now calls `load_dotenv()` directly and
 `core/pipeline.py` already picked up `.env` transitively via
 `config.py`'s `load_dotenv()`. `CLAUDE.md` updated to match.
 
-### 13. Dead code — large
-- `pipeline.py`: active code is **941–1856** (~915 lines). Lines **1–940**
-  and **1858–5415** are two full commented-out prior versions (~4,500 lines).
-- `generators/blog_generator.py`: active **1–803**; **805–2142** commented (~1,340).
-- `content_engine/image_module/ipo_compositor.py`: active from **420**; ~400
-  commented above.
-- `scheduler.py`: ~140 commented lines.
+### 13. ~~Dead code — large~~ **[RESOLVED — mostly stale, dead files removed 2026-07-24]**
+- ~~`pipeline.py`: active code is **941–1856** (~915 lines). Lines **1–940**
+  and **1858–5415** are two full commented-out prior versions (~4,500 lines).~~
+  Already cleaned up in the 2026-07 refactor per `CLAUDE.md` — `core/pipeline.py`
+  is now 1666 lines, all live (longest run of consecutive comment lines is 15).
+- ~~`generators/blog_generator.py`: active **1–803**; **805–2142** commented (~1,340).~~
+  Now 1500 lines, no large commented block remains (longest run: 7 lines).
+- ~~`content_engine/image_module/ipo_compositor.py`: active from **420**; ~400
+  commented above.~~ Now 459 lines, no large commented block remains (longest
+  run: 15 lines — a normal docstring-style header, not dead code).
+- ~~`scheduler.py`: ~140 commented lines.~~ Now 69 lines total, essentially none.
 - Dead files (only referenced by each other, not the live pipeline):
-  `mergeall.py`, `utils/stack_manager.py`, `generators/filter_by_category_model.py`,
-  `Filter_news/finance_filter.py`.
+  ~~`mergeall.py`~~ and ~~`Filter_news/finance_filter.py`~~ (already removed,
+  per `CLAUDE.md`'s 2026-07 rename note) confirmed gone. `utils/stack_manager.py`
+  and `generators/filter_by_category_model.py` were still present with zero
+  importers anywhere in the codebase — deleted 2026-07-24.
 
 ---
 
