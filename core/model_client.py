@@ -104,6 +104,28 @@ def _log_response(call_num: int, response_text: str,
 # TRACKERS
 # ─────────────────────────────────────────────────────────────
 
+# USD per 1M tokens, keyed by model name. These are hand-maintained, NOT
+# looked up from the API, so an entry here can silently drift out of date
+# -- that's exactly the failure mode this dict exists to make visible
+# (via the fallback warning in _get_pricing) instead of hiding it behind
+# an unconditional hardcoded number.
+PRICING = {
+    "gpt-5-nano": {"input": 3.0, "output": 15.0},
+}
+_FALLBACK_PRICING = {"input": 3.0, "output": 15.0}
+
+
+def _get_pricing(model: str) -> dict:
+    """Looks up PRICING[model], warning once per distinct unknown model
+    instead of silently costing it as if it were priced like the default."""
+    if model not in PRICING:
+        print(f"[COST] WARNING: no PRICING entry for model '{model}' -- "
+              f"falling back to ${_FALLBACK_PRICING['input']}/M input, "
+              f"${_FALLBACK_PRICING['output']}/M output. Cost log for this "
+              f"model is likely wrong -- add a PRICING entry.")
+    return PRICING.get(model, _FALLBACK_PRICING)
+
+
 total_cost     = 0.0
 api_call_count = 0
 
@@ -400,9 +422,10 @@ def cached_model_call(prompt: str) -> str:
     the old result instead of calling the API again.
 
     Side effects: increments the global api_call_count, adds this call's
-    cost to the global total_cost (priced at $3/M input + $15/M output
-    tokens), and writes the prompt/response pair to logs/prompts/<date>.txt
-    via _log_prompt()/_log_response().
+    cost to the global total_cost (priced per PRICING[MODEL], with a
+    fallback + warning if MODEL isn't in that dict), and writes the
+    prompt/response pair to logs/prompts/<date>.txt via
+    _log_prompt()/_log_response().
 
     Returns the raw JSON string from response.output_text (the caller is
     responsible for json.loads-ing it).
@@ -440,7 +463,8 @@ def cached_model_call(prompt: str) -> str:
 
     input_tokens  = response.usage.input_tokens
     output_tokens = response.usage.output_tokens
-    cost          = (input_tokens / 1_000_000) * 3 + (output_tokens / 1_000_000) * 15
+    pricing       = _get_pricing(MODEL)
+    cost          = (input_tokens / 1_000_000) * pricing["input"] + (output_tokens / 1_000_000) * pricing["output"]
     total_cost   += cost
 
     print(f"   Input Tokens  : {input_tokens}")

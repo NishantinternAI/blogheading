@@ -231,8 +231,12 @@ stale README would *introduce* a regression. Choose per item:
 ---
 
 ## Minor / nice-to-have
-- `add_cached.py:36` hardcodes `$3/$15` per-M token pricing regardless of `MODEL`
-  — cost log is wrong if the model changes.
+- ~~`add_cached.py:36` hardcodes `$3/$15` per-M token pricing regardless of
+  `MODEL` — cost log is wrong if the model changes.~~ **[FIXED 2026-07-24]**
+  `core/model_client.py` (renamed from `add_cached.py`) now looks up a
+  `PRICING` dict keyed by `MODEL`, with a fallback that prints a visible
+  `[COST] WARNING` when the current model has no entry, instead of
+  silently costing every model as if it were priced like the default.
 - `add_cached.py:19` `@lru_cache(maxsize=200)` keys on the full prompt (article
   body included) → near-zero hit rate; just holds 200 large strings in memory.
 - Field name drift: `cnbc/paisa/livemint` emit `Blog_Links` (plural);
