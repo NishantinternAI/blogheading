@@ -57,21 +57,24 @@ AI generation + image spend** on an article that gets discarded at save, and
 nothing — misleading logs/metrics.
 **Fix:** `final_item = random.choice(fresh_zerodha)`.
 
-### 4. Font filename case mismatch — silent fallback on Linux/Docker  **[NEW]**
-`content_engine/image_module/compositor.py:214,216` and
-`ipo_compositor.py:428,430` reference:
+### 4. ~~Font filename case mismatch — silent fallback on Linux/Docker~~ **[FIXED 2026-07-24]**
+~~`content_engine/image_module/compositor.py:214,216` and
+`ipo_compositor.py:428,430` reference:~~
 ```python
 'extrabold': '.../fonts/ExtraBold.ttf',
 'regular':   '.../fonts/Regular.ttf',
 ```
-The committed files are **lowercase**: `content_engine/fonts/extrabold.ttf`,
+~~The committed files are **lowercase**: `content_engine/fonts/extrabold.ttf`,
 `regular.ttf` (only `GoogleSans_17pt-Bold.ttf` matches its reference exactly).
 On Windows (case-insensitive FS) this works, so it passed local testing. On the
 **Linux production container (case-sensitive)** `os.path.exists()` is `False` →
 code silently falls back to DejaVu/Liberation or `ImageFont.load_default()`.
 Result: company names / overlays render in the **wrong font** on the server with
-no error. Classic "works on my machine."
-**Fix:** reference the actual lowercase filenames.
+no error. Classic "works on my machine."~~
+Since the phase-b refactor, both compositors share one `FONTS` dict in
+`content_engine/image_module/base_compositor.py:32-36`. Fixed there by
+pointing `'extrabold'`/`'regular'` at the actual lowercase filenames
+(`extrabold.ttf`/`regular.ttf`).
 
 ### 5. `extract_faq_keyword()` result computed then discarded  (`app.py:490,503`)  **[NEW]**
 ```python
@@ -223,3 +226,61 @@ stale README would *introduce* a regression. Choose per item:
 8. Atomic `save_output` write (P2 #8)
 9. TTL on Chittorgarh map (P2 #9)
 10. (Owner) dead-code deletion, `USE_AI_IMAGES` env var, doc fixes, #15/#16 decisions
+
+---
+
+## Published blog SEO QA — gold price today (2026-07-23)
+
+**URL:** `https://www.swastika.co.in/blog/gold-price-today-across-india-city-wise-24k-and-22k-rates`
+**Reviewer:** Jay Shrivastava, via third-party SEO grader
+**Scope:** SEO only — readability (63.3, target 50.0) and tone of voice (consistent,
+92%) both graded fine and are **out of scope** for follow-up. Only the SEO
+section (**5.8 / 10, "Mediocre"**) needs action.
+
+### Target keywords not yet used
+None of these appear in the post at all — each should land at least once:
+`gokaldas exports stock`, `retail expansion`, `retail investor`, `margin expansion`,
+`retail growth`, `revenue streams`, `ril stock`, `growth phase`, `ai stock assistant`,
+`omnichannel growth`.
+
+> Note: several of these (`gokaldas exports stock`, `ril stock`, `retail expansion`,
+> `omnichannel growth`) read as keywords carried over from a different content
+> template (retail/stock-analysis) rather than this gold-price piece — worth
+> checking whether the SEO tool's keyword set was correctly scoped to this URL
+> before force-fitting all ten into a gold-price article.
+
+### Recommended (secondary) keywords to enrich with
+`supply chains`, `social media`, `physical stores`, `ai powered`, `retail store`,
+`product or service`, `artificial intelligence`, `products and services`,
+`customer base`, `growth opportunities`, `market share`, `wide range`,
+`growth rates`, `competitive advantage`, `revenue growth`, `marketing strategies`,
+`customer engagement`, `retail businesses`, `customer preferences`,
+`brick and mortar store`.
+
+### Alt attribute issues
+Grader flags missing/insufficient image alt text — add more images with
+descriptive alt attributes.
+
+### Link issues
+1. "Open your trading and demat account here" — currently links to the
+   homepage; should point to a more specific/relevant page (e.g. account
+   opening page) instead.
+2. "Swastika's Sarthi AI stock assistant" — **link is broken**, needs fixing.
+
+### Title issues
+Grader wants at least one target keyword in the title, and no target keyword
+repeated more than once. Current title — "Gold Price Today Across India:
+City-Wise 24K & 22K Rates" — contains none of the listed target keywords
+(consistent with the keyword-scoping question raised above).
+
+### Action items (SEO only — readability/tone need no changes)
+- [ ] Fix the broken "Sarthi AI stock assistant" link.
+- [ ] Repoint the "Open your trading and demat account here" link away from
+  the homepage to a more relevant page.
+- [ ] Add alt text to images (and consider adding more images).
+- [ ] Confirm with the SEO tool/owner whether the target-keyword list was
+  correctly scoped to this article before weaving them in — several look
+  mismatched to a gold-price piece.
+- [ ] If confirmed correct, work the target keywords in naturally (title +
+  body) and sprinkle in recommended keywords, without breaking the
+  currently-good readability/tone scores.
