@@ -988,8 +988,13 @@ class IPODetailScraper:
         print(f"[IPO] Moneycontrol: searching for {company_name}...")
     
         name_clean = _normalize_company_key(company_name)
-        name_short = name_clean.split()[0]
-    
+        words = name_clean.split()
+        if not words:
+            print(f"[IPO] Moneycontrol: empty normalized name for "
+                  f"'{company_name}' — skipping")
+            return {}
+        name_short = words[0]
+
         search_url = "https://www.moneycontrol.com/ipo"
         resp = requests.get(search_url, headers=HEADERS_MONEYCONTROL, timeout=15)
         soup = BeautifulSoup(resp.text, "html.parser")

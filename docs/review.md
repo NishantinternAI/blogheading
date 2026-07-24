@@ -257,9 +257,17 @@ stale README would *introduce* a regression. Choose per item:
   `item.get("Blog_Link") or item.get("Blog_Links", ...)` defensive
   fallbacks for the field that no longer exists; simplified all three to
   a plain `item.get("Blog_Links", ...)`.
-- `sources/ipo.py:391` `_scrape_moneycontrol` → `name_clean.split()[0]` raises
+- ~~`sources/ipo.py:391` `_scrape_moneycontrol` → `name_clean.split()[0]` raises
   `IndexError` if the normalized name is empty (e.g. "India Ltd"); currently
-  masked by the waterfall `try/except`.
+  masked by the waterfall `try/except`.~~ **[FIXED 2026-07-24]** (the
+  "India Ltd" example didn't actually reproduce it — `_normalize_company_key`
+  only strips a suffix when preceded by a space, so that input normalizes to
+  `"india"`, not empty — but an empty/whitespace-only `company_name` does
+  produce an empty normalized key and hit the same crash.) Added an
+  explicit empty-check before indexing `[0]`, returning `{}` with a clear
+  log line instead of raising into the waterfall's generic
+  `except Exception` (which would still have caught it, but with an
+  unhelpful bare "list index out of range" message).
 - No `.dockerignore` — `COPY . .` ships `.git/`, `output/`, `__pycache__/`.
 
 ---
