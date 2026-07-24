@@ -39,6 +39,7 @@ import os
 import glob
 import random
 import re
+import traceback
 import unicodedata
 import json
 from datetime import datetime
@@ -1659,6 +1660,7 @@ def run_pipeline(selected_country="India", category="finance"):
 
     except Exception as e:
         print(f"[ERROR] {e}")
+        traceback.print_exc()
 
     print_timing_summary()
     return results

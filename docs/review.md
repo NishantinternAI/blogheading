@@ -98,15 +98,17 @@ strips non-ASCII/non-allowlisted characters while leaving HTML tags and
 allowlisted symbols (`₹`, en/em dash, curly quotes, `°`, `…`) intact.
 **Fix:** also run `fix_garbage_characters` over `Blog_Content`.
 
-### 7. Exceptions swallowed without traceback  (`pipeline.py:1852-1853`)
+### 7. ~~Exceptions swallowed without traceback~~ **[FIXED 2026-07-24]**
 ```python
 except Exception as e:
     print(f"[ERROR] {e}")
+    traceback.print_exc()
 ```
-The whole STEP 6–8 block (blog gen, images, save) is wrapped in this. Only the
-message prints — no stack trace, no file/line. Production failures are very hard
-to diagnose.
-**Fix:** `traceback.print_exc()` (or `logging.exception`).
+The whole STEP 6–8 block (blog gen, images, save) is wrapped in this
+(now `core/pipeline.py:1660-1661`). Added `import traceback` and a
+`traceback.print_exc()` call alongside the existing message print, so
+production failures now log a full stack trace instead of just the
+exception message.
 
 ---
 
@@ -219,7 +221,7 @@ stale README would *introduce* a regression. Choose per item:
 3. ~~`random.choice(fresh_zerodha)` (P1 #3)~~ — already fixed, stale finding
 4. ~~Font filename casing in both compositors (P1 #4)~~ — done 2026-07-24
 5. ~~`fix_garbage_characters` on `Blog_Content` (P1 #6)~~ — done 2026-07-24
-6. `traceback.print_exc()` (P1 #7)
+6. ~~`traceback.print_exc()` (P1 #7)~~ — done 2026-07-24
 7. `timeout=15` on NSE corporate fetch (P2 #10)
 8. Atomic `save_output` write (P2 #8)
 9. TTL on Chittorgarh map (P2 #9)
