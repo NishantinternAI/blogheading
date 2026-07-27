@@ -137,6 +137,37 @@ def test_search_google_news_for_trend_network_failure():
 
 test_search_google_news_for_trend_network_failure()
 
+# ── Task 2: _pick_best_candidate() ──────────────────────────────────────
+def test_pick_best_candidate_finds_overlap():
+    candidates = [
+        {"title": "Completely unrelated cricket score update", "link": "/a", "pub_date": "", "source": ""},
+        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "/b", "pub_date": "", "source": ""},
+    ]
+    best = gt._pick_best_candidate("idfc first bank share", candidates)
+    check("picks the candidate whose title overlaps the phrase", best is not None and best["link"] == "/b")
+
+
+test_pick_best_candidate_finds_overlap()
+
+
+def test_pick_best_candidate_no_overlap_returns_none():
+    candidates = [
+        {"title": "Completely unrelated cricket score update", "link": "/a", "pub_date": "", "source": ""},
+    ]
+    best = gt._pick_best_candidate("idfc first bank share", candidates)
+    check("returns None when no candidate title overlaps the phrase", best is None)
+
+
+test_pick_best_candidate_no_overlap_returns_none()
+
+
+def test_pick_best_candidate_empty_list_returns_none():
+    best = gt._pick_best_candidate("idfc first bank share", [])
+    check("returns None for an empty candidate list", best is None)
+
+
+test_pick_best_candidate_empty_list_returns_none()
+
 if failures:
     print(f"\n{len(failures)} FAILURE(S)")
     raise SystemExit(1)

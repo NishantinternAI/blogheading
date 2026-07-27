@@ -341,6 +341,26 @@ def _search_google_news_for_trend(phrase: str) -> list:
     return candidates
 
 
+def _pick_best_candidate(phrase: str, candidates: list) -> dict | None:
+    """
+    Title-level prefilter (no AI call) -- keeps only candidates whose
+    title shares at least one word (len > 3, case-insensitive) with the
+    trend phrase, same shape as _is_content_valid()'s title-overlap
+    check. Returns the first surviving candidate (Google News RSS already
+    orders by relevance/recency), or None if nothing overlaps.
+    """
+    phrase_words = [w.lower() for w in phrase.split() if len(w) > 3]
+    if not phrase_words:
+        return candidates[0] if candidates else None
+
+    for candidate in candidates:
+        title_lower = candidate.get("title", "").lower()
+        if any(w in title_lower for w in phrase_words):
+            return candidate
+
+    return None
+
+
 # ══════════════════════════════════════════════════════════════
 #  MAIN FETCHER
 # ══════════════════════════════════════════════════════════════
