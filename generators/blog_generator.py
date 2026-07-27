@@ -7,7 +7,8 @@ from core.model_client import cached_model_call
 from utils.mcp_tools import fetch_and_clean
 from core.model_client import cached_model_call, fetch_via_websearch
 from keywords.keyword_extractor import extract_keywords
-from keywords.keyword_researcher import get_keyword_volumes 
+from keywords.keyword_researcher import get_keyword_volumes
+from sources.common import assess_quality
 from json_repair import repair_json
 
 
@@ -696,8 +697,13 @@ def generate_blog(item: dict) -> dict:
     Returns:
         Post-processed blog dict, or {} if skipped/unrecoverable.
     """
-    url =item["Blog_Links"]
-    article_content = fetch_via_websearch(url)
+    existing_content = item.get("Blog_Content", "")
+    if assess_quality(existing_content)["quality"] in ("thin", "rich"):
+        article_content = existing_content
+        print(f"[BLOG] Using pre-verified Blog_Content ({len(existing_content.split())} words) -- skipping re-fetch")
+    else:
+        url = item["Blog_Links"]
+        article_content = fetch_via_websearch(url)
     print(article_content)
     keyword_data = extract_keywords(article_content)
     print("Keywords:", keyword_data)

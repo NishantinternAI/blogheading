@@ -21,7 +21,7 @@ WINDOW_END_HOUR   = 18  # 6:00 PM
 #  BYPASS SOURCES — always pass regardless of date
 # ══════════════════════════════════════════════════════════════
 
-BYPASS_SOURCES = {"nse_ipo", "nse_corporate", "market_summary"}
+BYPASS_SOURCES = {"nse_ipo", "nse_corporate", "market_summary", "google_trends_business"}
 
 
 # ══════════════════════════════════════════════════════════════
