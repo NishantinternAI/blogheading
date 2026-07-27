@@ -514,6 +514,13 @@ def fix_tldr_list(data: dict) -> dict:
             # Strip any HTML tags from inside TLDR strings
             clean = _re.sub(r"<[^>]+>", "", item).strip()
             if clean:
+                # A keyword phrase copied verbatim from Google Keyword
+                # Planner (always lowercase) can land as the first word of
+                # a sentence -- e.g. "tanishq gold price today shows...".
+                # Force-capitalize just the first letter as a deterministic
+                # backstop, since the prompt instruction alone isn't
+                # guaranteed to hold on every generation.
+                clean = clean[0].upper() + clean[1:]
                 cleaned.append(clean)
         else:
             cleaned.append(item)
@@ -727,6 +734,13 @@ Use the provided Google keywords only when they fit naturally and preserve the o
 * If a replacement changes the meaning or makes the sentence unnatural, keep the original wording.
 * Do NOT create new sentences solely to insert keywords.
 * Avoid repeating the same keyword in consecutive sentences.
+* The keyword strings below are given in lowercase (as Google Keyword Planner
+  returns them) — this is a data format, not a writing instruction. Wherever
+  a keyword is used, still apply normal English capitalization: capitalize
+  the first word of every sentence/bullet, and capitalize brand and company
+  names (e.g. "tanishq gold price today" → "Tanishq gold price today" at the
+  start of a sentence). This applies everywhere the keyword appears — Title,
+  headings, TLDR, body paragraphs, and FAQs alike — not just Title/H2.
 
 Primary Keyword (Mandatory)
 
@@ -838,6 +852,9 @@ This rule applies even when the heading starts with or contains a keyword phrase
 TLDR
 
 Write exactly 4 short, punchy sentences. No bullet formatting beyond the list structure. Each sentence must stand alone and deliver real information.
+Every sentence must start with a capital letter — including when it starts
+with a keyword phrase or a brand/company name (e.g. "Tanishq gold price
+today shows..." not "tanishq gold price today shows...").
 
 ---
 
