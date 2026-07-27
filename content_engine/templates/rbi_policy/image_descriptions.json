@@ -1,0 +1,38 @@
+{
+  "outer/ai_rbi_policy_20260727_0.png": {
+    "visual": "A nighttime exterior shot of the Reserve Bank of India building with a gigantic gold ₹ symbol in the foreground and bundled Indian banknotes spread across the lower edge. To the left is a financial chart with candlesticks, plus a blue downward arrow and a yellow upward arrow overlaid along with a % sign.",
+    "mood": "blue and gold; dark navy with warm amber highlights",
+    "best_for": [
+      "RBI monetary policy announcements",
+      "repo rate changes",
+      "inflation and CPI data",
+      "interest rate outlook stories",
+      "central bank commentary"
+    ],
+    "avoid_for": [
+      "dividend payout news",
+      "IPO listings",
+      "gold and silver price stories",
+      "IT sector earnings",
+      "crude oil price movements"
+    ]
+  },
+  "outer/ai_rbi_policy_20260727_1.png": {
+    "visual": "Center stage is a large, gold 3D Indian rupee symbol on a reflective surface, surrounded by cash and stacks of coins. Behind it, a blue upward-trending arrow and a white market chart arc sweep across a moody cityscape and a government-building backdrop.",
+    "mood": "moody, gold-toned with blue accents",
+    "best_for": [
+      "RBI monetary policy announcements",
+      "repo rate changes",
+      "inflation and CPI data",
+      "interest rate outlook stories",
+      "central bank commentary"
+    ],
+    "avoid_for": [
+      "dividend payout news",
+      "IPO listings",
+      "gold and silver price stories",
+      "IT sector earnings",
+      "crude oil price movements"
+    ]
+  }
+}

@@ -512,5 +512,14 @@
       "history documentaries",
       "gardening tips"
     ]
+  },
+  "outer/ai_general_20260727_0.png": {
+    "visual": "A large gold rupee symbol sits on a stone ledge overlooking a river, with a city skyline of tall buildings and a bridge in the distance, while white candlestick-chart lines arc across the sky above the scene.",
+    "mood": "golden sunset, blue-tinted shadows",
+    "best_for": [
+      "general financial news",
+      "stories that don't fit a specific sector"
+    ],
+    "avoid_for": []
   }
 }

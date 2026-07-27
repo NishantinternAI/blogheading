@@ -132,7 +132,7 @@
       "financial challenges in India"
     ],
     "avoid_for": [
-       "coal mining",
+      "coal mining",
       "oil industry trends",
       "positive economic growth in India",
       "successful investments in India",
@@ -164,7 +164,7 @@
       "investor anxiety articles"
     ],
     "avoid_for": [
-       "coal mining",
+      "coal mining",
       "oil industry trends",
       "positive investment strategies",
       "economic growth forecasts",
@@ -196,7 +196,7 @@
       "global market dynamics"
     ],
     "avoid_for": [
-       "coal mining",
+      "coal mining",
       "oil industry trends",
       "personal finance budgeting",
       "savings account advice",
@@ -256,7 +256,7 @@
       "stock performance reviews"
     ],
     "avoid_for": [
-       "coal mining",
+      "coal mining",
       "oil industry trends",
       "personal finance advice",
       "cryptocurrency updates",
@@ -288,7 +288,7 @@
       "global financial meltdown consequences"
     ],
     "avoid_for": [
-       "coal mining",
+      "coal mining",
       "oil industry trends",
       "financial success stories",
       "positive economic trends",
@@ -320,7 +320,7 @@
       "cryptocurrency investment strategies"
     ],
     "avoid_for": [
-       "coal mining",
+      "coal mining",
       "oil industry trends",
       "personal finance budgeting",
       "retirement planning",
@@ -439,7 +439,7 @@
       "cross-border collaborations"
     ],
     "avoid_for": [
-       "coal mining",
+      "coal mining",
       "oil industry trends",
       "personal finance budgeting",
       "local economic issues",
@@ -471,7 +471,7 @@
       "corporate financial planning"
     ],
     "avoid_for": [
-       "coal mining",
+      "coal mining",
       "oil industry trends",
       "environmental issues",
       "health and wellness",
@@ -503,7 +503,7 @@
       "investment portfolio review"
     ],
     "avoid_for": [
-       "coal mining",
+      "coal mining",
       "oil industry trends",
       "health and wellness blogs",
       "travel guides",
@@ -515,6 +515,23 @@
       "fashion trends",
       "home decor ideas",
       "gardening tips"
+    ]
+  },
+  "outer/ai_finance_20260727_0.png": {
+    "visual": "A man in a white shirt sits in profile at a trading desk surrounded by multiple monitors: the central screen shows a rising candlestick stock chart with a white trend line and volume bars, another screen displays a world map, and a third lists market data, while outside the window a brightly lit city skyline at night and a large BSE sign is visible on the left.",
+    "mood": "cool blue with warm amber highlights",
+    "best_for": [
+      "general market movement stories",
+      "Sensex/Nifty coverage",
+      "rupee-dollar/forex stories",
+      "broad bullish or bearish market sentiment"
+    ],
+    "avoid_for": [
+      "dividend payout news",
+      "RBI policy announcements",
+      "gold and silver price movements",
+      "IT sector earnings",
+      "banking sector regulation news"
     ]
   }
 }

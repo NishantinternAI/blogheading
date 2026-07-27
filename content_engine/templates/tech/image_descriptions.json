@@ -1,0 +1,36 @@
+{
+  "outer/ai_tech_20260727_0.png": {
+    "visual": "A man in a light blue shirt with a headset sits at a desk typing on a laptop while multiple monitors display financial charts. To his left a large glowing blue Rupee symbol and flowing digital data graphics rise, with a woman at another station in the background and a blue-lit cityscape visible through the windows.",
+    "mood": "cool blue neon, high-tech, busy",
+    "best_for": [
+      "IT sector earnings",
+      "Infosys/TCS/Wipro company news",
+      "software industry trends",
+      "technology sector market movements"
+    ],
+    "avoid_for": [
+      "gold and silver price movements",
+      "crude oil price stories",
+      "RBI policy announcements",
+      "dividend payout news",
+      "banking sector regulation news"
+    ]
+  },
+  "outer/ai_tech_20260727_1.png": {
+    "visual": "A man in a white shirt sits at a desk with a keyboard, looking at several monitors displaying stock charts; in the background another person works at a separate station, and a large glowing rupee symbol sits on the right while blue neon lines arc across the scene toward a city skyline visible through the windows.",
+    "mood": "cool blue neon, high-tech",
+    "best_for": [
+      "IT sector earnings",
+      "Infosys/TCS/Wipro company news",
+      "software industry trends",
+      "technology sector market movements"
+    ],
+    "avoid_for": [
+      "gold and silver price movements",
+      "crude oil price stories",
+      "RBI policy announcements",
+      "dividend payout news",
+      "banking sector regulation news"
+    ]
+  }
+}

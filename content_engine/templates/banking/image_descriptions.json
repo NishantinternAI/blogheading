@@ -1,0 +1,18 @@
+{
+  "outer/ai_banking_20260727_0.png": {
+    "visual": "A large metal bank vault door with a circular locking mechanism and a central symbol resembling the Indian rupee; to its right stands a classical columned bank building facade and a modern city skyline, while a wooden desk in the foreground holds open ledgers, notebooks, pens, glasses, and a laptop displaying a rising bar chart.",
+    "mood": "cool blue steel tones with warm amber highlights",
+    "best_for": [
+      "banking sector regulation news",
+      "PSU and private bank earnings",
+      "NPA and credit growth stories",
+      "SBI/HDFC Bank/ICICI Bank/Axis Bank company news"
+    ],
+    "avoid_for": [
+      "IT sector earnings",
+      "gold and silver price movements",
+      "crude oil price stories",
+      "IPO listings"
+    ]
+  }
+}

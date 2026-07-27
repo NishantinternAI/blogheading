@@ -1,0 +1,38 @@
+{
+  "outer/ai_gold_oil_20260727_0.png": {
+    "visual": "A stack of gold bars in the foreground, beside several black oil barrels labeled OIL, with a glowing orange sunset over an industrial refinery and a distant city skyline. A financial chart with a rising orange line and a large rupee symbol is visible on a screen or panel near the barrels.",
+    "mood": "warm, dramatic, bullish",
+    "best_for": [
+      "gold and silver price movements",
+      "bullion market stories",
+      "crude oil and petroleum price stories",
+      "ONGC/BPCL/HPCL company news",
+      "commodity market coverage"
+    ],
+    "avoid_for": [
+      "RBI policy announcements",
+      "IT sector earnings",
+      "dividend payout news",
+      "banking sector regulation news",
+      "IPO listings"
+    ]
+  },
+  "outer/ai_gold_oil_20260727_1.png": {
+    "visual": "Foreground shows black oil barrels labeled OIL on the left and a pyramid of gold bars stamped 999.9 GOLD on the right, with a white rising line graph and a currency symbol (rupee) across the middle. In the background, an orange sunset over a city skyline is reflected on the water.",
+    "mood": "warm amber-orange with metallic gold highlights",
+    "best_for": [
+      "gold and silver price movements",
+      "bullion market stories",
+      "crude oil and petroleum price stories",
+      "ONGC/BPCL/HPCL company news",
+      "commodity market coverage"
+    ],
+    "avoid_for": [
+      "RBI policy announcements",
+      "IT sector earnings",
+      "dividend payout news",
+      "banking sector regulation news",
+      "IPO listings"
+    ]
+  }
+}
