@@ -18,12 +18,14 @@ scanning the whole graph. Secondary-keyword comparison then only runs
 within that one small group (size K, typically 2-4), not across all N
 blogs in the graph.
 
-Rules:
+Rules (see get_related_links() for the full tier breakdown):
     1. Primary matches + secondary overlap exists somewhere in the group
        -> rank the group by secondary-match-score, return top max_links.
     2. Primary matches + no secondary overlap at all in the group
        -> return any max_links from the group (order doesn't matter).
-    3. Primary doesn't match anything -> return nothing, start a new group.
+    3. Primary doesn't match anything, or its group is smaller than
+       max_links -> fill remaining slots from any OTHER group whose blogs
+       share a secondary keyword with this one (cross-group fallback).
 """
 
 import os
@@ -120,36 +122,71 @@ def get_related_links(primary_keyword, secondary_keywords, graph: dict, max_link
     O(1) group lookup by primary keyword, then O(K x S) secondary-overlap
     scoring within that group only (K = blogs in the group, S = secondary
     keywords per blog) -- not O(N) across the whole graph.
+
+    Tier 1 (primary-keyword group, as before):
+        1a. Primary matches + secondary overlap exists somewhere in the
+            group -> rank the group by secondary-match-score.
+        1b. Primary matches + no secondary overlap at all in the group
+            -> rank the group by volume (order doesn't otherwise matter).
+        1c. Primary doesn't match anything -> tier 1 contributes nothing.
+
+    Tier 2 (cross-group fallback, new): when tier 1 didn't fill max_links
+    -- either the primary keyword had no group at all, or its group was
+    too small -- fill the rest from ANY other group whose blogs share at
+    least one secondary keyword with this blog, ranked by overlap count.
+    This catches topically-adjacent blogs that never shared a primary
+    keyword -- e.g. a "tanishq gold price today" blog and an "ibja gold
+    price" blog both carry the secondary keyword "ibja gold rate" despite
+    belonging to different primary-keyword groups.
     """
     new_primary_text, _ = _normalize_keyword_field(primary_keyword)
-    if not new_primary_text:
-        return []
-
-    group_key = _find_group_key(new_primary_text, graph)
-    if not group_key:
-        return []  # Rule 3: no primary match at all (exact or fuzzy)
-
-    group = graph[group_key]
-
     new_secondary_set = {
         _normalize_keyword_field(s)[0] for s in (secondary_keywords or [])
     }
     new_secondary_set.discard("")
 
-    scored = [
-        (blog, len(new_secondary_set & set(blog.get("secondary_kws", []))))
-        for blog in group
-    ]
+    selected = []
+    selected_urls = set()
 
-    any_secondary_overlap = any(score > 0 for _, score in scored)
+    # -- Tier 1: same primary-keyword group --------------------------------
+    group_key = _find_group_key(new_primary_text, graph) if new_primary_text else None
+    if group_key:
+        group = graph[group_key]
+        scored = [
+            (blog, len(new_secondary_set & set(blog.get("secondary_kws", []))))
+            for blog in group
+        ]
+        any_secondary_overlap = any(score > 0 for _, score in scored)
+        scored.sort(
+            key=lambda item: item[1] if any_secondary_overlap else item[0].get("volume", 0),
+            reverse=True,
+        )
+        for blog, _ in scored:
+            if len(selected) >= max_links:
+                break
+            selected.append(blog)
+            selected_urls.add(blog["url"])
 
-    if any_secondary_overlap:
-        scored.sort(key=lambda item: item[1], reverse=True)
-    else:
-        scored.sort(key=lambda item: item[0].get("volume", 0), reverse=True)
+    # -- Tier 2: cross-group secondary-keyword overlap fallback -----------
+    if len(selected) < max_links and new_secondary_set:
+        candidates = []
+        for key, group in graph.items():
+            if key == group_key:
+                continue  # already covered by tier 1
+            for blog in group:
+                if blog["url"] in selected_urls:
+                    continue
+                overlap = len(new_secondary_set & set(blog.get("secondary_kws", [])))
+                if overlap > 0:
+                    candidates.append((blog, overlap))
+        candidates.sort(key=lambda item: item[1], reverse=True)
+        for blog, _ in candidates:
+            if len(selected) >= max_links:
+                break
+            selected.append(blog)
+            selected_urls.add(blog["url"])
 
-    top = [blog for blog, _ in scored[:max_links]]
-    return [{"title": b["title"], "url": b["url"]} for b in top]
+    return [{"title": b["title"], "url": b["url"]} for b in selected]
 
 
 def build_related_links_html(related_links: list) -> str:
