@@ -255,6 +255,56 @@ def test_ground_trend_in_news_content_too_thin():
 
 test_ground_trend_in_news_content_too_thin()
 
+# ── Task 4: fetch_trending_business_articles() ──────────────────────────
+def test_fetch_trending_business_articles_caps_and_filters_none():
+    fake_trends = [{"title": f"trend {i}", "volume": 100 - i, "growth_pct": 50} for i in range(8)]
+
+    def fake_ground(trend):
+        # Every other trend "fails" to ground (simulates real-world skip rate)
+        idx = int(trend["title"].split()[-1])
+        if idx % 2 == 0:
+            return {"Blog_Title": f"real headline {idx}", "Blog_Content": "x" * 200}
+        return None
+
+    with patch.object(gt, "get_cached_business_trends", return_value=fake_trends):
+        with patch.object(gt, "ground_trend_in_news", side_effect=fake_ground) as mock_ground:
+            articles = gt.fetch_trending_business_articles(max_trends=5)
+
+    check("only calls ground_trend_in_news for the top max_trends", mock_ground.call_count == 5)
+    check("drops None results, keeping only grounded articles", len(articles) == 3)  # trends 0,2,4 ground successfully out of top 5 (0-4)
+
+
+test_fetch_trending_business_articles_caps_and_filters_none()
+
+
+def test_fetch_trending_business_articles_isolates_per_trend_failures():
+    fake_trends = [{"title": "good trend", "volume": 100, "growth_pct": 50},
+                   {"title": "bad trend", "volume": 90, "growth_pct": 50}]
+
+    def fake_ground(trend):
+        if trend["title"] == "bad trend":
+            raise RuntimeError("simulated crash grounding this one trend")
+        return {"Blog_Title": "real headline", "Blog_Content": "x" * 200}
+
+    with patch.object(gt, "get_cached_business_trends", return_value=fake_trends):
+        with patch.object(gt, "ground_trend_in_news", side_effect=fake_ground):
+            articles = gt.fetch_trending_business_articles(max_trends=5)
+
+    check("one trend's exception doesn't drop the other trend's result", len(articles) == 1)
+    check("the surviving article is the one that didn't crash", articles[0]["Blog_Title"] == "real headline" if articles else False)
+
+
+test_fetch_trending_business_articles_isolates_per_trend_failures()
+
+
+def test_fetch_trending_business_articles_empty_trends():
+    with patch.object(gt, "get_cached_business_trends", return_value=[]):
+        articles = gt.fetch_trending_business_articles()
+    check("returns [] when there are no cached trends at all", articles == [])
+
+
+test_fetch_trending_business_articles_empty_trends()
+
 if failures:
     print(f"\n{len(failures)} FAILURE(S)")
     raise SystemExit(1)

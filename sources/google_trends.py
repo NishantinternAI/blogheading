@@ -413,6 +413,31 @@ def ground_trend_in_news(trend: dict) -> dict | None:
     }
 
 
+def fetch_trending_business_articles(max_trends: int = 5) -> list:
+    """
+    Fetcher plugged into core/pipeline.py's _fetch_all_sources(). Takes
+    the top `max_trends` cached Business & Finance trends (by volume,
+    already sorted by get_cached_business_trends()) and grounds each in
+    real news via ground_trend_in_news(). Each trend is wrapped in its
+    own try/except so one trend's failure never drops the others in the
+    batch. Returns 0-max_trends article dicts.
+    """
+    trends = get_cached_business_trends()[:max_trends]
+
+    articles = []
+    for trend in trends:
+        try:
+            article = ground_trend_in_news(trend)
+        except Exception as e:
+            print(f"[BIZ TRENDS] Error grounding '{trend.get('title', '?')}': {e}")
+            continue
+        if article:
+            articles.append(article)
+
+    print(f"[BIZ TRENDS] Grounded {len(articles)}/{len(trends)} trends into real articles")
+    return articles
+
+
 # ══════════════════════════════════════════════════════════════
 #  MAIN FETCHER
 # ══════════════════════════════════════════════════════════════
