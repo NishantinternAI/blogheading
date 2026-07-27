@@ -681,18 +681,27 @@ def generate_blog(item: dict) -> dict:
     """
     Generate a full SEO/GEO-optimised blog for a general news item.
 
-    Fetches the source article via fetch_via_websearch(), extracts primary/secondary
-    keywords, and looks up their Google search volumes. If every keyword has 0 search
-    volume, generation is skipped entirely and {} is returned (no LLM call made).
-    Otherwise builds a large prompt (source content + keyword usage rules + structure/SEO
-    instructions) and calls cached_model_call(). The raw JSON response is parsed, with a
+    Uses item["Blog_Content"] directly when it's already substantial
+    (assess_quality() clears "thin" or better, i.e. >=150 words -- true
+    for sources that scrape a full article body themselves, e.g. zerodha/
+    economic_times/ndtv_profit, and for google_trends_business, whose
+    content is pre-verified by ground_trend_in_news()). Otherwise fetches
+    the source article via fetch_via_websearch(item["Blog_Links"]) --
+    the original behavior, still used whenever Blog_Content is thin/
+    missing (e.g. a bare RSS snippet). Then extracts primary/secondary
+    keywords and looks up their Google search volumes. If every keyword
+    has 0 search volume, generation is skipped entirely and {} is
+    returned (no LLM call made). Otherwise builds a large prompt (source
+    content + keyword usage rules + structure/SEO instructions) and calls
+    cached_model_call(). The raw JSON response is parsed, with a
     json_repair fallback if parsing fails (writing repaired_blog_response.json or, on
     total failure, failed_blog_response.json for debugging); {} is returned if recovery
     fails. On success the dict is passed through fix_all_fields() and annotated with
     primary_keyword / secondary_keywords before being returned.
 
     Args:
-        item: dict expected to contain "Blog_Links" (source URL) and "source".
+        item: dict expected to contain "Blog_Links" (source URL), "source",
+            and optionally "Blog_Content" (used directly when substantial).
 
     Returns:
         Post-processed blog dict, or {} if skipped/unrecoverable.
