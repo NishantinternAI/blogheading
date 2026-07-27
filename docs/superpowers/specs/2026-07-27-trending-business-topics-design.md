@@ -34,7 +34,12 @@ blog candidates that flow through the existing pipeline.
 - Not calling Selenium/a headless browser anywhere in this flow — the
   cached business-trends fetcher already proved a plain GET is sufficient,
   and this spec's grounding step uses Google News RSS (also a plain
-  fetch) plus the existing `fetch_via_websearch()`.
+  fetch) plus an AI web-search call modeled on the existing
+  `fetch_via_websearch()`/`fetch_ipo_live_data_via_ai()` pattern (see the
+  Task-1 amendment below for why headline-search, not URL-fetch).
+- Not adding a new dependency to decode Google News' opaque redirect URLs
+  (e.g. the `googlenewsdecoder` package) — searching by headline avoids
+  needing to resolve them at all.
 
 ## Critical constraint: no hallucinated blogs
 
@@ -73,6 +78,36 @@ phrase, same shape as the existing `_is_content_valid()` title-overlap
 check. Returns the first (most relevant / most recent) surviving
 candidate, or `None` if nothing overlaps.
 
+**Amendment (found during Task 1's implementation, 2026-07-27):** the
+original design called for `core.model_client.fetch_via_websearch(best["link"])`
+to extract content directly from the Google News candidate's URL. Verified
+against a live Google News RSS response that this cannot work: Google
+News RSS `<link>` values are opaque redirect tokens
+(`news.google.com/rss/articles/CBMi...`), resolved client-side via
+JavaScript, not a plain HTTP 3xx — a raw `urllib` fetch doesn't follow
+them, and `fetch_via_websearch()` tested against one directly returned a
+model response explicitly declining to guess-decode the token and asking
+for either the real publisher URL or permission to search by headline
+instead. Fixed by adding a new function, `fetch_article_via_headline_search()`
+(searches by headline text instead of dereferencing the broken URL — see
+below), rather than by adding a URL-decoding dependency to reverse
+Google's redirect encoding.
+
+### `core.model_client.fetch_article_via_headline_search(title: str, source: str = "") -> str`
+
+New function in `core/model_client.py`, alongside the existing
+`fetch_via_websearch()` and `fetch_ipo_live_data_via_ai()` it's modeled
+on. Same OpenAI `web_search` tool call shape as `fetch_via_websearch()`,
+but the request asks the model to find a real, currently-published
+article matching the given headline (optionally narrowed by publisher
+name) and extract its facts as bullet points — instead of asking it to
+dereference a URL. Explicitly instructs the model to reply with exactly
+`NOT_FOUND` (mirroring `fetch_ipo_live_data_via_ai()`'s `NOT AVAILABLE`
+convention) if no matching real article can be found, rather than
+guessing or paraphrasing from the headline alone. Returns `""` if the
+response is `NOT_FOUND` or the call fails — callers treat that as "not
+grounded," same as any other failure in this chain.
+
 ### `ground_trend_in_news(trend: dict) -> dict | None`
 
 Orchestrates the full grounding step for one trend dict (as returned by
@@ -81,9 +116,10 @@ Orchestrates the full grounding step for one trend dict (as returned by
 1. `_search_google_news_for_trend(trend["title"])` → candidates. Empty →
    return `None`.
 2. `_pick_best_candidate(...)` → best candidate. `None` → return `None`.
-3. `core.model_client.fetch_via_websearch(best["link"])` → extracted
-   content (one AI call — only spent once a real candidate URL exists).
-   Empty/exception → return `None`.
+3. `core.model_client.fetch_article_via_headline_search(best["title"], best["source"])`
+   → extracted content (one AI call — only spent once a real candidate
+   headline exists). Empty (including the `NOT_FOUND` sentinel, which the
+   function itself converts to `""`) → return `None`.
 4. `_is_content_valid(content, trend["title"])` (already exists in this
    file) — rejects paywalls/error pages and confirms topical relevance.
    Fails → return `None`.
@@ -151,7 +187,7 @@ get_cached_business_trends()   [2h cache, already live]
   → top 5 by volume
   → per trend: Google News RSS search (free)
       → title-prefilter candidates
-      → fetch_via_websearch() on best candidate (1 AI call, only if a candidate exists)
+      → fetch_article_via_headline_search() on best candidate (1 AI call, only if a candidate exists)
       → _is_content_valid() relevance/paywall check
       → assess_quality() word-count gate
       → article dict, or skip (no fallback, no improvising)
@@ -165,7 +201,7 @@ get_cached_business_trends()   [2h cache, already live]
 - No Google News candidates for a trend → skip, log, continue to next
   trend.
 - No candidate passes the title-prefilter → skip.
-- `fetch_via_websearch()` returns empty or raises → skip.
+- `fetch_article_via_headline_search()` returns empty (including the NOT_FOUND sentinel) or raises → skip.
 - `_is_content_valid()` fails (paywall, error page, or no topical overlap
   with the trend phrase) → skip.
 - `assess_quality()` returns `"empty"` or `"bare"` → skip.
@@ -184,7 +220,7 @@ get_cached_business_trends()   [2h cache, already live]
 - Per stack-rebuild event (irregular — only when priority+news+corporate
   all drain, same cadence every existing source already lives with, not
   every 8-minute pipeline cycle): ≤5 free Google News RSS queries + ≤5
-  `fetch_via_websearch()` AI calls, and only for trends where a real
+  `fetch_article_via_headline_search()` AI calls, and only for trends where a real
   candidate was actually found (often fewer than 5 calls in practice).
   Bounded, predictable ceiling — no risk of the runaway-cost or
   block-risk profile a higher-frequency or higher-volume approach would
@@ -193,7 +229,7 @@ get_cached_business_trends()   [2h cache, already live]
 ## Testing
 
 Extend `tools/test_google_trends_business.py` with mocked Google News RSS
-responses and a mocked `fetch_via_websearch()`, covering:
+responses and a mocked `fetch_article_via_headline_search()`, covering:
 - A trend with a relevant, sufficiently long real article → produces a
   correct article dict with the real headline as `Blog_Title`.
 - A trend whose only candidates have no title-word overlap → skipped,
