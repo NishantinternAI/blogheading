@@ -168,6 +168,93 @@ def test_pick_best_candidate_empty_list_returns_none():
 
 test_pick_best_candidate_empty_list_returns_none()
 
+# ── Task 3: ground_trend_in_news() ──────────────────────────────────────
+_FAKE_TREND = {
+    "title": "idfc first bank share",
+    "volume": 5000,
+    "growth_pct": 100,
+    "started_unix": 1785120000,
+    "related_queries": ["idfc first bank share"],
+    "category_ids": [3],
+}
+
+_REAL_CONTENT = " ".join(["IDFC First Bank shares rose sharply today after strong quarterly results."] * 30)  # well over 150 words
+
+
+def test_ground_trend_in_news_success():
+    with patch.object(gt, "_search_google_news_for_trend", return_value=[
+        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://news.google.com/rss/articles/fake1", "pub_date": "Sun, 27 Jul 2026 09:00:00 GMT", "source": "Economic Times"},
+    ]):
+        with patch.object(gt, "fetch_article_via_headline_search", return_value=_REAL_CONTENT):
+            result = gt.ground_trend_in_news(_FAKE_TREND)
+
+    check("returns an article dict on success", result is not None)
+    check("Blog_Title is the REAL article headline, not the bare phrase",
+          result["Blog_Title"] == "IDFC First Bank shares surge 5% after Q1 results" if result else False)
+    check("Blog_Content is the extracted content", result["Blog_Content"] == _REAL_CONTENT if result else False)
+    check("Blog_Links is the real article URL (redirect token, kept for reference)",
+          result["Blog_Links"] == "https://news.google.com/rss/articles/fake1" if result else False)
+    check("trending_signal carries the trend metadata", "idfc first bank share" in result["trending_signal"] if result else False)
+
+
+test_ground_trend_in_news_success()
+
+
+def test_ground_trend_in_news_no_candidates():
+    with patch.object(gt, "_search_google_news_for_trend", return_value=[]):
+        result = gt.ground_trend_in_news(_FAKE_TREND)
+    check("returns None when no Google News candidates exist", result is None)
+
+
+test_ground_trend_in_news_no_candidates()
+
+
+def test_ground_trend_in_news_no_title_overlap():
+    with patch.object(gt, "_search_google_news_for_trend", return_value=[
+        {"title": "Completely unrelated cricket score update", "link": "https://news.google.com/rss/articles/fakez", "pub_date": "", "source": ""},
+    ]):
+        result = gt.ground_trend_in_news(_FAKE_TREND)
+    check("returns None when no candidate title overlaps the phrase", result is None)
+
+
+test_ground_trend_in_news_no_title_overlap()
+
+
+def test_ground_trend_in_news_headline_search_empty():
+    with patch.object(gt, "_search_google_news_for_trend", return_value=[
+        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://news.google.com/rss/articles/fake1", "pub_date": "", "source": ""},
+    ]):
+        with patch.object(gt, "fetch_article_via_headline_search", return_value=""):
+            result = gt.ground_trend_in_news(_FAKE_TREND)
+    check("returns None when fetch_article_via_headline_search returns nothing (incl. NOT_FOUND)", result is None)
+
+
+test_ground_trend_in_news_headline_search_empty()
+
+
+def test_ground_trend_in_news_invalid_content():
+    with patch.object(gt, "_search_google_news_for_trend", return_value=[
+        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://news.google.com/rss/articles/fake1", "pub_date": "", "source": ""},
+    ]):
+        with patch.object(gt, "fetch_article_via_headline_search", return_value="Please sign in to continue reading this premium content."):
+            result = gt.ground_trend_in_news(_FAKE_TREND)
+    check("returns None when content fails _is_content_valid (paywall)", result is None)
+
+
+test_ground_trend_in_news_invalid_content()
+
+
+def test_ground_trend_in_news_content_too_thin():
+    with patch.object(gt, "_search_google_news_for_trend", return_value=[
+        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://news.google.com/rss/articles/fake1", "pub_date": "", "source": ""},
+    ]):
+        with patch.object(gt, "fetch_article_via_headline_search", return_value="IDFC First Bank shares rose today."):
+            result = gt.ground_trend_in_news(_FAKE_TREND)
+    check("returns None when content is too thin (assess_quality bare/empty)", result is None)
+
+
+test_ground_trend_in_news_content_too_thin()
+
 if failures:
     print(f"\n{len(failures)} FAILURE(S)")
     raise SystemExit(1)

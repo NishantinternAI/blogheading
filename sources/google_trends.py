@@ -91,6 +91,9 @@ import urllib.request
 from datetime import datetime, timezone
 from urllib.parse import quote
 
+from core.model_client import fetch_article_via_headline_search
+from sources.common import assess_quality
+
 
 # ── Try importing trafilatura ─────────────────────────────────
 try:
@@ -359,6 +362,55 @@ def _pick_best_candidate(phrase: str, candidates: list) -> dict | None:
             return candidate
 
     return None
+
+
+def ground_trend_in_news(trend: dict) -> dict | None:
+    """
+    Grounds one trending phrase (from get_cached_business_trends()) in a
+    real, verified news article. Returns an article dict shaped like
+    every other source's output, or None if real news can't be verified
+    at ANY step -- this is the hard gate against generating a blog from a
+    bare search-volume spike with no real facts behind it (see the
+    2026-07-24 hallucinated-blog incident in docs/review.md). Uses
+    fetch_article_via_headline_search() rather than fetching the Google
+    News candidate's URL directly, since that URL is an opaque
+    client-side-redirect token neither a plain fetch nor the web_search
+    tool can resolve (verified 2026-07-27) -- Blog_Links still stores it
+    for reference even though it's never dereferenced.
+    """
+    phrase = trend["title"]
+
+    candidates = _search_google_news_for_trend(phrase)
+    if not candidates:
+        print(f"[BIZ TRENDS] No Google News candidates for '{phrase}' -- skipping")
+        return None
+
+    best = _pick_best_candidate(phrase, candidates)
+    if not best:
+        print(f"[BIZ TRENDS] No title-relevant candidate for '{phrase}' -- skipping")
+        return None
+
+    content = fetch_article_via_headline_search(best["title"], best.get("source", ""))
+    if not content:
+        print(f"[BIZ TRENDS] No content found for '{phrase}' (headline: '{best['title']}') -- skipping")
+        return None
+
+    if not _is_content_valid(content, phrase):
+        print(f"[BIZ TRENDS] Content failed validity check for '{phrase}' -- skipping")
+        return None
+
+    quality = assess_quality(content)
+    if quality["quality"] in ("empty", "bare"):
+        print(f"[BIZ TRENDS] Content too thin for '{phrase}' ({quality['word_count']} words) -- skipping")
+        return None
+
+    return {
+        "Blog_Title":      best["title"],
+        "Blog_Content":    content,
+        "Blog_Links":      best["link"],
+        "Blog_PublishDate": best["pub_date"],
+        "trending_signal": f"{phrase} ({trend['volume']:,} searches, +{trend['growth_pct']}%)",
+    }
 
 
 # ══════════════════════════════════════════════════════════════
