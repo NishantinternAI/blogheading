@@ -406,6 +406,80 @@ def fetch_via_websearch(url: str) -> str:
         return ""
 
 
+def fetch_article_via_headline_search(title: str, source: str = "") -> str:
+    """
+    Fetches article content by searching for a real, currently-published
+    article matching the given headline -- for cases where only a
+    headline (not a resolvable URL) is available, e.g. Google News RSS
+    <link> values, which are opaque client-side-redirect tokens that
+    neither a plain HTTP fetch nor this same web_search tool can resolve
+    directly (verified 2026-07-27). Modeled on fetch_ipo_live_data_via_ai()'s
+    strict-format pattern: the model must reply with exactly NOT_FOUND if
+    it can't locate a real matching article, rather than paraphrasing from
+    the headline alone. Returns "" on a NOT_FOUND response or any failure.
+    """
+    global api_call_count
+    api_call_count += 1
+    ws_call_num = api_call_count
+
+    source_clause = f" published by {source}" if source else ""
+    request_text = (
+        f"Search for a real, currently-published news article with this "
+        f"exact headline: \"{title}\"{source_clause}. "
+        f"If you find it, extract all key information from it: "
+        f"every statistic, number, date, company name, expert quote, "
+        f"financial figure, and important fact mentioned. "
+        f"Present ONLY as bullet-point notes — do not summarise or paraphrase numbers. "
+        f"Do NOT include inline citation links or markdown links like ([source](url)) "
+        f"after each bullet point — return plain text bullet points only, no hyperlinks. "
+        f"Keep all rupee figures, percentages, and named sources exactly as stated. "
+        f"Do NOT extract page furniture or site UI text — this includes update "
+        f"counters, comment-section markers, 'follow us' / 'share this' / 'click here' "
+        f"prompts, navigation labels, or anything describing the webpage itself rather "
+        f"than the story. Only extract facts that are actually about the news story. "
+        f"Do NOT ask follow-up questions. Do NOT offer further options. "
+        f"If you cannot find a real article matching this exact headline, reply with "
+        f"exactly this and nothing else: NOT_FOUND\n"
+        f"Otherwise just return the extracted data and stop."
+    )
+
+    try:
+        response = client.responses.create(
+            model=MODEL,
+            input=[{"role": "user", "content": request_text}],
+            tools   = [WEB_SEARCH_TOOL],
+            include = INCLUDE_LIST,
+            store   = False,
+        )
+        content = (response.output_text or "").strip()
+    except Exception as e:
+        print(f"   [HEADLINE_SEARCH] Failed for '{title[:60]}': {e}")
+        return ""
+
+    usage = getattr(response, "usage", None)
+    _log_prompt(
+        call_num = ws_call_num,
+        prompt   = request_text,
+        metadata = {"type": "HEADLINE_SEARCH", "title": title},
+    )
+    _log_response(
+        call_num      = ws_call_num,
+        response_text = content,
+        input_tokens  = getattr(usage, "input_tokens", 0) if usage else 0,
+        output_tokens = getattr(usage, "output_tokens", 0) if usage else 0,
+        cost          = 0.0,
+    )
+
+    if content.upper().startswith("NOT_FOUND"):
+        print(f"   [HEADLINE_SEARCH] Not found: '{title[:60]}'")
+        return ""
+
+    content    = _strip_page_furniture(content)
+    word_count = len(content.split())
+    print(f"   [HEADLINE_SEARCH] '{title[:60]}' → {word_count} words fetched")
+    return content
+
+
 # ─────────────────────────────────────────────────────────────
 # MODEL CALL — Step 2 (json mode, no tools)
 # ─────────────────────────────────────────────────────────────
