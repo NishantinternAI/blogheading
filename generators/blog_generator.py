@@ -736,7 +736,13 @@ def generate_blog(item: dict) -> dict:
         return {}
 
     secondary_lines = "\n".join([
-        f'  {i+1}. replace "{s["original"]}" → "{s["google_keyword"]}"  ({s["volume"]:,}/mo)'
+        f'  {i+1}. Target phrase: "{s["original"]}" (Google-preferred wording: '
+        f'"{s["google_keyword"]}"). Incorporate this concept naturally where it fits, '
+        f'rendered with normal English capitalization -- company/brand names '
+        f'capitalized as usual (e.g. write "IDFC First Bank" or "IDFC First Bank '
+        f'Share Price", never "idfc first bank" or "idfc first bank share price"). '
+        f'The lowercase strings above are a data format from the keyword tool, not '
+        f'a writing instruction -- never copy them verbatim in lowercase.  ({s["volume"]:,}/mo)'
         for i, s in enumerate(valid_secondary)
     ])
     keyword_block = f"""
@@ -768,6 +774,12 @@ Volume: {pk.get('volume', 0):,}/month
   - First 100 words
   - One H2 heading
 - Use naturally 2-3 times throughout the article.
+- The Original/Preferred strings above are lowercase because that's the
+  keyword tool's data format, not a writing instruction -- every time you
+  use this keyword, render it with normal English capitalization
+  (company/brand names capitalized as usual, e.g. "IDFC First Bank Share
+  Price", never "idfc first bank share price"), including in the Title,
+  headings, and every mention in body paragraphs and tables.
 
 Secondary Keywords:
 
