@@ -35,3 +35,9 @@ logs/
 *.jpeg
 *.webp
 *.json
+
+# ...except the template pool's own metadata, which must stay tracked
+# (read by content_engine/image_module/template_selector.py at runtime) --
+# previously only finance/ and general/ were exempted by accident, leaving
+# the other 5 categories' descriptions untracked and at risk of being lost.
+!content_engine/templates/*/image_descriptions.json
