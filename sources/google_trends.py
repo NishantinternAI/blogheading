@@ -83,8 +83,12 @@
 #         print(f"Content : {r['Blog_Content'][:120]}")
 #         print(f"---")
 
+import json
+import os
 import re
+import tempfile
 import urllib.request
+from datetime import datetime, timezone
 
 
 # ── Try importing trafilatura ─────────────────────────────────
@@ -418,6 +422,161 @@ Full Article Content ({src_count} sources scraped):
 
     print(f"\n[TRENDS] Fetched: {len(data)} articles")
     return data
+
+
+# ══════════════════════════════════════════════════════════════
+#  BUSINESS-CATEGORY TRENDING TOPICS (cached, low-frequency fetch)
+# ══════════════════════════════════════════════════════════════
+#
+# The "Trending Now" page (trends.google.com/trending) is a JS app with no
+# documented public API, but it embeds its full initial dataset server-side
+# via Google's standard AF_initDataCallback mechanism -- a plain HTTPS GET
+# with a browser User-Agent returns it directly, no headless browser or JS
+# execution needed. The category/sort query params turned out to be
+# cosmetic (applied client-side only): the embedded payload always
+# contains ALL ~289 India trends across every category, each tagged with
+# its own category-code list, so we filter to category 3 (Business &
+# Finance -- confirmed empirically: "indo mim ipo gmp today" and similar
+# known finance queries all carry category_ids == [3]) ourselves.
+#
+# Fetched at most once per BUSINESS_TRENDS_CACHE_HOURS via a JSON cache
+# file -- deliberately infrequent (2h, not every 8-min pipeline cycle) to
+# avoid hammering Google with an unauthenticated scrape from one server IP.
+
+BUSINESS_TRENDS_URL = "https://trends.google.com/trending?geo=IN&sort=search-volume&category=3"
+BUSINESS_TRENDS_CATEGORY_ID = 3
+BUSINESS_TRENDS_CACHE_HOURS = 2
+BUSINESS_TRENDS_CACHE_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "output", "google_trends_business_cache.json",
+)
+
+
+def _extract_trends_payload(html: str) -> list:
+    """
+    Finds the AF_initDataCallback block carrying the trends dataset (the
+    page has several such blocks for unrelated app state) and returns its
+    parsed `data[1]` array -- one entry per trending query, each shaped
+    like:
+        [title, None, geo, [started_unix, ...], None, None,
+         volume, None, growth_pct, [related_queries...],
+         [category_ids...], [[story_id, lang, geo], ...], normalized_title]
+    Returns [] if no matching block is found or parsing fails (e.g. Google
+    changes the page structure) -- callers treat that as "no data" rather
+    than raising, since this is a best-effort scrape, not an API contract.
+    """
+    for block in re.findall(r"AF_initDataCallback\((\{.*?\})\);", html, re.DOTALL):
+        m = re.search(r"data:(\[.*\]), sideChannel", block, re.DOTALL)
+        if not m:
+            continue
+        try:
+            parsed = json.loads(m.group(1))
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if (
+            isinstance(parsed, list) and len(parsed) == 2
+            and isinstance(parsed[1], list) and len(parsed[1]) > 50
+            and isinstance(parsed[1][0], list)
+        ):
+            return parsed[1]
+    return []
+
+
+def _parse_trend_record(record: list) -> dict:
+    """Maps one raw AF_initDataCallback trend record into a plain dict."""
+    return {
+        "title":           record[0],
+        "volume":          record[6],
+        "growth_pct":      record[8],
+        "started_unix":    (record[3] or [None])[0],
+        "related_queries": record[9] or [],
+        "category_ids":    record[10] or [],
+    }
+
+
+def fetch_business_trends() -> list:
+    """
+    Fetches the current India "Trending Now" dataset via a single plain
+    GET (see module docstring above for why no browser is needed) and
+    returns only the Business & Finance-tagged entries, sorted by volume
+    descending. Returns [] on any network/parsing failure -- callers
+    should treat this as "nothing new right now", not a hard error.
+    """
+    req = urllib.request.Request(
+        BUSINESS_TRENDS_URL,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                          "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+            "Accept":     "text/html,application/xhtml+xml",
+        },
+    )
+    try:
+        resp = urllib.request.urlopen(req, timeout=20)
+        html = resp.read().decode("utf-8", errors="replace")
+    except Exception as e:
+        print(f"[BIZ TRENDS] Fetch error: {e}")
+        return []
+
+    records = _extract_trends_payload(html)
+    if not records:
+        print("[BIZ TRENDS] Could not locate trends payload in page (structure may have changed)")
+        return []
+
+    business = [
+        _parse_trend_record(r) for r in records
+        if r and len(r) > 10 and r[10] and BUSINESS_TRENDS_CATEGORY_ID in r[10]
+    ]
+    business.sort(key=lambda t: t["volume"] or 0, reverse=True)
+    print(f"[BIZ TRENDS] Fetched {len(records)} total trends, {len(business)} tagged Business & Finance")
+    return business
+
+
+def get_cached_business_trends(force_refresh: bool = False) -> list:
+    """
+    Returns Business & Finance trending queries, re-fetching at most once
+    every BUSINESS_TRENDS_CACHE_HOURS hours to keep our request volume to
+    Google low. Falls back to a stale cache (rather than an empty list)
+    if a refresh attempt fails, so a single transient failure doesn't
+    blank out an otherwise-working feed.
+    """
+    cache = {}
+    if os.path.exists(BUSINESS_TRENDS_CACHE_PATH):
+        try:
+            with open(BUSINESS_TRENDS_CACHE_PATH, "r", encoding="utf-8") as f:
+                cache = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            cache = {}
+
+    fetched_at = cache.get("fetched_at")
+    is_stale = True
+    if fetched_at and not force_refresh:
+        age_hours = (
+            datetime.now(timezone.utc) - datetime.fromisoformat(fetched_at)
+        ).total_seconds() / 3600
+        is_stale = age_hours >= BUSINESS_TRENDS_CACHE_HOURS
+
+    if not is_stale:
+        print(f"[BIZ TRENDS] Using cached trends ({fetched_at}, {len(cache.get('trends', []))} items)")
+        return cache["trends"]
+
+    fresh = fetch_business_trends()
+    if not fresh and cache.get("trends"):
+        print("[BIZ TRENDS] Refresh failed — falling back to stale cache")
+        return cache["trends"]
+
+    new_cache = {
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "trends": fresh,
+    }
+    dir_name = os.path.dirname(BUSINESS_TRENDS_CACHE_PATH)
+    os.makedirs(dir_name, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w", dir=dir_name, delete=False, suffix=".tmp", encoding="utf-8"
+    ) as tmp:
+        json.dump(new_cache, tmp, ensure_ascii=False, indent=2)
+        tmp_path = tmp.name
+    os.replace(tmp_path, BUSINESS_TRENDS_CACHE_PATH)
+    return fresh
 
 
 # ══════════════════════════════════════════════════════════════
