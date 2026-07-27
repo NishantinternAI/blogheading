@@ -373,6 +373,7 @@ def submit_weekly_batch(openai_client=None) -> dict:
     new_state = {
         "batch_id": batch.id,
         "submitted_at": datetime.now(timezone.utc).isoformat(),
+        "iso_week": iso_week,
         "category_assignments": assignments,
         "status": "submitted",
     }
@@ -486,3 +487,43 @@ def fetch_completed_batch(openai_client=None) -> dict:
 
     print(f"[TEMPLATE BATCH] Batch still {batch.status} — checking again next run")
     return {"in_progress": batch.status}
+
+
+def reconcile_on_startup(openai_client=None) -> dict:
+    """
+    Runs once at process startup (in addition to the Sat/Mon cron jobs) to
+    recover from a missed cron fire. APScheduler's cron trigger here uses
+    the default in-memory jobstore, so if the process isn't running at
+    exactly Sat 02:00 or Mon 09:00 IST (e.g. a container restart lands on
+    that second), that fire is skipped forever, not replayed -- this
+    catches up on the next start instead.
+
+    - If a batch is already "submitted", tries fetch_completed_batch() right
+      away (safe even if the batch is still in progress -- state is left
+      untouched in that case).
+    - Otherwise, if this week's Saturday 02:00 IST submit slot has already
+      passed and no batch has been submitted for this ISO week yet, submits
+      one now.
+    """
+    oc = openai_client or client
+    state = _load_state()
+
+    if state.get("status") == "submitted":
+        return fetch_completed_batch(oc)
+
+    ist = timezone(timedelta(hours=5, minutes=30))
+    now = datetime.now(ist)
+    current_iso_week = now.isocalendar()[1]
+    days_since_saturday = (now.isoweekday() - 6) % 7
+    saturday_slot = (now - timedelta(days=days_since_saturday)).replace(
+        hour=2, minute=0, second=0, microsecond=0
+    )
+
+    if now >= saturday_slot and state.get("iso_week") != current_iso_week:
+        print(
+            "[TEMPLATE BATCH] Startup reconciliation: this week's submit "
+            "slot was missed -- submitting now"
+        )
+        return submit_weekly_batch(oc)
+
+    return {"noop": "nothing due"}

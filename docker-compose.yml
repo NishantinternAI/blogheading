@@ -13,6 +13,7 @@ services:
     volumes:
       - ./output:/app/output
       - ./output_images:/app/output_images
+      - ./content_engine/templates:/app/content_engine/templates
     restart: unless-stopped
 
   scheduler:
@@ -28,5 +29,6 @@ services:
     volumes:
       - ./output:/app/output
       - ./output_images:/app/output_images
+      - ./content_engine/templates:/app/content_engine/templates
       - ./google-ads.yaml:/root/google-ads.yaml:ro
     restart: unless-stopped

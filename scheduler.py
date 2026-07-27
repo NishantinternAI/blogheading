@@ -18,6 +18,7 @@ from publishing.mcp_agent import run_agent
 from content_engine.image_module.template_batch_generator import (
     submit_weekly_batch,
     fetch_completed_batch,
+    reconcile_on_startup,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -61,6 +62,12 @@ if __name__ == "__main__":
     print("  🚀 Scheduler started")
     print("  ⏱  Pipeline runs every 8 minutes")
     print("━"*33)
+
+    # Catch up on a missed Sat-submit/Mon-fetch cron fire (e.g. the process
+    # wasn't running at that exact second) before the pipeline job, since it
+    # can involve slower network calls (batch submit/fetch).
+    print("  🧵 Reconciling weekly template batch state...")
+    reconcile_on_startup()
 
     # Run once immediately on start, then let the cron job take over
     print("  ⚡ Running pipeline immediately on start...")
