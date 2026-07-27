@@ -57,7 +57,7 @@ from sources.livemint            import fetch_livemint
 from sources.fetch_nse_corporate import fetch_nse_corporate
 from sources.ipo                 import fetch_nse_ipo
 from sources.market_summary      import fetch_morning_summary
-from sources.google_trends import fetch_google_trends
+from sources.google_trends import fetch_google_trends, fetch_trending_business_articles
 from sources.google_news_business import fetch_google_news_business
 from sources.economic_times import fetch_economic_times
 from sources.ndtv_profit         import fetch_ndtv_profit
@@ -135,7 +135,7 @@ POSTING_PATTERN = [
 #  SOURCE CONFIG
 # ══════════════════════════════════════════════════════════════
 
-PRIORITY_SOURCES  = ["nse_ipo", "google_trends", "market_summary"]
+PRIORITY_SOURCES  = ["nse_ipo", "google_trends", "google_trends_business", "market_summary"]
 CORPORATE_SOURCES = []
 NEWS_SOURCES      = ["zerodha", "5paisa", "livemint","google_news_business","economic_times","ndtv_profit","business_standard"]
 
@@ -721,6 +721,7 @@ def _fetch_all_sources(top_n: int = 6) -> list:
         (fetch_nse_ipo,       "nse_ipo"),
         (fetch_morning_summary, "market_summary"),
         (fetch_google_trends,  "google_trends"),
+        (fetch_trending_business_articles, "google_trends_business"),
         (fetch_google_news_business, "google_news_business"),
         (fetch_economic_times,       "economic_times"),
         (fetch_ndtv_profit,        "ndtv_profit"),
@@ -739,6 +740,8 @@ def _fetch_all_sources(top_n: int = 6) -> list:
                     data = fetcher()        # Market summary — returns 0 or 1 article
                 elif source_name == "google_trends":
                     data = fetcher()
+                elif source_name == "google_trends_business":
+                    data = fetcher()        # already capped to max_trends internally
                 elif source_name == "google_news_business":
                     data = fetcher(top_n=top_n)          # Business news — pass top_n to fetcher
                 else:
@@ -883,9 +886,18 @@ def _full_fetch_and_build_stack(selected_country: str, category: str) -> dict:
     f"{len(google_trends_articles)}"
     )
 
+    google_trends_business_articles = [
+    a for a in all_data
+    if a.get("source") == "google_trends_business"
+    ]
+    print(
+    f"[DEBUG] Trending business topics (bypass filter): "
+    f"{len(google_trends_business_articles)}"
+    )
+
     other_articles = [
     a for a in all_data
-    if a.get("source") not in ["nse_ipo", "google_trends", "market_summary"]
+    if a.get("source") not in ["nse_ipo", "google_trends", "google_trends_business", "market_summary"]
     ]
     finance_trends, _ = filter_by_country_and_category(
     google_trends_articles,
@@ -908,6 +920,7 @@ def _full_fetch_and_build_stack(selected_country: str, category: str) -> dict:
     ipo_articles +
     market_summary_articles +
     finance_trends +
+    google_trends_business_articles +
     filtered_other
     )
     print(f"[FILTER] Total combined: {len(filtered_data)}")
@@ -968,14 +981,20 @@ def _fetch_after_timestamp(
         if a.get("source") == "google_trends"
     ]
 
+    google_trends_business_articles = [
+        a for a in all_data
+        if a.get("source") == "google_trends_business"
+    ]
+
     other_articles = [
         a for a in all_data
-        if a.get("source") not in ["nse_ipo", "google_trends", "market_summary"]
+        if a.get("source") not in ["nse_ipo", "google_trends", "google_trends_business", "market_summary"]
     ]
 
     print(f"[FILTER] IPO articles (bypass filter)    : {len(ipo_articles)}")
     print(f"[FILTER] Market summary articles (bypass filter) : {len(market_summary_articles)}")
     print(f"[FILTER] Google Trends articles           : {len(google_trends_articles)}")
+    print(f"[FILTER] Trending business topics (bypass filter): {len(google_trends_business_articles)}")
     print(f"[FILTER] Other articles (to filter)      : {len(other_articles)}")
 
     # ── Filter google_trends separately ──────────────────────
@@ -996,7 +1015,7 @@ def _fetch_after_timestamp(
     print(f"[FILTER] Other articles after filter     : {len(filtered_other)}")
 
     # ── Combine all groups ─────────────────────────────────────
-    filtered_data = ipo_articles + market_summary_articles + finance_trends + filtered_other
+    filtered_data = ipo_articles + market_summary_articles + finance_trends + google_trends_business_articles + filtered_other
     print(f"[FILTER] Total combined                  : {len(filtered_data)}")
 
     if not filtered_data:
