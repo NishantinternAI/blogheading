@@ -89,6 +89,7 @@ import re
 import tempfile
 import urllib.request
 from datetime import datetime, timezone
+from urllib.parse import quote
 
 
 # ── Try importing trafilatura ─────────────────────────────────
@@ -296,6 +297,48 @@ def _is_content_valid(content: str, trend_title: str) -> bool:
             return False
 
     return True
+
+
+def _search_google_news_for_trend(phrase: str) -> list:
+    """
+    Searches Google News RSS for real articles matching a trending phrase
+    -- free, no AI cost. Returns a list of candidate dicts
+    {"title", "link", "pub_date", "source"}, most-recent-first (Google
+    News RSS's own default ordering). Returns [] on any network failure
+    (caught, logged, not raised) -- callers treat that as "nothing found
+    for this trend", not a hard error.
+    """
+    url = f"https://news.google.com/rss/search?q={quote(phrase)}&hl=en-IN&gl=IN&ceid=IN:en"
+    try:
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                          "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+            "Accept":     "application/rss+xml, application/xml, */*",
+        })
+        resp = urllib.request.urlopen(req, timeout=15)
+        xml = resp.read().decode("utf-8", errors="replace")
+    except Exception as e:
+        print(f"[BIZ TRENDS] Google News search failed for '{phrase}': {e}")
+        return []
+
+    candidates = []
+    for item_xml in re.findall(r"<item>(.*?)</item>", xml, re.DOTALL):
+        title_match = re.search(r"<title>(.*?)</title>", item_xml, re.DOTALL)
+        link_match = re.search(r"<link>(.*?)</link>", item_xml, re.DOTALL)
+        pub_match = re.search(r"<pubDate>(.*?)</pubDate>", item_xml, re.DOTALL)
+        source_match = re.search(r"<source[^>]*>(.*?)</source>", item_xml, re.DOTALL)
+
+        if not title_match or not link_match:
+            continue
+
+        candidates.append({
+            "title":    title_match.group(1).strip(),
+            "link":     link_match.group(1).strip(),
+            "pub_date": pub_match.group(1).strip() if pub_match else "",
+            "source":   source_match.group(1).strip() if source_match else "",
+        })
+
+    return candidates
 
 
 # ══════════════════════════════════════════════════════════════

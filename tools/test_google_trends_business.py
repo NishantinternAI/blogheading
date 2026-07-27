@@ -92,6 +92,51 @@ with tempfile.TemporaryDirectory() as tmp_dir:
             fourth = gt.get_cached_business_trends()
             check("failed refresh falls back to stale cache, not []", fourth == [{"title": "b", "volume": 2}])
 
+# ── Task 1: _search_google_news_for_trend() ────────────────────────────
+_FAKE_NEWS_RSS = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>"idfc first bank share" - Google News</title>
+<item>
+  <title>IDFC First Bank shares surge 5% after Q1 results - Economic Times</title>
+  <link>https://news.google.com/rss/articles/CBMifake1</link>
+  <pubDate>Sun, 27 Jul 2026 09:00:00 GMT</pubDate>
+  <source url="https://economictimes.indiatimes.com">Economic Times</source>
+</item>
+<item>
+  <title>Why IDFC First Bank stock is trending today - Moneycontrol</title>
+  <link>https://news.google.com/rss/articles/CBMifake2</link>
+  <pubDate>Sun, 27 Jul 2026 08:30:00 GMT</pubDate>
+  <source url="https://www.moneycontrol.com">Moneycontrol</source>
+</item>
+</channel>
+</rss>"""
+
+
+def test_search_google_news_for_trend():
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        mock_urlopen.return_value.__enter__ = lambda s: s
+        mock_urlopen.return_value.read.return_value = _FAKE_NEWS_RSS.encode("utf-8")
+        results = gt._search_google_news_for_trend("idfc first bank share")
+
+    check("finds both news items", len(results) == 2)
+    check("first item has correct title", results[0]["title"] == "IDFC First Bank shares surge 5% after Q1 results - Economic Times")
+    check("first item has correct link", results[0]["link"] == "https://news.google.com/rss/articles/CBMifake1")
+    check("first item has correct pub_date", results[0]["pub_date"] == "Sun, 27 Jul 2026 09:00:00 GMT")
+    check("first item has correct source", results[0]["source"] == "Economic Times")
+
+
+test_search_google_news_for_trend()
+
+
+def test_search_google_news_for_trend_network_failure():
+    with patch("urllib.request.urlopen", side_effect=Exception("connection reset")):
+        results = gt._search_google_news_for_trend("some trend")
+    check("network failure returns empty list, not an exception", results == [])
+
+
+test_search_google_news_for_trend_network_failure()
+
 if failures:
     print(f"\n{len(failures)} FAILURE(S)")
     raise SystemExit(1)
