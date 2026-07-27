@@ -19,6 +19,7 @@ from datetime import datetime, timezone, timedelta
 from openai import OpenAI
 from PIL import Image
 
+from config import MODEL
 from content_engine.image_module.template_selector import TEMPLATE_CATEGORIES
 
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -280,15 +281,71 @@ def build_batch_input_lines(assignments: list) -> list:
     return lines
 
 
-def append_template_description(category: str, filename: str) -> None:
+def describe_generated_image(oc, master: "Image.Image", category: str) -> dict:
+    """
+    Vision-describes the actual rendered master image, returning a distinct
+    {"visual", "mood"} pair for it. Needed because build_category_prompt()
+    generates every template in a category from the identical static prompt
+    (only `idx` differs), so without this, two templates in the same
+    category get byte-identical description text -- leaving
+    select_template_pair_smart()'s LLM picker with nothing to distinguish
+    them by. Falls back to the category's static CATEGORY_PROMPTS text on
+    any API/parsing failure.
+    """
+    import io
+
+    info = CATEGORY_PROMPTS[category]
+    fallback = {"visual": info["visual_scene"], "mood": info["color_mood"]}
+
+    try:
+        buf = io.BytesIO()
+        master.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode()
+
+        response = oc.chat.completions.create(
+            model=MODEL,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": (
+                            "Describe this financial-blog background image "
+                            "concretely -- what's actually depicted (not "
+                            "generic marketing language) -- in 1-2 sentences, "
+                            "plus its color mood in a few words. Return ONLY "
+                            'JSON: {"visual": "...", "mood": "..."}'
+                        ),
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{b64}"},
+                    },
+                ],
+            }],
+        )
+        data = json.loads(response.choices[0].message.content)
+        if data.get("visual") and data.get("mood"):
+            return {"visual": data["visual"], "mood": data["mood"]}
+    except Exception as e:
+        print(f"[TEMPLATE BATCH] Vision description failed for {category}: {e} -- using category default")
+
+    return fallback
+
+
+def append_template_description(category: str, filename: str, visual_mood: dict = None) -> None:
     """
     Append a description entry for a newly generated outer template into
     content_engine/templates/<category>/image_descriptions.json, creating
     the category folder and/or file if missing. Schema matches the existing
     image_descriptions.json files (visual/mood/best_for/avoid_for), read by
-    template_selector.select_template_pair_smart().
+    template_selector.select_template_pair_smart(). `visual_mood` (from
+    describe_generated_image()) overrides the category's static
+    visual/mood text when provided -- best_for/avoid_for stay category-wide
+    since they describe topic fit, not this specific image's content.
     """
     info = CATEGORY_PROMPTS[category]
+    visual_mood = visual_mood or {"visual": info["visual_scene"], "mood": info["color_mood"]}
     category_dir = os.path.join(TEMPLATE_BASE, category)
     os.makedirs(category_dir, exist_ok=True)
     desc_path = os.path.join(category_dir, "image_descriptions.json")
@@ -300,8 +357,8 @@ def append_template_description(category: str, filename: str) -> None:
         descriptions = {}
 
     descriptions[f"outer/{filename}"] = {
-        "visual": info["visual_scene"],
-        "mood": info["color_mood"],
+        "visual": visual_mood["visual"],
+        "mood": visual_mood["mood"],
         "best_for": info["best_for"],
         "avoid_for": info["avoid_for"],
     }
@@ -382,13 +439,13 @@ def submit_weekly_batch(openai_client=None) -> dict:
     return new_state
 
 
-def _decode_and_store_image(b64_json: str, category: str, idx: int, batchdate: str) -> str:
+def _decode_and_store_image(oc, b64_json: str, category: str, idx: int, batchdate: str) -> str:
     """
     Decodes one generated master image, pad-resizes it into outer
     (640x480) and inner (1920x490) crops using that category's pad color,
     saves both under content_engine/templates/<category>/{outer,inner}/,
-    appends a description entry, and returns the filename written (same
-    filename used for both the outer and inner file).
+    appends a vision-derived description entry, and returns the filename
+    written (same filename used for both the outer and inner file).
     """
     import io
 
@@ -407,7 +464,8 @@ def _decode_and_store_image(b64_json: str, category: str, idx: int, batchdate: s
     outer_img.save(os.path.join(outer_dir, filename))
     inner_img.save(os.path.join(inner_dir, filename))
 
-    append_template_description(category, filename)
+    visual_mood = describe_generated_image(oc, master, category)
+    append_template_description(category, filename, visual_mood)
     return filename
 
 
@@ -448,7 +506,7 @@ def fetch_completed_batch(openai_client=None) -> dict:
                 category, idx_str = custom_id.split("__")
                 idx = int(idx_str)
                 b64_json = record["response"]["body"]["data"][0]["b64_json"]
-                filename = _decode_and_store_image(b64_json, category, idx, batchdate)
+                filename = _decode_and_store_image(oc, b64_json, category, idx, batchdate)
                 saved.append(filename)
             except Exception as exc:
                 print(
@@ -477,7 +535,7 @@ def fetch_completed_batch(openai_client=None) -> dict:
                 n=1,
             )
             filename = _decode_and_store_image(
-                response.data[0].b64_json, a["category"], a["idx"], batchdate
+                oc, response.data[0].b64_json, a["category"], a["idx"], batchdate
             )
             saved.append(filename)
         state["status"] = "fetched_via_fallback"
