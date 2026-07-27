@@ -4,9 +4,9 @@
 
 **Goal:** Turn `get_cached_business_trends()`'s bare trending finance query phrases into real, verified article dicts (grounded in an actual discovered news article, never fabricated), and wire them into `core/pipeline.py` as a new source alongside the existing ones.
 
-**Architecture:** Four new functions in `sources/google_trends.py` form a pipeline: search Google News RSS for a trend phrase (free) → title-prefilter candidates → extract full content from the best candidate via the existing `fetch_via_websearch()` (one AI call) → validate with the existing `_is_content_valid()` and `sources.common.assess_quality()` gates → return an article dict or `None`. `fetch_trending_business_articles()` orchestrates this for the top 5 trends by volume. `core/pipeline.py` then plugs this in as a fifth `PRIORITY_SOURCES` entry, bypassing the country/category filter the same way `nse_ipo`/`market_summary` already do.
+**Architecture:** Four new functions in `sources/google_trends.py` form a pipeline: search Google News RSS for a trend phrase (free) → title-prefilter candidates → extract full content for the best candidate via a new `fetch_article_via_headline_search()` in `core/model_client.py` (one AI call, searches by headline text rather than URL — see Task 3's amendment note for why) → validate with the existing `_is_content_valid()` and `sources.common.assess_quality()` gates → return an article dict or `None`. `fetch_trending_business_articles()` orchestrates this for the top 5 trends by volume. `core/pipeline.py` then plugs this in as a fifth `PRIORITY_SOURCES` entry, bypassing the country/category filter the same way `nse_ipo`/`market_summary` already do.
 
-**Tech Stack:** Python 3.10, stdlib `urllib.request`/`urllib.parse`/`re` (no new dependencies), existing `core.model_client.fetch_via_websearch`, existing `sources.common.assess_quality`.
+**Tech Stack:** Python 3.10, stdlib `urllib.request`/`urllib.parse`/`re` (no new dependencies), new `core.model_client.fetch_article_via_headline_search()` (modeled on the existing `fetch_ipo_live_data_via_ai()` pattern), existing `sources.common.assess_quality`.
 
 ## Global Constraints
 
@@ -263,15 +263,212 @@ candidates whose title shares nothing with the trending phrase."
 
 ### Task 3: Ground one trend in verified real news
 
+> **Amendment (discovered during Task 1's implementation, 2026-07-27):**
+> the plan originally called for `core.model_client.fetch_via_websearch(best["link"])`
+> to extract content directly from the Google News candidate's URL. This
+> was verified NOT to work: Google News RSS `<link>` values are opaque
+> redirect tokens (`news.google.com/rss/articles/CBMi...`) resolved
+> client-side via JavaScript, not a plain HTTP 3xx — a raw fetch doesn't
+> follow them, and `fetch_via_websearch()` tested directly against one
+> returned a response explicitly declining to guess-decode the token and
+> asking for either the real URL or permission to search by headline
+> instead. This task now adds a new function,
+> `fetch_article_via_headline_search()`, modeled on the existing
+> `fetch_ipo_live_data_via_ai()` pattern (search by topic, not URL), and
+> uses that instead.
+
 **Files:**
-- Modify: `sources/google_trends.py` (add `from core.model_client import fetch_via_websearch` and `from sources.common import assess_quality` to imports; add function after `_pick_best_candidate`)
+- Modify: `core/model_client.py` (add `fetch_article_via_headline_search()` function, after `fetch_via_websearch()` around line 385, before the `# ══...` banner that follows it — read the file to confirm the exact insertion point, since this file is 450+ lines and line numbers may have drifted)
+- Test: `tools/test_fetch_article_via_headline_search.py` (new file)
+- Modify: `sources/google_trends.py` (add `from core.model_client import fetch_article_via_headline_search` and `from sources.common import assess_quality` to imports; add `ground_trend_in_news()` function after `_pick_best_candidate`)
 - Test: `tools/test_google_trends_business.py` (append)
 
 **Interfaces:**
-- Consumes: `_search_google_news_for_trend()` (Task 1), `_pick_best_candidate()` (Task 2), existing `_is_content_valid(content: str, trend_title: str) -> bool` (line 269 of this same file), `core.model_client.fetch_via_websearch(url: str) -> str`, `sources.common.assess_quality(content: str) -> dict` with `{"word_count": int, "quality": "rich"|"thin"|"bare"|"empty"}`.
-- Produces: `ground_trend_in_news(trend: dict) -> dict | None`, where `trend` is one entry from `get_cached_business_trends()`'s return list (`{"title", "volume", "growth_pct", "started_unix", "related_queries", "category_ids"}`). Returns an article dict `{"Blog_Title", "Blog_Content", "Blog_Links", "Blog_PublishDate", "trending_signal"}` or `None`.
+- Consumes: `_search_google_news_for_trend()` (Task 1), `_pick_best_candidate()` (Task 2), existing `_is_content_valid(content: str, trend_title: str) -> bool` (in `sources/google_trends.py`), `sources.common.assess_quality(content: str) -> dict` with `{"word_count": int, "quality": "rich"|"thin"|"bare"|"empty"}`.
+- Produces: `core.model_client.fetch_article_via_headline_search(title: str, source: str = "") -> str` (returns extracted content, or `""` on failure/not-found). `ground_trend_in_news(trend: dict) -> dict | None`, where `trend` is one entry from `get_cached_business_trends()`'s return list (`{"title", "volume", "growth_pct", "started_unix", "related_queries", "category_ids"}`). Returns an article dict `{"Blog_Title", "Blog_Content", "Blog_Links", "Blog_PublishDate", "trending_signal"}` or `None`.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing test for `fetch_article_via_headline_search()`**
+
+Create `tools/test_fetch_article_via_headline_search.py`:
+
+```python
+"""
+Ad-hoc verification script for core/model_client.py's
+fetch_article_via_headline_search() -- run directly with
+`python tools/test_fetch_article_via_headline_search.py`. No live network
+calls -- mocks the OpenAI client's responses.create().
+"""
+from unittest.mock import MagicMock, patch
+
+import core.model_client as mc
+
+failures = []
+
+
+def check(label, condition):
+    status = "OK" if condition else "FAIL"
+    print(f"[{status}] {label}")
+    if not condition:
+        failures.append(label)
+
+
+def _fake_response(output_text):
+    resp = MagicMock()
+    resp.output_text = output_text
+    resp.usage = MagicMock(input_tokens=100, output_tokens=50)
+    return resp
+
+
+def test_returns_extracted_content_on_success():
+    with patch.object(mc.client.responses, "create", return_value=_fake_response(
+        "- IDFC First Bank shares rose 9.5% after posting Rs 1,075 crore Q1 profit\n"
+        "- Brokerages raised target prices following the results"
+    )):
+        content = mc.fetch_article_via_headline_search(
+            "IDFC First Bank shares surge 5% after Q1 results", "Economic Times"
+        )
+    check("returns the extracted bullet content", "IDFC First Bank shares rose 9.5%" in content)
+
+
+test_returns_extracted_content_on_success()
+
+
+def test_returns_empty_on_not_found_sentinel():
+    with patch.object(mc.client.responses, "create", return_value=_fake_response("NOT_FOUND")):
+        content = mc.fetch_article_via_headline_search("some headline that doesn't exist", "")
+    check("NOT_FOUND sentinel converts to empty string", content == "")
+
+
+test_returns_empty_on_not_found_sentinel()
+
+
+def test_returns_empty_on_api_exception():
+    with patch.object(mc.client.responses, "create", side_effect=Exception("API error")):
+        content = mc.fetch_article_via_headline_search("some headline", "")
+    check("API exception returns empty string, not a raised error", content == "")
+
+
+test_returns_empty_on_api_exception()
+
+if failures:
+    print(f"\n{len(failures)} FAILURE(S)")
+    raise SystemExit(1)
+print("\nAll cases passed.")
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `cd "D:/content_engine_testing/blogheading" && PYTHONPATH=. python tools/test_fetch_article_via_headline_search.py`
+
+Expected: `AttributeError: module 'core.model_client' has no attribute 'fetch_article_via_headline_search'`
+
+- [ ] **Step 3: Write minimal implementation of `fetch_article_via_headline_search()`**
+
+First, read `core/model_client.py` around the existing `fetch_via_websearch()` function (search for `def fetch_via_websearch`) to find its exact end (the function ends where the next top-level `def` or `# ══` banner begins) — insert the new function immediately after it. Add:
+
+```python
+def fetch_article_via_headline_search(title: str, source: str = "") -> str:
+    """
+    Fetches article content by searching for a real, currently-published
+    article matching the given headline -- for cases where only a
+    headline (not a resolvable URL) is available, e.g. Google News RSS
+    <link> values, which are opaque client-side-redirect tokens that
+    neither a plain HTTP fetch nor this same web_search tool can resolve
+    directly (verified 2026-07-27). Modeled on fetch_ipo_live_data_via_ai()'s
+    strict-format pattern: the model must reply with exactly NOT_FOUND if
+    it can't locate a real matching article, rather than paraphrasing from
+    the headline alone. Returns "" on a NOT_FOUND response or any failure.
+    """
+    global api_call_count
+    api_call_count += 1
+    ws_call_num = api_call_count
+
+    source_clause = f" published by {source}" if source else ""
+    request_text = (
+        f"Search for a real, currently-published news article with this "
+        f"exact headline: \"{title}\"{source_clause}. "
+        f"If you find it, extract all key information from it: "
+        f"every statistic, number, date, company name, expert quote, "
+        f"financial figure, and important fact mentioned. "
+        f"Present ONLY as bullet-point notes — do not summarise or paraphrase numbers. "
+        f"Do NOT include inline citation links or markdown links like ([source](url)) "
+        f"after each bullet point — return plain text bullet points only, no hyperlinks. "
+        f"Keep all rupee figures, percentages, and named sources exactly as stated. "
+        f"Do NOT extract page furniture or site UI text — this includes update "
+        f"counters, comment-section markers, 'follow us' / 'share this' / 'click here' "
+        f"prompts, navigation labels, or anything describing the webpage itself rather "
+        f"than the story. Only extract facts that are actually about the news story. "
+        f"Do NOT ask follow-up questions. Do NOT offer further options. "
+        f"If you cannot find a real article matching this exact headline, reply with "
+        f"exactly this and nothing else: NOT_FOUND\n"
+        f"Otherwise just return the extracted data and stop."
+    )
+
+    try:
+        response = client.responses.create(
+            model=MODEL,
+            input=[{"role": "user", "content": request_text}],
+            tools   = [WEB_SEARCH_TOOL],
+            include = INCLUDE_LIST,
+            store   = False,
+        )
+        content = (response.output_text or "").strip()
+    except Exception as e:
+        print(f"   [HEADLINE_SEARCH] Failed for '{title[:60]}': {e}")
+        return ""
+
+    usage = getattr(response, "usage", None)
+    _log_prompt(
+        call_num = ws_call_num,
+        prompt   = request_text,
+        metadata = {"type": "HEADLINE_SEARCH", "title": title},
+    )
+    _log_response(
+        call_num      = ws_call_num,
+        response_text = content,
+        input_tokens  = getattr(usage, "input_tokens", 0) if usage else 0,
+        output_tokens = getattr(usage, "output_tokens", 0) if usage else 0,
+        cost          = 0.0,
+    )
+
+    if content.upper().startswith("NOT_FOUND"):
+        print(f"   [HEADLINE_SEARCH] Not found: '{title[:60]}'")
+        return ""
+
+    content    = _strip_page_furniture(content)
+    word_count = len(content.split())
+    print(f"   [HEADLINE_SEARCH] '{title[:60]}' → {word_count} words fetched")
+    return content
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `cd "D:/content_engine_testing/blogheading" && PYTHONPATH=. python tools/test_fetch_article_via_headline_search.py`
+
+Expected:
+```
+[OK] returns the extracted bullet content
+[OK] NOT_FOUND sentinel converts to empty string
+[OK] API exception returns empty string, not a raised error
+
+All cases passed.
+```
+
+- [ ] **Step 5: Commit the headline-search function**
+
+```bash
+git add core/model_client.py tools/test_fetch_article_via_headline_search.py
+git commit -m "feat: add fetch_article_via_headline_search() for headline-based grounding
+
+Google News RSS <link> values are opaque client-side-redirect tokens --
+verified during this feature's Task 1 that neither a plain HTTP fetch
+nor the existing URL-based fetch_via_websearch() can resolve them. This
+searches by headline text instead, modeled on the existing
+fetch_ipo_live_data_via_ai() strict-format/NOT_FOUND pattern, so a
+confused or absent search result can never be mistaken for real content."
+```
+
+- [ ] **Step 6: Write the failing test for `ground_trend_in_news()`**
 
 Append to `tools/test_google_trends_business.py`:
 
@@ -291,16 +488,17 @@ _REAL_CONTENT = " ".join(["IDFC First Bank shares rose sharply today after stron
 
 def test_ground_trend_in_news_success():
     with patch.object(gt, "_search_google_news_for_trend", return_value=[
-        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://example.com/a", "pub_date": "Sun, 27 Jul 2026 09:00:00 GMT", "source": "Economic Times"},
+        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://news.google.com/rss/articles/fake1", "pub_date": "Sun, 27 Jul 2026 09:00:00 GMT", "source": "Economic Times"},
     ]):
-        with patch.object(gt, "fetch_via_websearch", return_value=_REAL_CONTENT):
+        with patch.object(gt, "fetch_article_via_headline_search", return_value=_REAL_CONTENT):
             result = gt.ground_trend_in_news(_FAKE_TREND)
 
     check("returns an article dict on success", result is not None)
     check("Blog_Title is the REAL article headline, not the bare phrase",
           result["Blog_Title"] == "IDFC First Bank shares surge 5% after Q1 results" if result else False)
     check("Blog_Content is the extracted content", result["Blog_Content"] == _REAL_CONTENT if result else False)
-    check("Blog_Links is the real article URL", result["Blog_Links"] == "https://example.com/a" if result else False)
+    check("Blog_Links is the real article URL (redirect token, kept for reference)",
+          result["Blog_Links"] == "https://news.google.com/rss/articles/fake1" if result else False)
     check("trending_signal carries the trend metadata", "idfc first bank share" in result["trending_signal"] if result else False)
 
 
@@ -318,7 +516,7 @@ test_ground_trend_in_news_no_candidates()
 
 def test_ground_trend_in_news_no_title_overlap():
     with patch.object(gt, "_search_google_news_for_trend", return_value=[
-        {"title": "Completely unrelated cricket score update", "link": "https://example.com/z", "pub_date": "", "source": ""},
+        {"title": "Completely unrelated cricket score update", "link": "https://news.google.com/rss/articles/fakez", "pub_date": "", "source": ""},
     ]):
         result = gt.ground_trend_in_news(_FAKE_TREND)
     check("returns None when no candidate title overlaps the phrase", result is None)
@@ -327,23 +525,23 @@ def test_ground_trend_in_news_no_title_overlap():
 test_ground_trend_in_news_no_title_overlap()
 
 
-def test_ground_trend_in_news_websearch_empty():
+def test_ground_trend_in_news_headline_search_empty():
     with patch.object(gt, "_search_google_news_for_trend", return_value=[
-        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://example.com/a", "pub_date": "", "source": ""},
+        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://news.google.com/rss/articles/fake1", "pub_date": "", "source": ""},
     ]):
-        with patch.object(gt, "fetch_via_websearch", return_value=""):
+        with patch.object(gt, "fetch_article_via_headline_search", return_value=""):
             result = gt.ground_trend_in_news(_FAKE_TREND)
-    check("returns None when fetch_via_websearch returns nothing", result is None)
+    check("returns None when fetch_article_via_headline_search returns nothing (incl. NOT_FOUND)", result is None)
 
 
-test_ground_trend_in_news_websearch_empty()
+test_ground_trend_in_news_headline_search_empty()
 
 
 def test_ground_trend_in_news_invalid_content():
     with patch.object(gt, "_search_google_news_for_trend", return_value=[
-        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://example.com/a", "pub_date": "", "source": ""},
+        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://news.google.com/rss/articles/fake1", "pub_date": "", "source": ""},
     ]):
-        with patch.object(gt, "fetch_via_websearch", return_value="Please sign in to continue reading this premium content."):
+        with patch.object(gt, "fetch_article_via_headline_search", return_value="Please sign in to continue reading this premium content."):
             result = gt.ground_trend_in_news(_FAKE_TREND)
     check("returns None when content fails _is_content_valid (paywall)", result is None)
 
@@ -353,9 +551,9 @@ test_ground_trend_in_news_invalid_content()
 
 def test_ground_trend_in_news_content_too_thin():
     with patch.object(gt, "_search_google_news_for_trend", return_value=[
-        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://example.com/a", "pub_date": "", "source": ""},
+        {"title": "IDFC First Bank shares surge 5% after Q1 results", "link": "https://news.google.com/rss/articles/fake1", "pub_date": "", "source": ""},
     ]):
-        with patch.object(gt, "fetch_via_websearch", return_value="IDFC First Bank shares rose today."):
+        with patch.object(gt, "fetch_article_via_headline_search", return_value="IDFC First Bank shares rose today."):
             result = gt.ground_trend_in_news(_FAKE_TREND)
     check("returns None when content is too thin (assess_quality bare/empty)", result is None)
 
@@ -363,18 +561,18 @@ def test_ground_trend_in_news_content_too_thin():
 test_ground_trend_in_news_content_too_thin()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 7: Run test to verify it fails**
 
 Run: `cd "D:/content_engine_testing/blogheading" && PYTHONPATH=. python tools/test_google_trends_business.py`
 
 Expected: `AttributeError: module 'sources.google_trends' has no attribute 'ground_trend_in_news'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **Step 8: Write minimal implementation of `ground_trend_in_news()`**
 
-Add these two imports near the top of `sources/google_trends.py`, right after the existing `from datetime import datetime, timezone` line (91):
+Add these two imports near the top of `sources/google_trends.py`, right after the existing `from urllib.parse import quote` line added in Task 1:
 
 ```python
-from core.model_client import fetch_via_websearch
+from core.model_client import fetch_article_via_headline_search
 from sources.common import assess_quality
 ```
 
@@ -388,7 +586,12 @@ def ground_trend_in_news(trend: dict) -> dict | None:
     every other source's output, or None if real news can't be verified
     at ANY step -- this is the hard gate against generating a blog from a
     bare search-volume spike with no real facts behind it (see the
-    2026-07-24 hallucinated-blog incident in docs/review.md).
+    2026-07-24 hallucinated-blog incident in docs/review.md). Uses
+    fetch_article_via_headline_search() rather than fetching the Google
+    News candidate's URL directly, since that URL is an opaque
+    client-side-redirect token neither a plain fetch nor the web_search
+    tool can resolve (verified 2026-07-27) -- Blog_Links still stores it
+    for reference even though it's never dereferenced.
     """
     phrase = trend["title"]
 
@@ -402,9 +605,9 @@ def ground_trend_in_news(trend: dict) -> dict | None:
         print(f"[BIZ TRENDS] No title-relevant candidate for '{phrase}' -- skipping")
         return None
 
-    content = fetch_via_websearch(best["link"])
+    content = fetch_article_via_headline_search(best["title"], best.get("source", ""))
     if not content:
-        print(f"[BIZ TRENDS] No content extracted for '{phrase}' ({best['link']}) -- skipping")
+        print(f"[BIZ TRENDS] No content found for '{phrase}' (headline: '{best['title']}') -- skipping")
         return None
 
     if not _is_content_valid(content, phrase):
@@ -425,7 +628,7 @@ def ground_trend_in_news(trend: dict) -> dict | None:
     }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 9: Run test to verify it passes**
 
 Run: `cd "D:/content_engine_testing/blogheading" && PYTHONPATH=. python tools/test_google_trends_business.py`
 
@@ -434,18 +637,18 @@ Expected: all prior `[OK]` lines, plus:
 [OK] returns an article dict on success
 [OK] Blog_Title is the REAL article headline, not the bare phrase
 [OK] Blog_Content is the extracted content
-[OK] Blog_Links is the real article URL
+[OK] Blog_Links is the real article URL (redirect token, kept for reference)
 [OK] trending_signal carries the trend metadata
 [OK] returns None when no Google News candidates exist
 [OK] returns None when no candidate title overlaps the phrase
-[OK] returns None when fetch_via_websearch returns nothing
+[OK] returns None when fetch_article_via_headline_search returns nothing (incl. NOT_FOUND)
 [OK] returns None when content fails _is_content_valid (paywall)
 [OK] returns None when content is too thin (assess_quality bare/empty)
 ```
 
-**Why the test patches `gt.fetch_via_websearch`, not `core.model_client.fetch_via_websearch`:** `sources/google_trends.py` imports it via `from core.model_client import fetch_via_websearch`, which binds a *new* name in `google_trends`'s own module namespace at import time. Patching `core.model_client.fetch_via_websearch` would not affect calls made from inside `google_trends.py` — `patch.object(gt, "fetch_via_websearch", ...)` is the correct target, matching the pattern already used for `_search_google_news_for_trend` in this same test file.
+**Why the tests patch `gt.fetch_article_via_headline_search` / `gt._search_google_news_for_trend`, not the `core.model_client`/module-local originals:** `sources/google_trends.py` imports these via `from X import Y`, which binds a *new* name in `google_trends`'s own module namespace at import time. Patching the origin module's attribute would not affect calls made from inside `google_trends.py` — `patch.object(gt, "...", ...)` is the correct target.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
 git add sources/google_trends.py tools/test_google_trends_business.py
@@ -453,10 +656,10 @@ git commit -m "feat: ground trending phrases in verified real news
 
 ground_trend_in_news() is the hard gate against generating a blog from
 a bare search-volume spike with no real facts behind it -- chains
-Google News discovery, title prefilter, fetch_via_websearch content
-extraction, and the existing _is_content_valid()/assess_quality() gates.
-Any failure returns None; the trend is simply skipped, never passed to
-the blog generator with nothing real to write about."
+Google News discovery, title prefilter, fetch_article_via_headline_search
+content extraction, and the existing _is_content_valid()/assess_quality()
+gates. Any failure returns None; the trend is simply skipped, never
+passed to the blog generator with nothing real to write about."
 ```
 
 ---
@@ -918,22 +1121,27 @@ ground_trend_in_news() before ever reaching this point."
 - [ ] **Step 1: Push all commits**
 
 Run: `cd "D:/content_engine_testing/blogheading" && git push origin test_ipo_news`
-Expected: all 5 commits from Tasks 1-5 pushed successfully.
+Expected: all commits from Tasks 1-5 pushed successfully (6 commits: Task 1, Task 2, Task 3's headline-search-function commit, Task 3's ground_trend_in_news commit, Task 4, Task 5).
 
 - [ ] **Step 2: Pull and rebuild on the server**
 
 Run: `ssh sarthi-server "cd '/home/swastika-ai/Content Engine/Blogheading' && git pull origin test_ipo_news && docker compose up --build -d"`
-Expected: fast-forward pull showing the 5 new commits, followed by a successful image rebuild and container recreation (same pattern used earlier this session).
+Expected: fast-forward pull showing the new commits, followed by a successful image rebuild and container recreation (same pattern used earlier this session).
 
-- [ ] **Step 3: Run both new test files live in the container**
+- [ ] **Step 3: Run all new test files live in the container**
 
 Run: `ssh sarthi-server "docker exec blogheading-scheduler-1 python3 tools/test_google_trends_business.py"`
 Expected: `All cases passed.` (all mocked tests, no live network needed, confirms the code is correctly deployed)
+
+Run: `ssh sarthi-server "docker exec blogheading-scheduler-1 python3 tools/test_fetch_article_via_headline_search.py"`
+Expected: `All cases passed.`
 
 Run: `ssh sarthi-server "docker exec blogheading-scheduler-1 python3 tools/test_pipeline_trending_business_wiring.py"`
 Expected: `All cases passed.`
 
 - [ ] **Step 4: Live end-to-end smoke test against the real network**
+
+This is the most important verification in this task: it's the first time `fetch_article_via_headline_search()` runs against the real OpenAI web-search tool for a real trending headline (Tasks 1-5 only ever exercised it mocked) — confirming it can actually find and extract real articles by headline text is the entire point of this task's amendment.
 
 Run:
 ```bash
