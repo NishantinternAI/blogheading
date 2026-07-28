@@ -2,11 +2,18 @@
 Ad-hoc verification script for utils/date_filter.py's BYPASS_SOURCES --
 run directly with `python tools/test_date_filter_bypass_sources.py`.
 
-Covers the fix adding "google_trends_business" to BYPASS_SOURCES: these
-articles are individually content-verified (real, cited news) before
-ever reaching the freshness filter, so an old/stale-dated article from
-this source must survive filter_fresh_articles() unfiltered, exactly
-like nse_ipo/nse_corporate/market_summary already do.
+Covers the fix adding "google_trends_business" to BYPASS_SOURCES: this
+module, in isolation, always lets a google_trends_business article
+through regardless of its date, exactly like nse_ipo/nse_corporate/
+market_summary already do -- content-verification (assess_quality/
+_is_content_valid) checks relevance and word count, not recency, so
+this bypass is safe ONLY because sources/google_trends.py's
+_pick_best_candidate() already rejects any candidate older than
+MAX_CANDIDATE_AGE_DAYS before an article ever reaches this filter (see
+that function's docstring for the 2026-07-28 stale-repost incident this
+fixed). This test only proves the bypass-source list itself; it does
+NOT prove staleness is actually caught -- that's covered separately in
+sources/google_trends.py's own candidate-recency behavior.
 """
 import utils.date_filter as date_filter_module
 

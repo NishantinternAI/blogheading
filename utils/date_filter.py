@@ -19,6 +19,16 @@ WINDOW_END_HOUR   = 18  # 6:00 PM
 
 # ══════════════════════════════════════════════════════════════
 #  BYPASS SOURCES — always pass regardless of date
+#
+#  google_trends_business is safe to bypass ONLY because
+#  sources/google_trends.py's _pick_best_candidate() already rejects
+#  any candidate article older than MAX_CANDIDATE_AGE_DAYS before it
+#  ever reaches this filter -- content-verification (assess_quality/
+#  _is_content_valid) checks relevance and word count, NOT recency, so
+#  without that upstream age check this bypass would let stale reposted
+#  articles through as if they were today's news (2026-07-28 incident:
+#  a 25 Jun Muharram holiday piece was published under a "today"
+#  headline). Do not rely on this bypass without that upstream gate.
 # ══════════════════════════════════════════════════════════════
 
 BYPASS_SOURCES = {"nse_ipo", "nse_corporate", "market_summary", "google_trends_business"}

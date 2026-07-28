@@ -88,11 +88,14 @@ import os
 import re
 import tempfile
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
 from core.model_client import fetch_article_via_headline_search
 from sources.common import assess_quality
+from utils.date_filter import _parse_date
+
+MAX_CANDIDATE_AGE_DAYS = 1
 
 
 # ── Try importing trafilatura ─────────────────────────────────
@@ -344,21 +347,47 @@ def _search_google_news_for_trend(phrase: str) -> list:
     return candidates
 
 
+def _is_recent(pub_date: str) -> bool:
+    """
+    True if pub_date parses to within the last MAX_CANDIDATE_AGE_DAYS
+    days, or if it can't be parsed at all (Google News RSS dates are
+    reliably formatted in practice, so an unparseable string is treated
+    as an upstream format quirk, not evidence of staleness).
+    """
+    if not pub_date:
+        return True
+
+    pub_dt = _parse_date(pub_date)
+    if pub_dt is None:
+        return True
+
+    return datetime.now(timezone.utc) - pub_dt <= timedelta(days=MAX_CANDIDATE_AGE_DAYS)
+
+
 def _pick_best_candidate(phrase: str, candidates: list) -> dict | None:
     """
     Title-level prefilter (no AI call) -- keeps only candidates whose
     title shares at least one word (len > 3, case-insensitive) with the
     trend phrase, same shape as _is_content_valid()'s title-overlap
-    check. Returns the first surviving candidate (Google News RSS already
-    orders by relevance/recency), or None if nothing overlaps.
+    check, AND whose pub_date is within MAX_CANDIDATE_AGE_DAYS days.
+    Google News RSS search can surface old articles that happen to
+    resurface (e.g. reposted/re-indexed) well after their real event
+    date. Trending-search spikes are same-day-or-yesterday phenomena, so
+    a 1-day cutoff is deliberately tight -- without this check a trend
+    like "NSE market closed today"
+    can get grounded in a month-old holiday-calendar article and
+    published as if it were current (2026-07-28 incident: a 25 Jun
+    Muharram holiday piece got published under a "today" headline).
+    Returns the first surviving candidate (Google News RSS already
+    orders by relevance/recency), or None if nothing qualifies.
     """
     phrase_words = [w.lower() for w in phrase.split() if len(w) > 3]
-    if not phrase_words:
-        return candidates[0] if candidates else None
 
     for candidate in candidates:
+        if not _is_recent(candidate.get("pub_date", "")):
+            continue
         title_lower = candidate.get("title", "").lower()
-        if any(w in title_lower for w in phrase_words):
+        if not phrase_words or any(w in title_lower for w in phrase_words):
             return candidate
 
     return None
