@@ -468,6 +468,202 @@ def fetch_trending_business_articles(max_trends: int = 5) -> list:
 
 
 # ══════════════════════════════════════════════════════════════
+#  DAILY TRENDS RSS ENRICHMENT
+#
+# Google's official Daily Search Trends feed (different endpoint from
+# the "Trending Now" scrape above) embeds each trend's own pre-matched
+# <ht:news_item> elements -- real, directly resolvable article URLs
+# (not the Google News redirect tokens _search_google_news_for_trend()
+# has to route around via an AI headline search), already relevance-
+# matched by Google's own trends engine rather than our title-overlap
+# heuristic. Only 10 items/day and, like the main scrape, ignores its
+# own geo/category/hours query params server-side (confirmed
+# empirically 2026-07-28) -- it mixes non-finance trends (cricket
+# scores, regional news) in with finance ones, so results are
+# cross-referenced against get_cached_business_trends() (the same
+# category-3-tagged list fetch_trending_business_articles() ranks by
+# volume) to keep only trends Google itself already tagged Business &
+# Finance. This is a narrow supplement, not a replacement: on
+# 2026-07-28 none of that day's top-5-by-volume trends appeared in
+# this feed, but 7 of the ~52 tagged trends did (e.g. "hul share
+# price", "bel share", "tcs share") -- topics the volume-ranked path
+# alone would never reach.
+# ══════════════════════════════════════════════════════════════
+
+DAILY_TRENDS_RSS_URL = "https://trends.google.com/trending/rss?geo=IN"
+_RSS_NS = {"ht": "https://trends.google.com/trending/rss"}
+
+
+def _fetch_daily_trends_rss() -> list:
+    """
+    Fetches Google's Daily Search Trends RSS feed via a single plain GET
+    and returns one dict per trend: {"title", "news_urls"} -- news_urls
+    is the list of real article URLs from that trend's <ht:news_item>
+    elements, in Google's own relevance order. Returns [] on any
+    network/parse failure (caught, logged, not raised), same
+    best-effort contract as _search_google_news_for_trend().
+    """
+    import xml.etree.ElementTree as ET
+
+    req = urllib.request.Request(DAILY_TRENDS_RSS_URL, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+        "Accept":     "application/rss+xml, application/xml, */*",
+    })
+    try:
+        resp = urllib.request.urlopen(req, timeout=15)
+        xml_bytes = resp.read()
+    except Exception as e:
+        print(f"[DAILY RSS] Fetch failed: {e}")
+        return []
+
+    try:
+        root = ET.fromstring(xml_bytes)
+    except ET.ParseError as e:
+        print(f"[DAILY RSS] Parse failed: {e}")
+        return []
+
+    items = []
+    for item_el in root.findall("./channel/item"):
+        title_el = item_el.find("title")
+        title = (title_el.text or "").strip() if title_el is not None else ""
+        if not title:
+            continue
+
+        news_urls = []
+        for news_item_el in item_el.findall("ht:news_item", _RSS_NS):
+            url_el = news_item_el.find("ht:news_item_url", _RSS_NS)
+            if url_el is not None and url_el.text:
+                news_urls.append(url_el.text.strip())
+
+        items.append({"title": title, "news_urls": news_urls})
+
+    return items
+
+
+def ground_daily_rss_trend(item: dict) -> dict | None:
+    """
+    Grounds one Daily Trends RSS item using its own Google-curated
+    news_urls -- fetched directly via _scrape_all_news_urls() (real
+    URLs, no AI headline-search call needed), same quality bar as
+    ground_trend_in_news(). Returns None if there are no news_urls, or
+    scraping/quality checks fail at any step. No Blog_PublishDate is
+    available from this feed (news_item elements carry no per-article
+    date) -- utils/date_filter.py's is_fresh() already treats a missing
+    date as "allow" for every source, so this relies on that existing
+    behavior rather than needing a BYPASS_SOURCES entry of its own.
+    """
+    title = item["title"]
+    news_urls = item.get("news_urls", [])
+    if not news_urls:
+        print(f"[DAILY RSS] No news_item URLs for '{title}' -- skipping")
+        return None
+
+    raw_content = _scrape_all_news_urls(news_urls, title, max_chars_each=2000, min_chars_needed=1000)
+    if not raw_content:
+        print(f"[DAILY RSS] No scrapeable content for '{title}' -- skipping")
+        return None
+
+    # _scrape_all_news_urls() prefixes each source's text with a
+    # "--- Source N (url) ---" marker -- pull the actually-used URL(s)
+    # out of that (news_urls[0] can be a URL that failed and got
+    # skipped in favor of a later one) and strip the markers so they
+    # don't leak into the blog prompt as literal text.
+    used_urls = re.findall(r"--- Source \d+ \((.*?)\) ---", raw_content)
+    content = re.sub(r"--- Source \d+ \(.*?\) ---\n?", "", raw_content).strip()
+
+    quality = assess_quality(content)
+    if quality["quality"] in ("empty", "bare"):
+        print(f"[DAILY RSS] Content too thin for '{title}' ({quality['word_count']} words) -- skipping")
+        return None
+
+    return {
+        "Blog_Title":      title,
+        "Blog_Content":    content,
+        "Blog_Links":      used_urls[0] if used_urls else news_urls[0],
+        "Blog_PublishDate": "",
+        "trending_signal": f"{title} (daily trends RSS)",
+    }
+
+
+_FINANCE_KEYWORDS = {
+    "share", "shares", "stock", "stocks", "price", "prices", "ipo", "gmp",
+    "bank", "banks", "banking", "nifty", "sensex", "rupee", "index", "ltd",
+    "limited", "dividend", "profit", "profits", "revenue", "results",
+    "earnings", "market", "markets", "trading", "invest", "investment",
+    "investor", "investors", "crore", "lakh", "listing", "allotment",
+    "mutual", "fund", "funds", "gold", "rate", "rates", "loan", "loans",
+    "emi", "insurance", "premium", "subsidy", "tax", "itr", "rbi", "sebi",
+    "nse", "bse", "gst", "petrol", "diesel", "lpg", "cylinder", "sip",
+    "portfolio", "capital", "equity", "bond", "bonds", "cpi", "gdp",
+}
+
+
+def _is_finance_related(title: str, related_queries: list) -> bool:
+    """
+    Cheap language-agnostic-enough finance filter -- Google tags this
+    feed's items with the same category-3 label used elsewhere in this
+    module, but that tagging is unreliable (e.g. a Chennai power-outage
+    story showed up tagged Business & Finance on 2026-07-28). Unlike
+    fetch_trending_business_articles(), which is implicitly guarded by
+    only grounding the top 5 by search volume, this daily-feed path has
+    no volume filter, so a mistagged trend here reaches grounding (and,
+    since publishing is live with no draft review, the site) far more
+    easily. Checked empirically: every genuine finance trend in a
+    52-trend sample (e.g. "hul share price", "bel share", "tcs share")
+    carries an English finance term in its own title/related_queries,
+    even when other fields are in a vernacular script -- so this is a
+    pre-scrape filter (cheaper than scraping first and filtering after).
+    """
+    text = (title + " " + " ".join(related_queries)).lower()
+    words = re.findall(r"[a-z0-9]+", text)
+    return any(w in _FINANCE_KEYWORDS for w in words)
+
+
+def fetch_trending_daily_rss_articles() -> list:
+    """
+    Fetcher plugged into core/pipeline.py's _fetch_all_sources(). Pulls
+    the 10-item Daily Trends RSS feed, keeps only items whose title also
+    appears in get_cached_business_trends() (i.e. Google itself already
+    tagged it Business & Finance) AND pass _is_finance_related() (a
+    second, keyword-based check -- Google's own category tagging isn't
+    reliable enough to trust alone here, see that function's docstring),
+    and grounds each via ground_daily_rss_trend(). Each item is wrapped
+    in its own try/except so one item's failure never drops the rest of
+    the batch. Returns 0-10 article dicts.
+    """
+    daily_items = _fetch_daily_trends_rss()
+    if not daily_items:
+        return []
+
+    biz_by_title = {t["title"].strip().lower(): t for t in get_cached_business_trends()}
+    relevant = []
+    for item in daily_items:
+        biz_trend = biz_by_title.get(item["title"].strip().lower())
+        if not biz_trend:
+            continue
+        if not _is_finance_related(item["title"], biz_trend.get("related_queries", [])):
+            print(f"[DAILY RSS] '{item['title']}' tagged Business & Finance but no finance "
+                  f"keyword found -- skipping (likely Google mistag)")
+            continue
+        relevant.append(item)
+
+    articles = []
+    for item in relevant:
+        try:
+            article = ground_daily_rss_trend(item)
+        except Exception as e:
+            print(f"[DAILY RSS] Error grounding '{item.get('title', '?')}': {e}")
+            continue
+        if article:
+            articles.append(article)
+
+    print(f"[DAILY RSS] {len(daily_items)} daily trends, {len(relevant)} finance-relevant, "
+          f"{len(articles)} grounded into real articles")
+    return articles
+
+
+# ══════════════════════════════════════════════════════════════
 #  MAIN FETCHER
 # ══════════════════════════════════════════════════════════════
 
